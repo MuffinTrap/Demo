@@ -34,9 +34,9 @@ namespace OpenTkConsole
 		{
 			// positions
 			List<Vector3> positions = new List<Vector3>(3);
-			positions.Add(new Vector3(-1.0f, -1.0f, 0.0f));
-			positions.Add(new Vector3(0.0f, 1.0f, 0.0f));
-			positions.Add(new Vector3(1.0f, -1.0f, 0.0f));
+			positions.Add(new Vector3(-0.5f, 0.5f, 0.0f));
+			positions.Add(new Vector3(0.5f, 0.5f, 0.0f));
+			positions.Add(new Vector3(0.0f, 0.0f, 0.0f));
 			
 			return new Mesh(positions);
 		}
