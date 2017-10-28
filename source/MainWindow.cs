@@ -50,7 +50,7 @@ namespace OpenTkConsole
         Stopwatch timer;
 
         public MainWindow()
-            : base(400, 400, 
+            : base(854, 480, 
                   GraphicsMode.Default,
                   "OpenTK party",
                   GameWindowFlags.Default,
@@ -174,6 +174,13 @@ namespace OpenTkConsole
                 syncDevice.Dispose();
                 Exit();
             }
+
+			// Pass input to scene
+
+			// Take scene number from track
+
+			testScene.updateScene(keyState);
+
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -182,6 +189,9 @@ namespace OpenTkConsole
             {
                 return;
             }
+
+			// Take scene number from track.
+			// Draw that scene
 
             Color4 backColor;
             backColor.A = 1.0f;
@@ -193,6 +203,8 @@ namespace OpenTkConsole
 
 			// Draw models
 			testScene.drawScene();
+
+			// Scene drawing ends
 			
             if (Error.checkGLError("OnRenderFrame"))
             {

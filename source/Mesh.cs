@@ -22,7 +22,42 @@ namespace OpenTkConsole
 		private List<Vector3> rawPositions;
 		
 		public Matrix4Uniform worldMatrix;
+
+		private static int positionDataIndex;
+		public static int PositionDataIndex { set { positionDataIndex = value; } }
+
+		private static int colorDataIndex;
+		public static int ColorDataIndex { set { colorDataIndex = value; } }
+
+		public static int ScaleDataIndex { get; set; }
+
+		// RenderingComponent
+		private Color4 diffuseColor;
+
+		public Color4 DiffuseColor
+		{
+			set { diffuseColor = value; }
+			get { return diffuseColor; }
+		}
+
+		public float Scale { get; set; }
+		//
+
+		// TransformComponent
+		private Vector3 worldPosition;
 		
+		public Vector3 WorldPosition 
+		{ 
+			set 
+			{ 
+				worldPosition = value;
+				worldMatrix.Matrix = Matrix4.CreateTranslation(worldPosition);
+			} 
+		}
+
+		//
+
+
 		private struct OBJFace
 		{
 			public int positionIndex;
@@ -33,42 +68,19 @@ namespace OpenTkConsole
 		static public Mesh CreateTriangleMesh()
 		{
 			// positions
+			float triangleScale = 0.1f;
+
 			List<Vector3> positions = new List<Vector3>(3);
-			positions.Add(new Vector3(-0.5f, 0.5f, 0.0f));
-			positions.Add(new Vector3(0.5f, 0.5f, 0.0f));
-			positions.Add(new Vector3(0.0f, 0.0f, 0.0f));
+			positions.Add(new Vector3(-1f, 1f, 0.0f) * triangleScale);
+			positions.Add(new Vector3(1f, 1f, 0.0f) * triangleScale);
+			positions.Add(new Vector3(0.0f, 0.0f, 0.0f) * triangleScale);
 			
 			return new Mesh(positions);
 		}
 		
 		
 		
-		// Reads on .obs file
-		static public Mesh CreateFromFile(string filename)
-		{
-			List<OBJFace> faces;
-			
-			List<Vector3> positions;
-			List<Vector3> normals;
-			List<int> materials;
-
-            faces = new List<OBJFace>();
-            positions = new List<Vector3>();
-            normals = new List<Vector3>();
-            materials = new List<int>();
-
-            readOBJ(filename, ref faces, ref positions, ref normals, ref materials);
-
-			// Create positions 
-			List<Vector3> trianglePositions = new List<Vector3>(positions.Count);
-			
-			foreach(OBJFace face in faces)
-			{
-				trianglePositions.Add( positions[ face.positionIndex - 1 ]);
-			}
-			
-            return new Mesh(trianglePositions);
-		}
+		
 		
 		public Mesh(List<Vector3> positions)
 		{
@@ -88,9 +100,12 @@ namespace OpenTkConsole
 			 
 			 worldMatrix = new Matrix4Uniform("modelMatrix");
 			 worldMatrix.Matrix = Matrix4.Identity;
+
+			Scale = 1.0f;
+
 		}
 		
-		public void bufferData(int positionIndex)
+		public void bufferData()
 		{
 			GL.BindVertexArray(VAOHandle);
 			
@@ -100,16 +115,52 @@ namespace OpenTkConsole
 
             //  Vertex attributes
 
-            GL.VertexAttribPointer(index: positionIndex, size: elementsInPosition
+            GL.VertexAttribPointer(index: positionDataIndex, size: elementsInPosition
                 , type: VertexAttribPointerType.Float
                 , normalized: false, stride: vertexSize, offset: 0);
 
-            GL.EnableVertexAttribArray(positionIndex);
+            GL.EnableVertexAttribArray(positionDataIndex);
 			// GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 			
 			Error.checkGLError("Mesh.bufferData");
 		}
-		
+
+		public void updateUniforms(ShaderProgram shaderProgram)
+		{
+			worldMatrix.Set(shaderProgram);
+			GL.Uniform4(colorDataIndex, diffuseColor);
+			GL.Uniform1(ScaleDataIndex, Scale);
+		}
+
+		// Reads on .obs file
+		static public Mesh CreateFromFile(string filename)
+		{
+			List<OBJFace> faces;
+
+			List<Vector3> positions;
+			List<Vector3> normals;
+			List<int> materials;
+
+			faces = new List<OBJFace>();
+			positions = new List<Vector3>();
+			normals = new List<Vector3>();
+			materials = new List<int>();
+
+			readOBJ(filename, ref faces, ref positions, ref normals, ref materials);
+
+			// Create positions 
+			List<Vector3> trianglePositions = new List<Vector3>(positions.Count);
+
+			Console.WriteLine("Mesh read from " + filename);
+			foreach (OBJFace face in faces)
+			{
+				trianglePositions.Add(positions[face.positionIndex - 1]);
+				Console.WriteLine(positions[face.positionIndex - 1].ToString());
+			}
+
+			return new Mesh(trianglePositions);
+		}
+
 		private static void readOBJ(string filename, ref List<OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<int> materials)
 		{
 			// Sections 
@@ -133,6 +184,14 @@ namespace OpenTkConsole
 				if (line.Contains("#"))
 				{
 					// comment
+				}
+				else if (line.Contains("mtllib"))
+				{
+					// material
+				}
+				else if (line.Contains("usemtl"))
+				{
+					// material
 				}
 				else if (line.Contains("vn"))
 				{
@@ -198,7 +257,7 @@ namespace OpenTkConsole
 			{
 				faces.Add(readFace(faceStrings[1]));
 				faces.Add(readFace(faceStrings[2]));
-				faces.Add(readFace(faceStrings[2]));
+				faces.Add(readFace(faceStrings[3]));
 			}
 		}
 
