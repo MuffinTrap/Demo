@@ -22,7 +22,7 @@ class Scene
 	Mesh zTriangle;
 	Mesh yTriangle;
 
-	//Mesh voxelMesh;
+	Mesh voxelMesh;
 	
 	Matrix4Uniform projectionMatrix;
 	Matrix4Uniform viewMatrix;
@@ -49,12 +49,12 @@ class Scene
 		Mesh.ScaleDataIndex = shaderProgram.GetUniformLocation("uScale");
 		shaderProgram.setSamplerUniform("inputTexture", 0);
 
-		origoTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 0), new Color4(1.0f, 0.0f, 0.0f, 1.0f), 0.1f);
+		origoTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
 		xTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 0.1f);
 		zTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 0.1f);
 		yTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 0.1f);
 
-		//voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/voxelColor/voxelColor.obj"), new Vector3(3, 0, -3.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.3f);
+		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj"), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
@@ -65,7 +65,10 @@ class Scene
 
 		viewMatrix = new Matrix4Uniform("viewMatrix");
 		viewMatrix.Matrix = Matrix4.CreateTranslation(cameraPosition);
-		
+
+		GL.Enable(EnableCap.DepthTest);
+		GL.DepthFunc(DepthFunction.Less);
+
 		Error.checkGLError("Scene.loadScene");
 	}
 
@@ -85,6 +88,8 @@ class Scene
 		mesh.updateUniforms(shaderProgram);
 		GL.BindVertexArray(mesh.VAOHandle);
 		GL.DrawArrays(PrimitiveType.Triangles, 0, mesh.VertexAmount);
+		GL.BindVertexArray(0);
+		GL.BindTexture(TextureTarget.Texture2D, 0);
 	}
 	
 	public void drawScene()
@@ -94,12 +99,13 @@ class Scene
 		projectionMatrix.Set(shaderProgram);
 		viewMatrix.Set(shaderProgram);
 
+		drawMesh(zTriangle);
 		drawMesh(origoTriangle);
-		//drawMesh(xTriangle);
-		//drawMesh(zTriangle);
-		//drawMesh(yTriangle);
+		drawMesh(xTriangle);
+		
+		drawMesh(yTriangle);
 		//
-		//drawMesh(voxelMesh);
+		drawMesh(voxelMesh);
 
 		Error.checkGLError("Scene.drawScene");
 
@@ -128,14 +134,17 @@ class Scene
 
 		if (keyState.IsKeyDown(key: Key.R) )
 		{
-			cameraPosition +=  sceneUp * cameraSpeed;
+			cameraPosition -=  sceneUp * cameraSpeed;
 		}
 		else if (keyState.IsKeyDown(Key.F) )
 		{
-			cameraPosition -= sceneUp * cameraSpeed;
+			cameraPosition += sceneUp * cameraSpeed;
 		}
 
-			viewMatrix.Matrix = Matrix4.CreateTranslation(cameraPosition);
+		viewMatrix.Matrix = Matrix4.CreateTranslation(cameraPosition);
+
+		float rotationSpeed = 0.01f;
+		voxelMesh.rotate(rotationSpeed);
 
 	}
 }

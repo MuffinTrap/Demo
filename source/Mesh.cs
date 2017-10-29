@@ -16,7 +16,8 @@ namespace OpenTkConsole
 		public int VAOHandle;
 		public int BufferHandle;
 		public int VertexAmount;
-		
+
+		private float rotationY;
 		
 		public struct PosTexVertex
 		{
@@ -93,9 +94,9 @@ namespace OpenTkConsole
 			// positions
 
 			List<PosTexVertex> vertices = new List<PosTexVertex>(3);
-			vertices.Add(new PosTexVertex(new Vector3(-1f, 1f, 0.0f), new Vector2(0.5f,0.5f)));
-			vertices.Add(new PosTexVertex(new Vector3(1f, 1f, 0.0f), new Vector2(0.5f, 0.5f)));
-			vertices.Add(new PosTexVertex(new Vector3(0.0f, 0.0f, 0.0f), new Vector2(0.5f, 0.5f)));
+			vertices.Add(new PosTexVertex(new Vector3(-1f, 1f, 0.0f), new Vector2(0.0f,1.0f)));
+			vertices.Add(new PosTexVertex(new Vector3(1f, 1f, 0.0f), new Vector2(1.0f, 1.0f)));
+			vertices.Add(new PosTexVertex(new Vector3(0.0f, 0.0f, 0.0f), new Vector2(0.5f, 0.0f)));
 
 			return new Mesh(vertices, MaterialManager.getMaterialByName("white"));
 		}
@@ -120,6 +121,7 @@ namespace OpenTkConsole
 			// RenderingComponent
 			Scale = 1.0f;
 			DiffuseColor = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
+			rotationY = 0.0f;
 
 		}
 		
@@ -146,7 +148,6 @@ namespace OpenTkConsole
 
 			GL.EnableVertexAttribArray(PositionDataIndex);
 			GL.EnableVertexAttribArray(TexCoordDataIndex);
-			// GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 			
 			Error.checkGLError("Mesh.bufferData");
 		}
@@ -162,6 +163,16 @@ namespace OpenTkConsole
 			GL.Uniform1(ScaleDataIndex, Scale);
 
 			Error.checkGLError("Mesh.updateUniforms");
+		}
+
+		public void rotate(float speed)
+		{
+			rotationY += speed;
+			if (rotationY > MathHelper.TwoPi)
+			{
+				rotationY = 0.0f;
+			}
+			worldMatrix.Matrix = Matrix4.CreateRotationY(rotationY);
 		}
 
 		// Reads on .obs file

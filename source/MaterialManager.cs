@@ -35,6 +35,7 @@ namespace OpenTkConsole
 			materials = new List<Material>();
 			dataDir = dataDirectory;
 			loadMaterial("white.mtl");
+			loadMaterial("gradient.mtl");
 		}
 
 		public static Material getMaterialByName(string materialName)
@@ -155,7 +156,7 @@ namespace OpenTkConsole
 			string fullPath = dataDir + textureFileName;
 
 			// Create bitmap manually.
-			bool fromFile = false;
+			bool fromFile = true;
 			Bitmap map = null;
 
 			if (fromFile)
@@ -188,7 +189,6 @@ namespace OpenTkConsole
 				}
 			}
 			int textureId = loadTextureFromBitmap(map);
-			map.Dispose();
 			return textureId;
 
 		}
@@ -196,12 +196,22 @@ namespace OpenTkConsole
 		static int loadTextureFromBitmap(Bitmap map)
 		{
 			int texID = GL.GenTexture();
+			GL.ActiveTexture(TextureUnit.Texture0);
 			GL.BindTexture(TextureTarget.Texture2D, texID);
 			BitmapData data = map.LockBits(new System.Drawing.Rectangle(0, 0, map.Width, map.Height),
 		ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
-			GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, data.Width, data.Height, 0,
-				OpenTK.Graphics.OpenGL.PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
+			GL.TexImage2D(target: TextureTarget.Texture2D
+				, level: 0
+				, internalformat: PixelInternalFormat.Rgba	// Storage format.
+				, width: data.Width
+				, height: data.Height
+				, border: 0
+				, format: OpenTK.Graphics.OpenGL.PixelFormat.Bgra // Source format
+				, type: PixelType.UnsignedByte	// Source data
+				, pixels: data.Scan0);
+
+			GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
 			map.UnlockBits(data);
 
