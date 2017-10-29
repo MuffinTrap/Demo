@@ -11,14 +11,16 @@ uniform float uScale;
 
 // attributes of our vertex
 in vec3 vPosition;
-//  in vec4 vColor;
-out vec4 fColor; // must match name in fragment shader
+in vec2 vTexCoord;
+
+out vec2 fTexCoord;
+out vec4 fDiffuseColor; // must match name in fragment shader
 void main()
 {
 	// gl_Position is a special variable of OpenGL that must be set
 	 gl_Position =   projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition * uScale,	1.0);
 	
 	// 
-	
-	fColor = uDiffuseColor;
+	fTexCoord = vTexCoord;
+	fDiffuseColor = uDiffuseColor;
 }

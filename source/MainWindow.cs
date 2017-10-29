@@ -81,10 +81,18 @@ namespace OpenTkConsole
 			// /// ////////////////////
 
 			loadSyncer();
-            
-			testScene = new Scene();
-			testScene.loadScene();
 
+			try
+			{
+				MaterialManager.init("../data/materials/");
+
+				testScene = new Scene();
+				testScene.loadScene();
+			}
+			catch (Exception exception)
+			{
+				Console.WriteLine("Caugh exception when loading scene" + exception.Message);
+			}
             bpm = 120;
             rowsPerBeat = 4;
             songLength = 5.0f; // seconds
@@ -197,7 +205,7 @@ namespace OpenTkConsole
             backColor.A = 1.0f;
             backColor.R = redColorTrack.GetValue(syncRow);
             backColor.G = greenColorTrack.GetValue(syncRow);
-            backColor.B = 0.3f;
+            backColor.B = 0.8f;
             GL.ClearColor(backColor);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 

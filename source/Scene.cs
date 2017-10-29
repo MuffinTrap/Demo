@@ -22,7 +22,7 @@ class Scene
 	Mesh zTriangle;
 	Mesh yTriangle;
 
-	Mesh voxelMesh;
+	//Mesh voxelMesh;
 	
 	Matrix4Uniform projectionMatrix;
 	Matrix4Uniform viewMatrix;
@@ -41,53 +41,43 @@ class Scene
 		shaderProgram = new ShaderProgram(vertexShader, fragmentShader);
 		
 		Error.checkGLError("Scene.loadScene");
-		
-		origoTriangle = Mesh.CreateTriangleMesh();
-		xTriangle = Mesh.CreateTriangleMesh();
-		zTriangle = Mesh.CreateTriangleMesh();
-		yTriangle = Mesh.CreateTriangleMesh();
-
-		voxelMesh = Mesh.CreateFromFile("../data/models/voxelBox.obj");
 
 		shaderProgram.Use();
 		Mesh.PositionDataIndex = shaderProgram.GetAttributeLocation("vPosition");
+		Mesh.TexCoordDataIndex = shaderProgram.GetAttributeLocation("vTexCoord");
 		Mesh.ColorDataIndex = shaderProgram.GetUniformLocation("uDiffuseColor");
 		Mesh.ScaleDataIndex = shaderProgram.GetUniformLocation("uScale");
+		shaderProgram.setSamplerUniform("inputTexture", 0);
 
+		origoTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 0), new Color4(1.0f, 0.0f, 0.0f, 1.0f), 0.1f);
+		xTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 0.1f);
+		zTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 0.1f);
+		yTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 0.1f);
 
-			origoTriangle.bufferData();
-		xTriangle.bufferData();
-		zTriangle.bufferData();
-		yTriangle.bufferData();
-
-		voxelMesh.bufferData();
-
-		origoTriangle.WorldPosition = new Vector3(0, 0, 0);
-		xTriangle.WorldPosition = new Vector3(1, 0, 0);
-		zTriangle.WorldPosition = new Vector3(0, 0, 1);
-		yTriangle.WorldPosition = new Vector3(0, 1, 0);
-
-		voxelMesh.WorldPosition = new Vector3(3, 0, -3.0f);
-
-		origoTriangle.DiffuseColor = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
-		xTriangle.DiffuseColor = new Color4(1, 0.2f, 0.2f, 1);
-		yTriangle.DiffuseColor = new Color4(0.2f, 1, 0.2f, 1);
-		zTriangle.DiffuseColor = new Color4(0.2f, 0.2f, 1, 1);
-
-		voxelMesh.DiffuseColor = new Color4(0.7f, 0.4f, 0.1f, 1.0f);
-		voxelMesh.Scale = 0.3f;
+		//voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/voxelColor/voxelColor.obj"), new Vector3(3, 0, -3.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.3f);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
 
 		cameraPosition = new Vector3(0, 0, -2);
 		cameraDirection = new Vector3(0, 0, 1.0f);
-		sceneUp = new Vector3(0, 1, 0);
+		sceneUp = new Vector3(0.0f, 1.0f, 0.0f);
 
 		viewMatrix = new Matrix4Uniform("viewMatrix");
 		viewMatrix.Matrix = Matrix4.CreateTranslation(cameraPosition);
 		
 		Error.checkGLError("Scene.loadScene");
+	}
+
+	public Mesh addMesh(Mesh meshData, Vector3 position, Color4 color, float scale)
+	{
+			Mesh newMesh = meshData;
+			newMesh.bufferData();
+			newMesh.WorldPosition = position;
+			newMesh.DiffuseColor = color;
+			newMesh.Scale = scale;
+
+			return newMesh;
 	}
 
 	public void drawMesh(Mesh mesh)
@@ -105,11 +95,11 @@ class Scene
 		viewMatrix.Set(shaderProgram);
 
 		drawMesh(origoTriangle);
-		drawMesh(xTriangle);
-		drawMesh(zTriangle);
-		drawMesh(yTriangle);
-
-		drawMesh(voxelMesh);
+		//drawMesh(xTriangle);
+		//drawMesh(zTriangle);
+		//drawMesh(yTriangle);
+		//
+		//drawMesh(voxelMesh);
 
 		Error.checkGLError("Scene.drawScene");
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
-
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
 
@@ -16,110 +17,135 @@ namespace OpenTkConsole
 		public int BufferHandle;
 		public int VertexAmount;
 		
-		private int vertexSize;
-		private int elementsInPosition;
 		
-		private List<Vector3> rawPositions;
+		public struct PosTexVertex
+		{
+			Vector3 position;
+			Vector2 texCoord;
+
+			public PosTexVertex(Vector3 pos, Vector2 uv)
+			{
+				position = pos;
+				texCoord = uv;
+			}
+
+			const int bytesPerFloat = 4;
+
+			public static int getPositionSizeBytes()
+			{
+				return getElementsInPosition() * bytesPerFloat;
+			}
+
+			public static int getTexCoordSizeBytes()
+			{
+				return getElementsInTexCoord() * bytesPerFloat;
+			}
+
+			public static int getElementsInPosition()
+			{
+				return 3;
+			}
+
+			public static int getElementsInTexCoord()
+			{
+				return 2;
+			}
+		}
+
+		private List<PosTexVertex> rawVertices;
 		
 		public Matrix4Uniform worldMatrix;
 
-		private static int positionDataIndex;
-		public static int PositionDataIndex { set { positionDataIndex = value; } }
-
-		private static int colorDataIndex;
-		public static int ColorDataIndex { set { colorDataIndex = value; } }
-
+		public static int PositionDataIndex { get; set; }
+		public static int TexCoordDataIndex { get; set; }
+		public static int ColorDataIndex { get; set; }
 		public static int ScaleDataIndex { get; set; }
 
 		// RenderingComponent
-		private Color4 diffuseColor;
-
-		public Color4 DiffuseColor
-		{
-			set { diffuseColor = value; }
-			get { return diffuseColor; }
-		}
+		public Color4 DiffuseColor { get; set; }
 
 		public float Scale { get; set; }
 		//
+
+	
+		public MaterialManager.Material MeshMaterial { get; set; }
 
 		// TransformComponent
 		private Vector3 worldPosition;
 		
 		public Vector3 WorldPosition 
-		{ 
-			set 
-			{ 
+		{
+			get
+			{
+				return worldPosition;
+			}
+			set
+			{
 				worldPosition = value;
 				worldMatrix.Matrix = Matrix4.CreateTranslation(worldPosition);
-			} 
+			}	
 		}
 
 		//
 
-
-		private struct OBJFace
-		{
-			public int positionIndex;
-			public int normalIndex;
-			public int materialIndex;
-		}
-		
 		static public Mesh CreateTriangleMesh()
 		{
 			// positions
-			float triangleScale = 0.1f;
 
-			List<Vector3> positions = new List<Vector3>(3);
-			positions.Add(new Vector3(-1f, 1f, 0.0f) * triangleScale);
-			positions.Add(new Vector3(1f, 1f, 0.0f) * triangleScale);
-			positions.Add(new Vector3(0.0f, 0.0f, 0.0f) * triangleScale);
-			
-			return new Mesh(positions);
+			List<PosTexVertex> vertices = new List<PosTexVertex>(3);
+			vertices.Add(new PosTexVertex(new Vector3(-1f, 1f, 0.0f), new Vector2(0.5f,0.5f)));
+			vertices.Add(new PosTexVertex(new Vector3(1f, 1f, 0.0f), new Vector2(0.5f, 0.5f)));
+			vertices.Add(new PosTexVertex(new Vector3(0.0f, 0.0f, 0.0f), new Vector2(0.5f, 0.5f)));
+
+			return new Mesh(vertices, MaterialManager.getMaterialByName("white"));
 		}
-		
-		
-		
-		
-		
-		public Mesh(List<Vector3> positions)
+			
+		public Mesh(List<PosTexVertex> vertices, MaterialManager.Material meshMaterial)
 		{
 			BufferHandle = GL.GenBuffer();
 			VAOHandle = GL.GenVertexArray();
 			
-			VertexAmount = positions.Count;
-			
-			int bytesPerFloat = 4;
-            elementsInPosition = 3;
-			int positionSize = elementsInPosition * bytesPerFloat;
-			vertexSize = positionSize;
+			VertexAmount = vertices.Count;
 			
 			Error.checkGLError("Mesh constructor");
 
-			 rawPositions = positions;
+			 rawVertices = vertices;
+
+			MeshMaterial = meshMaterial;
 			 
+			 // Transformcomponent
 			 worldMatrix = new Matrix4Uniform("modelMatrix");
 			 worldMatrix.Matrix = Matrix4.Identity;
 
+			// RenderingComponent
 			Scale = 1.0f;
+			DiffuseColor = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		}
 		
 		public void bufferData()
 		{
+			int vertexSize = PosTexVertex.getPositionSizeBytes() + PosTexVertex.getTexCoordSizeBytes();
+
+
 			GL.BindVertexArray(VAOHandle);
 			
 			GL.BindBuffer(BufferTarget.ArrayBuffer, BufferHandle);
 			
-			GL.BufferData(BufferTarget.ArrayBuffer, VertexAmount * vertexSize, rawPositions.ToArray(), BufferUsageHint.StaticDraw);
+			GL.BufferData(BufferTarget.ArrayBuffer, VertexAmount * vertexSize, rawVertices.ToArray(), BufferUsageHint.StaticDraw);
 
             //  Vertex attributes
 
-            GL.VertexAttribPointer(index: positionDataIndex, size: elementsInPosition
+            GL.VertexAttribPointer(index: PositionDataIndex, size: PosTexVertex.getElementsInPosition()
                 , type: VertexAttribPointerType.Float
                 , normalized: false, stride: vertexSize, offset: 0);
 
-            GL.EnableVertexAttribArray(positionDataIndex);
+			GL.VertexAttribPointer(index: TexCoordDataIndex, size: PosTexVertex.getElementsInTexCoord()
+		   , type: VertexAttribPointerType.Float
+		   , normalized: false, stride: vertexSize, offset: PosTexVertex.getPositionSizeBytes());
+
+			GL.EnableVertexAttribArray(PositionDataIndex);
+			GL.EnableVertexAttribArray(TexCoordDataIndex);
 			// GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
 			
 			Error.checkGLError("Mesh.bufferData");
@@ -128,153 +154,39 @@ namespace OpenTkConsole
 		public void updateUniforms(ShaderProgram shaderProgram)
 		{
 			worldMatrix.Set(shaderProgram);
-			GL.Uniform4(colorDataIndex, diffuseColor);
+			
+			GL.ActiveTexture(TextureUnit.Texture0);
+			GL.BindTexture(TextureTarget.Texture2D, MeshMaterial.textureGLIndex);
+
+			GL.Uniform4(ColorDataIndex, DiffuseColor);
 			GL.Uniform1(ScaleDataIndex, Scale);
+
+			Error.checkGLError("Mesh.updateUniforms");
 		}
 
 		// Reads on .obs file
 		static public Mesh CreateFromFile(string filename)
 		{
-			List<OBJFace> faces;
+			List<OBJFileReader.OBJFace> faces = new List<OBJFileReader.OBJFace>();
 
-			List<Vector3> positions;
-			List<Vector3> normals;
-			List<int> materials;
+			List<Vector3> positions = new List<Vector3>();
+			List<Vector3> normals = new List<Vector3>();
+			List<Vector2> texCoords = new List<Vector2>();
+			MaterialManager.Material meshMaterial = null;
+			
 
-			faces = new List<OBJFace>();
-			positions = new List<Vector3>();
-			normals = new List<Vector3>();
-			materials = new List<int>();
-
-			readOBJ(filename, ref faces, ref positions, ref normals, ref materials);
+			OBJFileReader.readOBJ(filename, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
 
 			// Create positions 
-			List<Vector3> trianglePositions = new List<Vector3>(positions.Count);
+			List<PosTexVertex> vertices = new List<PosTexVertex>(positions.Count);
 
 			Console.WriteLine("Mesh read from " + filename);
-			foreach (OBJFace face in faces)
+			foreach (OBJFileReader.OBJFace face in faces)
 			{
-				trianglePositions.Add(positions[face.positionIndex - 1]);
-				Console.WriteLine(positions[face.positionIndex - 1].ToString());
+				vertices.Add( new PosTexVertex(positions[face.positionIndex - 1], texCoords[face.texCoordIndex -1]));
 			}
 
-			return new Mesh(trianglePositions);
-		}
-
-		private static void readOBJ(string filename, ref List<OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<int> materials)
-		{
-			// Sections 
-			// . normals 
-			// . texcoords 
-			// . verts 
-			// . faces 
-			
-			
-			StreamReader sourceFile = new StreamReader(filename);
-
-			string line;
-			do
-			{
-				line = sourceFile.ReadLine();
-                if (line == null)
-                {
-                    break;
-                }
-				
-				if (line.Contains("#"))
-				{
-					// comment
-				}
-				else if (line.Contains("mtllib"))
-				{
-					// material
-				}
-				else if (line.Contains("usemtl"))
-				{
-					// material
-				}
-				else if (line.Contains("vn"))
-				{
-					normals.Add(readNormal(line));
-				}
-				else if (line.Contains("vt"))
-				{
-					// skip for now
-				}
-				else if (line.Contains("v"))
-				{
-					positions.Add(readPos(line));
-				}
-				else if (line.Contains("f"))
-				{
-					readFaces(line, ref faces);
-				}
-				
-			} while( line != null);
-			
-
-            sourceFile.Close();
-		}
-		
-		static Vector3 readPos(string posLine)
-		{
-			char [] split = {' '};
-			string[] positions = posLine.Split(split);
-
-            Vector3 pos = new Vector3();
-			if (positions.Length == 4)  // v # # #
-			{
-				pos.X = Convert.ToSingle(positions[1].Trim());
-				pos.Y = Convert.ToSingle(positions[2].Trim());
-				pos.Z = Convert.ToSingle(positions[3].Trim());
-			}
-
-            return pos;
-		}
-
-        static Vector3 readNormal(string normalLine)
-		{
-			char [] split = {' '};
-			string[] normals = normalLine.Split(split);
-
-            Vector3 norm = new Vector3();
-
-            if (normals.Length == 4)  // vn # # #
-			{
-				norm.X = Convert.ToSingle(normals[1].Trim());
-				norm.Y = Convert.ToSingle(normals[2].Trim());
-				norm.Z = Convert.ToSingle(normals[3].Trim());
-			}
-
-            return norm;
-		}
-
-        static void readFaces(string faceLine, ref List<OBJFace> faces)
-		{
-			char [] split = {' '};
-			string[] faceStrings = faceLine.Split(split);
-			if (faceStrings.Length == 4)  // f #/#/# #/#/# #/#/#
-			{
-				faces.Add(readFace(faceStrings[1]));
-				faces.Add(readFace(faceStrings[2]));
-				faces.Add(readFace(faceStrings[3]));
-			}
-		}
-
-        static OBJFace readFace(string faceLine)
-		{
-			char [] split = {'/'};
-			string[] faceStrings = faceLine.Split(split);
-				
-			OBJFace face = new OBJFace();
-			if (faceStrings.Length == 3)  // #/#/#
-			{
-				face.positionIndex = Convert.ToInt32(faceStrings[0].Trim());
-				face.normalIndex = Convert.ToInt32(faceStrings[1].Trim());
-				face.materialIndex = Convert.ToInt32(faceStrings[2].Trim());
-			}
-			
-			return face;
+			return new Mesh(vertices, meshMaterial);
 		}
 	}
 }

@@ -139,5 +139,11 @@ namespace OpenTkConsole
 			return location;
 			
 		}
+
+		public void setSamplerUniform(string samplerName, int location)
+		{
+			int uniformLocation = GetUniformLocation(samplerName);
+			GL.Uniform1(uniformLocation, location);
+		}
 	}
 }

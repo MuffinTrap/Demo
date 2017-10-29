@@ -1,7 +1,12 @@
 #version 130
-in vec4 fColor; // must match name in vertex shader
+
+uniform sampler2D inputTexture;
+
+in vec2 fTexCoord;
+in vec4 fDiffuseColor; // must match name in vertex shader
 out vec4 fragColor; // first out variable is automatically written to the screen
 void main()
 {
-	fragColor = fColor;
+	vec4 textureColor = texture(inputTexture, fTexCoord);
+	fragColor = fDiffuseColor * textureColor;
 }
