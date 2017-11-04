@@ -34,8 +34,7 @@ namespace OpenTkConsole
 		{
 			materials = new List<Material>();
 			dataDir = dataDirectory;
-			loadMaterial("white.mtl");
-			loadMaterial("gradient.mtl");
+			//createMaterial("white", Color.White);
 		}
 
 		public static Material getMaterialByName(string materialName)
@@ -50,6 +49,7 @@ namespace OpenTkConsole
 
 			return null;
 		}
+		
 
 		public static Material loadMaterial(string materialFileName)
 		{
@@ -80,16 +80,9 @@ namespace OpenTkConsole
 			while (line != null);
 
 
-			foreach (Material m in materials)
-			{
-				if (m.materialName == materialName)
-				{
-					existingFound = true;
-					newMaterial = m;
-				}
-			}
-
-			if (existingFound)
+			newMaterial = getMaterialByName(materialName);
+			
+			if (newMaterial != null)
 			{
 				sourceFile.Close();
 				return newMaterial;
@@ -151,44 +144,63 @@ namespace OpenTkConsole
 			return newMaterial;
 		}
 
-		static int loadTexture(string textureFileName)
+		static void createMaterial(string materialName, Color materialColor)
 		{
-			string fullPath = dataDir + textureFileName;
-
-			// Create bitmap manually.
-			bool fromFile = true;
-			Bitmap map = null;
-
-			if (fromFile)
+			Material newMaterial = getMaterialByName(materialName);
+			
+			if (newMaterial != null)
 			{
-				try
-				{
-					map = new Bitmap(fullPath);
-				}
-				catch (FileNotFoundException e)
-				{
-					Console.WriteLine("Load texture did not find file:" + e.Message);
-					return -1;
-				}
-				catch (ArgumentException e)
-				{
-					Console.WriteLine("Load texture did not find file:" + e.Message);
-					return -1;
-				}
-
+				return;
 			}
-			else
-			{
-				map = new Bitmap(4, 4);
+			
+			newMaterial = new Material();
+			newMaterial.materialName = materialName;
+			newMaterial.diffuse = new Vector3(1,1,1);
+			newMaterial.alpha = new Vector3(0,0,0);
+			newMaterial.specular = new Vector3(0,0,0);
+			newMaterial.textureName = "";
+			
+			newMaterial.textureGLIndex = createTexture(materialColor);
+			
+			materials.Add(newMaterial);
+		}
+		
+		static int createTexture(System.Drawing.Color textureColor)
+		{
+			Bitmap map = new Bitmap(4, 4);
 				for (int x = 0; x < 4; x++)
 				{
 					for (int y = 0; y < 4; y++)
 					{
-						map.SetPixel(x, y, Color.White);
+						map.SetPixel(x, y, textureColor);
 					}
 				}
-			}
 			int textureId = loadTextureFromBitmap(map);
+			return textureId;
+
+		}
+
+		static int loadTexture(string textureFileName)
+		{
+            Console.WriteLine("loadTexture " + textureFileName);
+			string fullPath = dataDir + textureFileName;
+
+			int textureId = -1;
+			
+			try
+			{
+				Bitmap map = new Bitmap(fullPath);
+				textureId = loadTextureFromBitmap(map); 
+			}
+			catch (FileNotFoundException e)
+			{
+				Console.WriteLine("Load texture did not find file:" + e.Message);
+			}
+			catch (ArgumentException e)
+			{
+				Console.WriteLine("Load texture did not find file:" + e.Message);
+			}
+
 			return textureId;
 
 		}
@@ -212,6 +224,9 @@ namespace OpenTkConsole
 				, pixels: data.Scan0);
 
 			GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
 
 			map.UnlockBits(data);
 

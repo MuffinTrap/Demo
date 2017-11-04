@@ -15,20 +15,25 @@ namespace OpenTkConsole
 	{
 		public int VAOHandle;
 		public int BufferHandle;
+        public int IndexBufferHandle;
 		public int VertexAmount;
 
 		private float rotationY;
 		
-		public struct PosTexVertex
+		public struct PosNorTexVertex
 		{
 			Vector3 position;
+			Vector3 normal;
 			Vector2 texCoord;
 
-			public PosTexVertex(Vector3 pos, Vector2 uv)
+			public PosNorTexVertex(Vector3 pos, Vector3 nor, Vector2 uv)
 			{
 				position = pos;
+				normal = nor;
 				texCoord = uv;
 			}
+
+            
 
 			const int bytesPerFloat = 4;
 
@@ -41,11 +46,15 @@ namespace OpenTkConsole
 			{
 				return getElementsInTexCoord() * bytesPerFloat;
 			}
+			
+			public static int getNormalSizeBytes() { return getElementsInNormal() * bytesPerFloat; }
 
 			public static int getElementsInPosition()
 			{
 				return 3;
 			}
+			
+			public static int getElementsInNormal() { return getElementsInPosition(); }
 
 			public static int getElementsInTexCoord()
 			{
@@ -53,11 +62,13 @@ namespace OpenTkConsole
 			}
 		}
 
-		private List<PosTexVertex> rawVertices;
+		private List<PosNorTexVertex> rawVertices;
+        private List<uint> rawIndices;
 		
 		public Matrix4Uniform worldMatrix;
 
 		public static int PositionDataIndex { get; set; }
+		public static int NormalDataIndex { get; set; }
 		public static int TexCoordDataIndex { get; set; }
 		public static int ColorDataIndex { get; set; }
 		public static int ScaleDataIndex { get; set; }
@@ -93,18 +104,20 @@ namespace OpenTkConsole
 		{
 			// positions
 
-			List<PosTexVertex> vertices = new List<PosTexVertex>(3);
-			vertices.Add(new PosTexVertex(new Vector3(-1f, 1f, 0.0f), new Vector2(0.0f,1.0f)));
-			vertices.Add(new PosTexVertex(new Vector3(1f, 1f, 0.0f), new Vector2(1.0f, 1.0f)));
-			vertices.Add(new PosTexVertex(new Vector3(0.0f, 0.0f, 0.0f), new Vector2(0.5f, 0.0f)));
+			List<PosNorTexVertex> vertices = new List<PosNorTexVertex>(3);
+			Vector3 normal = new Vector3(0.0f, 0.0f, 1.0f);
+			vertices.Add(new PosNorTexVertex(new Vector3(-1f, 1f, 0.0f), normal, new Vector2(0.0f,1.0f)));
+			vertices.Add(new PosNorTexVertex(new Vector3(1f, 1f, 0.0f), normal, new Vector2(1.0f, 1.0f)));
+			vertices.Add(new PosNorTexVertex(new Vector3(0.0f, 0.0f, 0.0f), normal, new Vector2(0.5f, 0.0f)));
 
 			return new Mesh(vertices, MaterialManager.getMaterialByName("white"));
 		}
 			
-		public Mesh(List<PosTexVertex> vertices, MaterialManager.Material meshMaterial)
+		public Mesh(List<PosNorTexVertex> vertices, MaterialManager.Material meshMaterial)
 		{
 			BufferHandle = GL.GenBuffer();
 			VAOHandle = GL.GenVertexArray();
+            IndexBufferHandle = GL.GenBuffer();
 			
 			VertexAmount = vertices.Count;
 			
@@ -127,8 +140,8 @@ namespace OpenTkConsole
 		
 		public void bufferData()
 		{
-			int vertexSize = PosTexVertex.getPositionSizeBytes() + PosTexVertex.getTexCoordSizeBytes();
-
+			int vertexSize = PosNorTexVertex.getPositionSizeBytes() + PosNorTexVertex.getNormalSizeBytes() + PosNorTexVertex.getTexCoordSizeBytes();
+       
 
 			GL.BindVertexArray(VAOHandle);
 			
@@ -138,13 +151,19 @@ namespace OpenTkConsole
 
             //  Vertex attributes
 
-            GL.VertexAttribPointer(index: PositionDataIndex, size: PosTexVertex.getElementsInPosition()
+            GL.VertexAttribPointer(index: PositionDataIndex, size: PosNorTexVertex.getElementsInPosition()
                 , type: VertexAttribPointerType.Float
                 , normalized: false, stride: vertexSize, offset: 0);
 
-			GL.VertexAttribPointer(index: TexCoordDataIndex, size: PosTexVertex.getElementsInTexCoord()
+		   
+		   GL.VertexAttribPointer(index: NormalDataIndex, size: PosNorTexVertex.getElementsInNormal()
 		   , type: VertexAttribPointerType.Float
-		   , normalized: false, stride: vertexSize, offset: PosTexVertex.getPositionSizeBytes());
+		   , normalized: false, stride: vertexSize, offset: PosNorTexVertex.getPositionSizeBytes());
+		   
+		   
+			GL.VertexAttribPointer(index: TexCoordDataIndex, size: PosNorTexVertex.getElementsInTexCoord()
+		   , type: VertexAttribPointerType.Float
+		   , normalized: false, stride: vertexSize, offset: PosNorTexVertex.getNormalSizeBytes() + PosNorTexVertex.getNormalSizeBytes());
 
 			GL.EnableVertexAttribArray(PositionDataIndex);
 			GL.EnableVertexAttribArray(TexCoordDataIndex);
@@ -175,29 +194,29 @@ namespace OpenTkConsole
 			worldMatrix.Matrix = Matrix4.CreateRotationY(rotationY);
 		}
 
-		// Reads on .obs file
-		static public Mesh CreateFromFile(string filename)
-		{
-			List<OBJFileReader.OBJFace> faces = new List<OBJFileReader.OBJFace>();
+        // Reads on .obs file
+        static public Mesh CreateFromFile(string filename)
+        {
+            List<OBJFileReader.OBJFace> faces = new List<OBJFileReader.OBJFace>();
 
-			List<Vector3> positions = new List<Vector3>();
-			List<Vector3> normals = new List<Vector3>();
-			List<Vector2> texCoords = new List<Vector2>();
-			MaterialManager.Material meshMaterial = null;
+            List<Vector3> positions = new List<Vector3>();
+            List<Vector3> normals = new List<Vector3>();
+            List<Vector2> texCoords = new List<Vector2>();
+            MaterialManager.Material meshMaterial = null;
+
+            OBJFileReader.readOBJ(filename, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
+
+            // Create positions 
+            List<PosNorTexVertex> vertices = new List<PosNorTexVertex>(positions.Count);
+
+            Console.WriteLine("Mesh read from " + filename);
 			
-
-			OBJFileReader.readOBJ(filename, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
-
-			// Create positions 
-			List<PosTexVertex> vertices = new List<PosTexVertex>(positions.Count);
-
-			Console.WriteLine("Mesh read from " + filename);
-			foreach (OBJFileReader.OBJFace face in faces)
-			{
-				vertices.Add( new PosTexVertex(positions[face.positionIndex - 1], texCoords[face.texCoordIndex -1]));
-			}
-
-			return new Mesh(vertices, meshMaterial);
+            foreach (OBJFileReader.OBJFace face in faces)
+            {
+				vertices.Add( new PosNorTexVertex(positions[(int)face.positionIndex - 1],  normals[(int)face.normalIndex - 1], texCoords[(int)face.texCoordIndex - 1]));
+            }
+			
+            return new Mesh(vertices, meshMaterial);
 		}
 	}
 }

@@ -11,8 +11,10 @@ uniform float uScale;
 
 // attributes of our vertex
 in vec3 vPosition;
+in vec3 vNormal;
 in vec2 vTexCoord;
 
+out vec3 fNormal;
 out vec2 fTexCoord;
 out vec4 fDiffuseColor; // must match name in fragment shader
 void main()
@@ -21,6 +23,7 @@ void main()
 	 gl_Position =   projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition * uScale,	1.0);
 	
 	// 
+	fNormal = vNormal;
 	fTexCoord = vTexCoord;
 	fDiffuseColor = uDiffuseColor;
 }

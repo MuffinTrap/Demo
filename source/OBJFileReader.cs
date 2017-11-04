@@ -16,9 +16,9 @@ namespace OpenTkConsole
 	{
 		public struct OBJFace
 		{
-			public int positionIndex;
-			public int texCoordIndex;
-			public int normalIndex;
+			public uint positionIndex;
+			public uint texCoordIndex;
+			public uint normalIndex;
 		}
 
 		public static Vector3 readVector3(string vectorLine)
@@ -93,9 +93,9 @@ namespace OpenTkConsole
 			OBJFace face = new OBJFace();
 			if (faceStrings.Length == 3)  // #/#/#
 			{
-				face.positionIndex = Convert.ToInt32(faceStrings[0].Trim());
-				face.texCoordIndex = Convert.ToInt32(faceStrings[1].Trim());
-				face.normalIndex = Convert.ToInt32(faceStrings[2].Trim());
+				face.positionIndex = Convert.ToUInt32(faceStrings[0].Trim());
+				face.texCoordIndex = Convert.ToUInt32(faceStrings[1].Trim());
+				face.normalIndex = Convert.ToUInt32(faceStrings[2].Trim());
 			}
 
 			return face;

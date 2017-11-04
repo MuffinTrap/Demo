@@ -68,22 +68,23 @@ class RotatingScene : IScene
 
 		shaderProgram.Use();
 		Mesh.PositionDataIndex = shaderProgram.GetAttributeLocation("vPosition");
+		Mesh.NormalDataIndex = shaderProgram.GetAttributeLocation("vNormal");
 		Mesh.TexCoordDataIndex = shaderProgram.GetAttributeLocation("vTexCoord");
 		Mesh.ColorDataIndex = shaderProgram.GetUniformLocation("uDiffuseColor");
 		Mesh.ScaleDataIndex = shaderProgram.GetUniformLocation("uScale");
 		shaderProgram.setSamplerUniform("inputTexture", 0);
 
-		origoTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
-		xTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 0.1f);
-		zTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 0.1f);
-		yTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 0.1f);
+		//origoTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
+		//xTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 0.1f);
+		//zTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 0.1f);
+		//yTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 0.1f);
 
-		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj"), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
+		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9.obj"), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
 
-		cameraPosition = new Vector3(0, 0, -2);
+		cameraPosition = new Vector3(0, -5, -10);
 		cameraDirection = new Vector3(0, 0, 1.0f);
 		sceneUp = new Vector3(0.0f, 1.0f, 0.0f);
 
@@ -123,11 +124,11 @@ class RotatingScene : IScene
 		projectionMatrix.Set(shaderProgram);
 		viewMatrix.Set(shaderProgram);
 
-		drawMesh(zTriangle);
-		drawMesh(origoTriangle);
-		drawMesh(xTriangle);
-		
-		drawMesh(yTriangle);
+		//drawMesh(zTriangle);
+		//drawMesh(origoTriangle);
+		//drawMesh(xTriangle);
+		//
+		//drawMesh(yTriangle);
 		//
 		drawMesh(voxelMesh);
 
