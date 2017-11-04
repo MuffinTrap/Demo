@@ -10,7 +10,31 @@ using OpenTK.Input;
 
 namespace OpenTkConsole
 {
-class Scene
+
+public interface IScene
+{
+	void loadScene();
+	void drawScene();
+	void updateScene(KeyboardState keyState);
+}
+
+class EmptyScene : IScene
+{
+	public void loadScene()
+	{
+
+	}
+	public void drawScene()
+	{
+
+	}
+	public void updateScene(KeyboardState keyState)
+	{
+
+	}
+}
+
+class RotatingScene : IScene
 {
 	Shader vertexShader;
 	Shader fragmentShader;
