@@ -13,25 +13,18 @@ namespace OpenTkConsole
 
 public interface IScene
 {
-	void loadScene();
+	void loadScene(MaterialManager materialManager);
 	void drawScene();
 	void updateScene(KeyboardState keyState);
 }
 
 class EmptyScene : IScene
 {
-	public void loadScene()
-	{
+	public void loadScene(MaterialManager materialManager) {}
 
-	}
-	public void drawScene()
-	{
+	public void drawScene() {}
 
-	}
-	public void updateScene(KeyboardState keyState)
-	{
-
-	}
+	public void updateScene(KeyboardState keyState) {}
 }
 
 class RotatingScene : IScene
@@ -55,8 +48,13 @@ class RotatingScene : IScene
 	Vector3 cameraPosition;
 	Vector3 cameraDirection;
 	Vector3 sceneUp;
+
+	public RotatingScene()
+	{
+		
+	}
 	
-	public void loadScene()
+	public void loadScene(MaterialManager materialManager)
 	{
 		vertexShader = Shader.CreateFromFile(ShaderType.VertexShader, "../data/shaders/vertex.vs");
 		
@@ -67,23 +65,25 @@ class RotatingScene : IScene
 		Error.checkGLError("Scene.loadScene");
 
 		shaderProgram.Use();
-		Mesh.PositionDataIndex = shaderProgram.GetAttributeLocation("vPosition");
-		Mesh.TexCoordDataIndex = shaderProgram.GetAttributeLocation("vTexCoord");
+		Mesh.AttributeLocations locations = new Mesh.AttributeLocations();
+		locations.positionLocation = shaderProgram.GetAttributeLocation("vPosition");
+		locations.normalLocation = shaderProgram.GetAttributeLocation("vNormal");
+		locations.texCoordLocation = shaderProgram.GetAttributeLocation("vTexCoord");
 		Mesh.ColorDataIndex = shaderProgram.GetUniformLocation("uDiffuseColor");
 		Mesh.ScaleDataIndex = shaderProgram.GetUniformLocation("uScale");
 		shaderProgram.setSamplerUniform("inputTexture", 0);
 
-		origoTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
-		xTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 0.1f);
-		zTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 0.1f);
-		yTriangle = addMesh(Mesh.CreateTriangleMesh(), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 0.1f);
+		origoTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, locations);
+		xTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 1.0f, locations);
+		zTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 1.0f, locations);
+		yTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 1.0f, locations);
 
-		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj"), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f);
+		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj", materialManager), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f, locations);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
 
-		cameraPosition = new Vector3(0, 0, -2);
+		cameraPosition = new Vector3(0.0f, 0.0f, -10.0f);
 		cameraDirection = new Vector3(0, 0, 1.0f);
 		sceneUp = new Vector3(0.0f, 1.0f, 0.0f);
 
@@ -96,15 +96,15 @@ class RotatingScene : IScene
 		Error.checkGLError("Scene.loadScene");
 	}
 
-	public Mesh addMesh(Mesh meshData, Vector3 position, Color4 color, float scale)
+	public Mesh addMesh(Mesh meshData, Vector3 position, Color4 color, float scale, Mesh.AttributeLocations locations)
 	{
-			Mesh newMesh = meshData;
-			newMesh.bufferData();
-			newMesh.WorldPosition = position;
-			newMesh.DiffuseColor = color;
-			newMesh.Scale = scale;
+		Mesh newMesh = meshData;
+		newMesh.bufferData(locations);
+		newMesh.WorldPosition = position;
+		newMesh.DiffuseColor = color;
+		newMesh.Scale = scale;
 
-			return newMesh;
+		return newMesh;
 	}
 
 	public void drawMesh(Mesh mesh)

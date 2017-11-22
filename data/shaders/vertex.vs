@@ -20,7 +20,7 @@ out vec4 fDiffuseColor; // must match name in fragment shader
 void main()
 {
 	// gl_Position is a special variable of OpenGL that must be set
-	 gl_Position =   projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition * uScale,	1.0);
+	 gl_Position =  projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition * uScale,	1.0);
 	
 	// 
 	fNormal = vNormal;

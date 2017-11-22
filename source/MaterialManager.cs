@@ -13,7 +13,7 @@ using OpenTK.Graphics.OpenGL;
 namespace OpenTkConsole
 {
 
-	static class MaterialManager
+	public class MaterialManager
 	{
 		// Material
 		public class Material
@@ -27,17 +27,17 @@ namespace OpenTkConsole
 			public Vector3 specular;
 		}
 
-		public static List<Material> materials;
-		private static string dataDir;
+		public List<Material> materials;
+		private string dataDir;
 
-		public static void init(string dataDirectory)
+		public MaterialManager(string dataDirectory)
 		{
 			materials = new List<Material>();
 			dataDir = dataDirectory;
-			//createMaterial("white", Color.White);
+			loadMaterial("white.mtl");
 		}
 
-		public static Material getMaterialByName(string materialName)
+		public Material GetMaterialByName(string materialName)
 		{
 			foreach (Material m in materials)
 			{
@@ -51,14 +51,23 @@ namespace OpenTkConsole
 		}
 		
 
-		public static Material loadMaterial(string materialFileName)
+		public Material loadMaterial(string materialFileName)
 		{
 			string fullPath = dataDir + materialFileName;
-			StreamReader sourceFile = new StreamReader(fullPath);
+			StreamReader sourceFile = null;
 
-			string line;
+			try
+			{
+				sourceFile = new StreamReader(fullPath);
+			}
+			catch(Exception streamException)
+			{
+				Console.WriteLine("Failed to load material from file " + materialFileName + " Error:" + streamException.Message);
+				return null;
+			}
+
+			string line = null;
 			string materialName = null;
-			bool existingFound = false;
 			Material newMaterial = null;
 
 			char[] space = { ' ' };
@@ -80,7 +89,7 @@ namespace OpenTkConsole
 			while (line != null);
 
 
-			newMaterial = getMaterialByName(materialName);
+			newMaterial = GetMaterialByName(materialName);
 			
 			if (newMaterial != null)
 			{
@@ -141,19 +150,19 @@ namespace OpenTkConsole
 
 			materials.Add(newMaterial);
 
+			Console.WriteLine("Loaded material from file " + materialFileName);
+
 			return newMaterial;
 		}
 
-		static void createMaterial(string materialName, Color materialColor)
+		void createMaterial(string materialName, Color materialColor)
 		{
-			Material newMaterial = getMaterialByName(materialName);
-			
-			if (newMaterial != null)
+			if (GetMaterialByName(materialName) != null)
 			{
 				return;
 			}
-			
-			newMaterial = new Material();
+
+			Material newMaterial = new Material();
 			newMaterial.materialName = materialName;
 			newMaterial.diffuse = new Vector3(1,1,1);
 			newMaterial.alpha = new Vector3(0,0,0);
@@ -163,24 +172,26 @@ namespace OpenTkConsole
 			newMaterial.textureGLIndex = createTexture(materialColor);
 			
 			materials.Add(newMaterial);
+
+			Console.WriteLine("Create material with name " + materialName);
 		}
 		
-		static int createTexture(System.Drawing.Color textureColor)
+		int createTexture(System.Drawing.Color textureColor)
 		{
-			Bitmap map = new Bitmap(4, 4);
-				for (int x = 0; x < 4; x++)
+			int size = 32;
+			Bitmap map = new Bitmap(size, size);
+				for (int x = 0; x < size; x++)
 				{
-					for (int y = 0; y < 4; y++)
+					for (int y = 0; y < size; y++)
 					{
 						map.SetPixel(x, y, textureColor);
 					}
 				}
 			int textureId = loadTextureFromBitmap(map);
 			return textureId;
-
 		}
 
-		static int loadTexture(string textureFileName)
+		int loadTexture(string textureFileName)
 		{
             Console.WriteLine("loadTexture " + textureFileName);
 			string fullPath = dataDir + textureFileName;
@@ -201,11 +212,12 @@ namespace OpenTkConsole
 				Console.WriteLine("Load texture did not find file:" + e.Message);
 			}
 
-			return textureId;
+			Console.WriteLine("Loaded texture from file " + textureFileName);
 
+			return textureId;
 		}
 
-		static int loadTextureFromBitmap(Bitmap map)
+		int loadTextureFromBitmap(Bitmap map)
 		{
 			int texID = GL.GenTexture();
 			GL.ActiveTexture(TextureUnit.Texture0);
@@ -223,12 +235,13 @@ namespace OpenTkConsole
 				, type: PixelType.UnsignedByte	// Source data
 				, pixels: data.Scan0);
 
+			map.UnlockBits(data);
+
 			GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
+			// Don't use mipmaps
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
-
-			map.UnlockBits(data);
 
 			Error.checkGLError("MaterialManager.loadTextureFromBitmap");
 

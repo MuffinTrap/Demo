@@ -101,17 +101,17 @@ namespace OpenTkConsole
 			return face;
 		}
 
-		public static void readMaterialFile(string mttlibLine, ref MaterialManager.Material material)
+		public static void readMaterialFile(string mttlibLine, MaterialManager materialManager, ref MaterialManager.Material material)
 		{
 			// mtllib voxelColor.mtl
 			char[] space = { ' ' };
 			string[] matFileLines = mttlibLine.Split(space);
 			string filename = matFileLines[1];
 
-			material = MaterialManager.loadMaterial(filename);
+			material = materialManager.loadMaterial(filename);
 		}
 
-		public static void readOBJ(string filename, ref List<OBJFileReader.OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<Vector2> texCoords, ref MaterialManager.Material material)
+		public static void readOBJ(string filename, MaterialManager materialManager, ref List<OBJFileReader.OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<Vector2> texCoords, ref MaterialManager.Material material)
 		{
 			// Sections 
 			// . normals 
@@ -139,7 +139,7 @@ namespace OpenTkConsole
 				{
 					// material
 					// Read material properties from file 
-					OBJFileReader.readMaterialFile(line, ref material);
+					OBJFileReader.readMaterialFile(line, materialManager, ref material);
 				}
 				else if (line.Contains("usemtl"))
 				{

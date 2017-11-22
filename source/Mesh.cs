@@ -33,8 +33,6 @@ namespace OpenTkConsole
 				texCoord = uv;
 			}
 
-            
-
 			const int bytesPerFloat = 4;
 
 			public static int getPositionSizeBytes()
@@ -62,8 +60,15 @@ namespace OpenTkConsole
 			}
 		}
 
+		public struct AttributeLocations
+		{
+			public int positionLocation;
+			public int normalLocation;
+			public int texCoordLocation;
+		}
+
 		private List<PosNorTexVertex> rawVertices;
-        private List<uint> rawIndices;
+       // private List<uint> rawIndices;
 		
 		public Matrix4Uniform worldMatrix;
 
@@ -100,21 +105,26 @@ namespace OpenTkConsole
 
 		//
 
-		static public Mesh CreateTriangleMesh()
+		static public Mesh CreateTriangleMesh(MaterialManager materialManager)
 		{
 			// positions
 
-			List<PosNorTexVertex> vertices = new List<PosNorTexVertex>(3);
+			List<PosNorTexVertex> vertices = new List<PosNorTexVertex>();
 			Vector3 normal = new Vector3(0.0f, 0.0f, 1.0f);
 			vertices.Add(new PosNorTexVertex(new Vector3(-1f, 1f, 0.0f), normal, new Vector2(0.0f,1.0f)));
 			vertices.Add(new PosNorTexVertex(new Vector3(1f, 1f, 0.0f), normal, new Vector2(1.0f, 1.0f)));
 			vertices.Add(new PosNorTexVertex(new Vector3(0.0f, 0.0f, 0.0f), normal, new Vector2(0.5f, 0.0f)));
 
-			return new Mesh(vertices, MaterialManager.getMaterialByName("white"));
+			return new Mesh(vertices, materialManager.GetMaterialByName("white"));
 		}
 			
 		public Mesh(List<PosNorTexVertex> vertices, MaterialManager.Material meshMaterial)
 		{
+			if (meshMaterial == null)
+			{
+				Console.WriteLine("Material was nulle when creating mesh!");
+			}
+
 			BufferHandle = GL.GenBuffer();
 			VAOHandle = GL.GenVertexArray();
             IndexBufferHandle = GL.GenBuffer();
@@ -138,11 +148,10 @@ namespace OpenTkConsole
 
 		}
 		
-		public void bufferData()
+		public void bufferData(AttributeLocations locations)
 		{
 			int vertexSize = PosNorTexVertex.getPositionSizeBytes() + PosNorTexVertex.getNormalSizeBytes() + PosNorTexVertex.getTexCoordSizeBytes();
        
-
 			GL.BindVertexArray(VAOHandle);
 			
 			GL.BindBuffer(BufferTarget.ArrayBuffer, BufferHandle);
@@ -151,22 +160,33 @@ namespace OpenTkConsole
 
             //  Vertex attributes
 
-            GL.VertexAttribPointer(index: PositionDataIndex, size: PosNorTexVertex.getElementsInPosition()
+			// Check!
+			if (locations.positionLocation == locations.normalLocation|| locations.normalLocation == locations.texCoordLocation)
+			{
+				Console.WriteLine("Data indices are same, buffering will fail.");
+			}
+			if (locations.positionLocation == -1)
+			{
+				Console.WriteLine("Position location is invalid.");
+			}
+
+            GL.VertexAttribPointer(index: locations.positionLocation, size: PosNorTexVertex.getElementsInPosition()
                 , type: VertexAttribPointerType.Float
                 , normalized: false, stride: vertexSize, offset: 0);
 
 		   
-		   GL.VertexAttribPointer(index: NormalDataIndex, size: PosNorTexVertex.getElementsInNormal()
+		   GL.VertexAttribPointer(index: locations.normalLocation, size: PosNorTexVertex.getElementsInNormal()
 		   , type: VertexAttribPointerType.Float
 		   , normalized: false, stride: vertexSize, offset: PosNorTexVertex.getPositionSizeBytes());
 		   
 		   
-			GL.VertexAttribPointer(index: TexCoordDataIndex, size: PosNorTexVertex.getElementsInTexCoord()
+			GL.VertexAttribPointer(index: locations.texCoordLocation, size: PosNorTexVertex.getElementsInTexCoord()
 		   , type: VertexAttribPointerType.Float
 		   , normalized: false, stride: vertexSize, offset: PosNorTexVertex.getNormalSizeBytes() + PosNorTexVertex.getNormalSizeBytes());
 
-			GL.EnableVertexAttribArray(PositionDataIndex);
-			GL.EnableVertexAttribArray(TexCoordDataIndex);
+			GL.EnableVertexAttribArray(locations.positionLocation);
+			GL.EnableVertexAttribArray(locations.normalLocation);
+			GL.EnableVertexAttribArray(locations.texCoordLocation);
 			
 			Error.checkGLError("Mesh.bufferData");
 		}
@@ -195,7 +215,7 @@ namespace OpenTkConsole
 		}
 
         // Reads on .obs file
-        static public Mesh CreateFromFile(string filename)
+        static public Mesh CreateFromFile(string filename, MaterialManager materialManager)
         {
             List<OBJFileReader.OBJFace> faces = new List<OBJFileReader.OBJFace>();
 
@@ -204,19 +224,19 @@ namespace OpenTkConsole
             List<Vector2> texCoords = new List<Vector2>();
             MaterialManager.Material meshMaterial = null;
 
-            OBJFileReader.readOBJ(filename, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
+            OBJFileReader.readOBJ(filename, materialManager, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
 
             // Create positions 
             List<PosNorTexVertex> vertices = new List<PosNorTexVertex>(positions.Count);
 
-            Console.WriteLine("Mesh read from " + filename);
-			
             foreach (OBJFileReader.OBJFace face in faces)
             {
 				vertices.Add( new PosNorTexVertex(positions[(int)face.positionIndex - 1],  normals[(int)face.normalIndex - 1], texCoords[(int)face.texCoordIndex - 1]));
             }
-			
-            return new Mesh(vertices, meshMaterial);
+
+			Console.WriteLine("Mesh read from " + filename);
+
+			return new Mesh(vertices, meshMaterial);
 		}
 	}
 }

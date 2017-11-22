@@ -9,5 +9,5 @@ out vec4 fragColor; // first out variable is automatically written to the screen
 void main()
 {
 	vec4 textureColor = texture(inputTexture, fTexCoord);
-	fragColor = fDiffuseColor * textureColor;
+	fragColor = fDiffuseColor * textureColor + vec4(fNormal, 0.0f);
 }

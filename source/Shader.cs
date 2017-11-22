@@ -33,14 +33,21 @@ namespace OpenTkConsole
 		
 		static public Shader CreateFromFile(ShaderType type, string filename)
 		{
-			StreamReader sourceFile = new StreamReader(filename);
+			try
+			{
+				StreamReader sourceFile = new StreamReader(filename);
 
-            string sourceCode = sourceFile.ReadToEnd();
+				string sourceCode = sourceFile.ReadToEnd();
 
-            sourceFile.Close();
-			
-			return new Shader(type, sourceCode);
-			
+				sourceFile.Close();
+
+				return new Shader(type, sourceCode);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Shader CreateFromFile exception when opening file " + filename + " Error: " + e.Message);
+				return null;
+			}
 		}
 	}
 	
@@ -77,13 +84,14 @@ namespace OpenTkConsole
 
             Console.WriteLine("Program linked. Uniform amount " + uniformAmount);
 
-            StringBuilder shaderName = new StringBuilder();
+			int maxShaderNameSize = 100;
+            StringBuilder shaderName = new StringBuilder(maxShaderNameSize);
             int writtenLength;
             int uniformSize;
             ActiveUniformType type;
 			for (int i = 0; i < uniformAmount; i++)
 			{
-                GL.GetActiveUniform(this.handle, i, 100, out writtenLength, out uniformSize, out type, shaderName);
+                GL.GetActiveUniform(this.handle, i, maxShaderNameSize, out writtenLength, out uniformSize, out type, shaderName);
                 Console.WriteLine("Uniform: " + i + " name :" + shaderName.ToString());
 			}
 			

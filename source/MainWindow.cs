@@ -61,6 +61,9 @@ namespace OpenTkConsole
 
         bool useSync;
 
+		// Audio
+		bool useAudio;
+
 		IScene testScene;
         Stopwatch timer;
 
@@ -91,14 +94,6 @@ namespace OpenTkConsole
 			paused = true;
 			spaceDown = false;
 
-
-
-
-			// Audio
-			initAudio();
-
-
-
 			// SYNC
 			useSync = false;
 			loadSyncer();
@@ -106,25 +101,35 @@ namespace OpenTkConsole
 			rowsPerBeat = 4;
 			songLength = 5.0f; // seconds
 
+			string materialFolder = "../data/materials/";
+			MaterialManager materialManager = new MaterialManager(materialFolder);
 
 			// Materials and scenes
 			// Pass syncer to scenes.
 			try
 			{
-				MaterialManager.init("../data/materials/");
-
-				testScene = new EmptyScene();
-				testScene.loadScene();
+				testScene = new RotatingScene();
+				testScene.loadScene(materialManager);
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine("Caugh exception when loading scene" + exception.Message);
+				Console.WriteLine("Caugh exception when loading scene " + exception.Message);
 			}
 
+			// Audio
+			useAudio = false;
+
+			if (useAudio)
+			{
+				initAudio();
+			}
+			
 
 			// Timing
 			timer = new Stopwatch();
             timer.Start();
+
+			Console.WriteLine("OnLoad complete");
         }
 
         public bool demoPlaying()
@@ -280,10 +285,6 @@ namespace OpenTkConsole
 
 		void initAudio()
 		{
-			
-
-			
-
 			IntPtr nullDevice = System.IntPtr.Zero;
 			IList<string> allDevices = Alc.GetString(nullDevice, AlcGetStringList.DeviceSpecifier);
 			foreach(string s in allDevices)
@@ -379,7 +380,10 @@ namespace OpenTkConsole
 		void cleanupAndExit()
 		{
 			syncDevice.Dispose();
-			shutDownAudio();
+			if (useAudio)
+			{
+				shutDownAudio();
+			}
 			Exit();
 		}
     }
