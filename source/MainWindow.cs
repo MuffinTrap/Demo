@@ -101,15 +101,15 @@ namespace OpenTkConsole
 			rowsPerBeat = 4;
 			songLength = 5.0f; // seconds
 
-			string materialFolder = "../data/materials/";
-			MaterialManager materialManager = new MaterialManager(materialFolder);
+			string dataFolder = "data";
+			AssetManager assetManager = new AssetManager(dataFolder);
 
 			// Materials and scenes
 			// Pass syncer to scenes.
 			try
 			{
 				testScene = new RotatingScene();
-				testScene.loadScene(materialManager);
+				testScene.loadScene(assetManager);
 			}
 			catch (Exception exception)
 			{

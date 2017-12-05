@@ -12,6 +12,7 @@ namespace OpenTkConsole
 	public class Shader
 	{
 		private readonly int handle;
+		public string ShaderName { get; set; }
 		
 		public int Handle { get { return this.handle; } }
 		

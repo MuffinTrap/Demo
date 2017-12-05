@@ -13,14 +13,14 @@ namespace OpenTkConsole
 
 public interface IScene
 {
-	void loadScene(MaterialManager materialManager);
+	void loadScene(AssetManager materialManager);
 	void drawScene();
 	void updateScene(KeyboardState keyState);
 }
 
 class EmptyScene : IScene
 {
-	public void loadScene(MaterialManager materialManager) {}
+	public void loadScene(AssetManager assetManager) {}
 
 	public void drawScene() {}
 
@@ -28,9 +28,7 @@ class EmptyScene : IScene
 }
 
 class RotatingScene : IScene
-{
-	Shader vertexShader;
-	Shader fragmentShader;
+{ 
 	
 	ShaderProgram shaderProgram;
 
@@ -54,13 +52,9 @@ class RotatingScene : IScene
 		
 	}
 	
-	public void loadScene(MaterialManager materialManager)
-	{
-		vertexShader = Shader.CreateFromFile(ShaderType.VertexShader, "../data/shaders/vertex.vs");
-		
-		fragmentShader = Shader.CreateFromFile(ShaderType.FragmentShader, "../data/shaders/fragment.fs");
-		
-		shaderProgram = new ShaderProgram(vertexShader, fragmentShader);
+	public void loadScene(AssetManager assetManager)
+	{	
+		shaderProgram = new ShaderProgram(assetManager.GetShader("vertex.vs"), assetManager.GetShader("fragment.fs"));
 		
 		Error.checkGLError("Scene.loadScene");
 
@@ -73,12 +67,13 @@ class RotatingScene : IScene
 		Mesh.ScaleDataIndex = shaderProgram.GetUniformLocation("uScale");
 		shaderProgram.setSamplerUniform("inputTexture", 0);
 
-		origoTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, locations);
-		xTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 1.0f, locations);
-		zTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 1.0f, locations);
-		yTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 1.0f, locations);
+		origoTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, locations);
+		xTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 1.0f, locations);
+		zTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 1.0f, locations);
+		yTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 1.0f, locations);
 
-		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj", materialManager), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f, locations);
+		Mesh monuMesh = assetManager.GetMesh("monu9");
+		voxelMesh = addMesh(monuMesh, new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f, locations);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);

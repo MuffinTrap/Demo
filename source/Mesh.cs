@@ -11,7 +11,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace OpenTkConsole
 {
-	class Mesh
+	public class Mesh
 	{
 		public int VAOHandle;
 		public int BufferHandle;
@@ -19,6 +19,8 @@ namespace OpenTkConsole
 		public int VertexAmount;
 
 		private float rotationY;
+
+		public string MeshName { get; set; }
 		
 		public struct PosNorTexVertex
 		{
@@ -105,7 +107,7 @@ namespace OpenTkConsole
 
 		//
 
-		static public Mesh CreateTriangleMesh(MaterialManager materialManager)
+		static public Mesh CreateTriangleMesh(AssetManager materialManager)
 		{
 			// positions
 
