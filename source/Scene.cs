@@ -49,6 +49,9 @@ class RotatingScene : IScene
 	Vector3 cameraDirection;
 	Vector3 sceneUp;
 
+        // Light
+        Vector3 lightDir;
+
 	public RotatingScene()
 	{
 		
@@ -78,7 +81,7 @@ class RotatingScene : IScene
 		zTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 1.0f, locations);
 		yTriangle = addMesh(Mesh.CreateTriangleMesh(materialManager), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 1.0f, locations);
 
-		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj", materialManager), new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f, locations);
+		voxelMesh = addMesh(Mesh.CreateFromFile("../data/models/monu9/monu9.obj", materialManager), new Vector3(0.0f, 0.0f, 0.0f), new Color4(0.0f, 0.0f, 0.0f, 1.0f), 0.1f, locations);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);

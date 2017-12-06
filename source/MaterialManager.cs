@@ -34,7 +34,7 @@ namespace OpenTkConsole
 		{
 			materials = new List<Material>();
 			dataDir = dataDirectory;
-			loadMaterial("white.mtl");
+			createMaterial("white", Color.White);
 		}
 
 		public Material GetMaterialByName(string materialName)
