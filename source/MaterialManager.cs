@@ -191,13 +191,12 @@ namespace OpenTkConsole
 		int loadTexture(string textureFileName)
 		{
             Logger.LogInfo("loadTexture " + textureFileName);
-			string fullPath = dataDir + textureFileName;
 
 			int textureId = -1;
 			
 			try
 			{
-				Bitmap map = new Bitmap(fullPath);
+				Bitmap map = new Bitmap(textureFileName);
 				textureId = loadTextureFromBitmap(map); 
 			}
 			catch (FileNotFoundException e)

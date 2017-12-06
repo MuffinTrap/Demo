@@ -31,7 +31,7 @@ namespace OpenTkConsole
 					sType = OpenTK.Graphics.OpenGL.ShaderType.FragmentShader;
 				}
 
-				string fileName = shaderFile.Substring(shaderFile.LastIndexOf('/'));
+				string fileName = shaderFile.Substring(shaderFile.LastIndexOf('\\') + 1);
 				Shader newShader = Shader.CreateFromFile(sType, shaderFile);
 				newShader.ShaderName = fileName;
 				allShaders.Add(newShader);

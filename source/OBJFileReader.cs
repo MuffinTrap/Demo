@@ -108,7 +108,9 @@ namespace OpenTkConsole
 			string[] matFileLines = mttlibLine.Split(space);
 			string filename = matFileLines[1];
 
-			material = materialManager.loadMaterial(filename);
+			string fullPath = Directory.GetCurrentDirectory() + "\\" + filename;
+
+			material = materialManager.loadMaterial(fullPath);
 		}
 
 		public static void readOBJ(string filename, MaterialManager materialManager, ref List<OBJFileReader.OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<Vector2> texCoords, ref MaterialManager.Material material)

@@ -9,6 +9,8 @@ namespace OpenTkConsole
 {
 	static class Logger
 	{
+
+
 		public enum ErrorState
 		{
 			Critical,	// Program cannot continue. Code error
@@ -70,11 +72,16 @@ namespace OpenTkConsole
 					Console.Write("++++ ");
 					break;
 				case LogType.Info:
-					Console.ForegroundColor = ConsoleColor.Gray;
+					Console.ForegroundColor = ConsoleColor.White;
 					Console.Write("Info: ");
 					break;
 			}
-			Console.ForegroundColor = ConsoleColor.White;
+			Console.ForegroundColor = ConsoleColor.Gray;
+		}
+
+		static Logger()
+		{
+			ProgramErrorState = ErrorState.NoErrors;
 		}
 	}
 

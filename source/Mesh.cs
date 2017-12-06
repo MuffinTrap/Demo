@@ -74,35 +74,22 @@ namespace OpenTkConsole
 		
 		public Matrix4Uniform worldMatrix;
 
-		public static int PositionDataIndex { get; set; }
-		public static int NormalDataIndex { get; set; }
-		public static int TexCoordDataIndex { get; set; }
-		public static int ColorDataIndex { get; set; }
-		public static int ScaleDataIndex { get; set; }
-
 		// RenderingComponent
-		public Color4 DiffuseColor { get; set; }
 
 		public float Scale { get; set; }
 		//
-
 	
 		public MaterialManager.Material MeshMaterial { get; set; }
 
-		// TransformComponent
-		private Vector3 worldPosition;
-		
+		// TransformComponent	
 		public Vector3 WorldPosition 
 		{
-			get
-			{
-				return worldPosition;
-			}
-			set
-			{
-				worldPosition = value;
-				worldMatrix.Matrix = Matrix4.CreateTranslation(worldPosition);
-			}	
+			get; set;
+		}
+
+		private void UpdateWorldMatrix()
+		{
+			worldMatrix.Matrix = Matrix4.CreateTranslation(WorldPosition)  * Matrix4.CreateRotationY(rotationY) * Matrix4.CreateScale(Scale);
 		}
 
 		//
@@ -145,7 +132,6 @@ namespace OpenTkConsole
 
 			// RenderingComponent
 			Scale = 1.0f;
-			DiffuseColor = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
 			rotationY = 0.0f;
 
 		}
@@ -195,13 +181,11 @@ namespace OpenTkConsole
 
 		public void updateUniforms(ShaderProgram shaderProgram)
 		{
+			UpdateWorldMatrix();
 			worldMatrix.Set(shaderProgram);
 			
 			GL.ActiveTexture(TextureUnit.Texture0);
 			GL.BindTexture(TextureTarget.Texture2D, MeshMaterial.textureGLIndex);
-
-			GL.Uniform4(ColorDataIndex, DiffuseColor);
-			GL.Uniform1(ScaleDataIndex, Scale);
 
 			Error.checkGLError("Mesh.updateUniforms");
 		}
@@ -213,7 +197,6 @@ namespace OpenTkConsole
 			{
 				rotationY = 0.0f;
 			}
-			worldMatrix.Matrix = Matrix4.CreateRotationY(rotationY);
 		}
 
         // Reads on .obs file

@@ -64,17 +64,15 @@ class RotatingScene : IScene
 		locations.positionLocation = shaderProgram.GetAttributeLocation("vPosition");
 		locations.normalLocation = shaderProgram.GetAttributeLocation("vNormal");
 		locations.texCoordLocation = shaderProgram.GetAttributeLocation("vTexCoord");
-		Mesh.ColorDataIndex = shaderProgram.GetUniformLocation("uDiffuseColor");
-		Mesh.ScaleDataIndex = shaderProgram.GetUniformLocation("uScale");
 		shaderProgram.setSamplerUniform("inputTexture", 0);
 
-		origoTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 0, 0), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, locations);
-		xTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(1, 0, 0), new Color4(1, 0.2f, 0.2f, 1), 1.0f, locations);
-		zTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 0, 1), new Color4(0.2f, 1, 0.2f, 1), 1.0f, locations);
-		yTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 1, 0), new Color4(0.2f, 0.2f, 1, 1), 1.0f, locations);
+		origoTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 0, 0), 1.0f, locations);
+		xTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(1, 0, 0),  1.0f, locations);
+		zTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 0, 1),  1.0f, locations);
+		yTriangle = addMesh(Mesh.CreateTriangleMesh(assetManager), new Vector3(0, 1, 0), 1.0f, locations);
 
-		Mesh monuMesh = assetManager.GetMesh("monu9");
-		voxelMesh = addMesh(monuMesh, new Vector3(0.0f, 0.0f, 0.0f), new Color4(1.0f, 1.0f, 1.0f, 1.0f), 0.1f, locations);
+		Mesh monuMesh = assetManager.GetMesh("monu9.obj");
+		voxelMesh = addMesh(monuMesh, new Vector3(0.0f, 0.0f, 0.0f), 0.1f, locations);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
@@ -92,12 +90,11 @@ class RotatingScene : IScene
 		Error.checkGLError("Scene.loadScene");
 	}
 
-	public Mesh addMesh(Mesh meshData, Vector3 position, Color4 color, float scale, Mesh.AttributeLocations locations)
+	public Mesh addMesh(Mesh meshData, Vector3 position, float scale, Mesh.AttributeLocations locations)
 	{
 		Mesh newMesh = meshData;
 		newMesh.bufferData(locations);
 		newMesh.WorldPosition = position;
-		newMesh.DiffuseColor = color;
 		newMesh.Scale = scale;
 
 		return newMesh;

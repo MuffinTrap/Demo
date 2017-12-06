@@ -55,8 +55,11 @@ namespace OpenTkConsole
                   GraphicsContextFlags.ForwardCompatible)
         {
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
+
 			Logger.LogPhase("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
             base.TargetUpdateFrequency = 120.0;
+
+			base.Location = new Point(510, 10);
         }
 
         protected override void OnResize(EventArgs e)
