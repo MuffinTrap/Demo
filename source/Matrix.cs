@@ -7,7 +7,7 @@ using OpenTK.Graphics.OpenGL;
 namespace OpenTkConsole
 {
 
-class Matrix4Uniform
+	public class Matrix4Uniform
 	{
 		private readonly string name;
 		private Matrix4 matrix;

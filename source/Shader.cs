@@ -28,7 +28,7 @@ namespace OpenTkConsole
             GL.GetShader(handle, ShaderParameter.CompileStatus, out successValue);
             if (successValue == 0)
             {
-                Console.WriteLine("Shader compile failed: " + GL.GetShaderInfoLog(handle));
+				Logger.LogError(Logger.ErrorState.Limited, "Shader compile failed: " + GL.GetShaderInfoLog(handle));
             }
 		}
 		
@@ -46,7 +46,7 @@ namespace OpenTkConsole
 			}
 			catch (Exception e)
 			{
-				Console.WriteLine("Shader CreateFromFile exception when opening file " + filename + " Error: " + e.Message);
+				Logger.LogError(Logger.ErrorState.Limited, "Shader CreateFromFile exception when opening file " + filename + " Error: " + e.Message);
 				return null;
 			}
 		}
@@ -75,7 +75,7 @@ namespace OpenTkConsole
             GL.GetProgram(handle, GetProgramParameterName.LinkStatus, out successValue);
             if (successValue == 0)
             {
-                Console.WriteLine("Shader link failed: " + GL.GetProgramInfoLog(handle));
+				Logger.LogError(Logger.ErrorState.Limited, "Shader link failed: " + GL.GetProgramInfoLog(handle));
             }
 
             int uniformAmount;
@@ -83,7 +83,7 @@ namespace OpenTkConsole
 			
 			Error.checkGLError("Shader()");
 
-            Console.WriteLine("Program linked. Uniform amount " + uniformAmount);
+            Logger.LogInfo("Program linked. Uniform amount " + uniformAmount);
 
 			int maxShaderNameSize = 100;
             StringBuilder shaderName = new StringBuilder(maxShaderNameSize);
@@ -93,7 +93,7 @@ namespace OpenTkConsole
 			for (int i = 0; i < uniformAmount; i++)
 			{
                 GL.GetActiveUniform(this.handle, i, maxShaderNameSize, out writtenLength, out uniformSize, out type, shaderName);
-                Console.WriteLine("Uniform: " + i + " name :" + shaderName.ToString());
+               Logger.LogInfo("Uniform: " + i + " name :" + shaderName.ToString());
 			}
 			
             foreach (var shader in shaders)
@@ -113,7 +113,7 @@ namespace OpenTkConsole
 		{
 			if (!inUse)
 			{
-				Console.WriteLine("Program not in use! Cannot get attribute location");
+				Logger.LogError(Logger.ErrorState.Limited, "Program not in use! Cannot get attribute location");
 			}
 			
 			if (!GL.IsProgram(this.handle))
@@ -123,7 +123,7 @@ namespace OpenTkConsole
 			int location = GL.GetAttribLocation(this.handle, name);
 			if (location == -1)
 			{
-				Console.WriteLine("Attribute " + name + " not found");
+				Logger.LogError(Logger.ErrorState.Limited, "Attribute " + name + " not found");
 			}
 			return location;
 		}
@@ -132,18 +132,18 @@ namespace OpenTkConsole
 		{
 			if (!inUse)
 			{
-				Console.WriteLine("Program not in use! cannot get uniform location");
+				Logger.LogError(Logger.ErrorState.Limited, "Program not in use! cannot get uniform location");
 			}
 		
 			if (!GL.IsProgram(this.handle))
 			{
-				Console.WriteLine("Not a program");
+				Logger.LogError(Logger.ErrorState.Limited, "Not a program");
 			}
 			
 			int location = GL.GetUniformLocation(this.handle, name);
 			if (location == -1)
 			{
-				Console.WriteLine("Uniform " + name + " not found");
+				Logger.LogError(Logger.ErrorState.Limited, "Uniform " + name + " not found");
 			}
 			return location;
 			

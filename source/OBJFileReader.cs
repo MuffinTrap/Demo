@@ -40,7 +40,7 @@ namespace OpenTkConsole
 					vec.Z = Single.Parse(values[3], nfi);
 				} catch (FormatException e)
 				{
-					Console.WriteLine("Value {0} Caught Formatexception:" + e.Message, values[1]);
+					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, values[1]));
 				}
 			}
 
@@ -66,7 +66,7 @@ namespace OpenTkConsole
 				}
 				catch (FormatException e)
 				{
-					Console.WriteLine("Value {0} Caught Formatexception:" + e.Message, values[1]);
+					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, values[1]));
 				}
 			}
 

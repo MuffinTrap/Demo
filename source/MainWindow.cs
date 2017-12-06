@@ -16,30 +16,7 @@ using RocketNet;
 
 namespace OpenTkConsole
 {
-	static class Error
-	{
-		static public bool checkGLError(string place)
-		{
-			bool errorFound = false;
-			while ( GL.GetError() != ErrorCode.NoError)
-			{
-				Console.WriteLine("GL error in " + place);
-				errorFound = true;
-			}
-			return errorFound;
-		}
-
-		static public bool checkALError(string place)
-		{
-			bool errorFound = false;
-			while ( AL.GetError() != ALError.NoError)
-			{
-				Console.WriteLine("AL error in " + place);
-				errorFound = true;
-			}
-			return errorFound;
-		}
-	}
+	
 	
     public sealed class MainWindow : GameWindow
     {
@@ -78,7 +55,7 @@ namespace OpenTkConsole
                   GraphicsContextFlags.ForwardCompatible)
         {
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
-			Console.WriteLine("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
+			Logger.LogPhase("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
             base.TargetUpdateFrequency = 120.0;
         }
 
@@ -113,7 +90,7 @@ namespace OpenTkConsole
 			}
 			catch (Exception exception)
 			{
-				Console.WriteLine("Caugh exception when loading scene " + exception.Message);
+				Logger.LogError(Logger.ErrorState.Critical, "Caugh exception when loading scene " + exception.Message);
 			}
 
 			// Audio
@@ -129,7 +106,7 @@ namespace OpenTkConsole
 			timer = new Stopwatch();
             timer.Start();
 
-			Console.WriteLine("OnLoad complete");
+			Logger.LogPhase("OnLoad complete");
         }
 
         public bool demoPlaying()
@@ -183,6 +160,12 @@ namespace OpenTkConsole
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+			if (Logger.ProgramErrorState == Logger.ErrorState.Critical
+			|| Logger.ProgramErrorState == Logger.ErrorState.Limited)
+			{
+				ExitProgram();
+			}
+
             HandleKeyboard();
 			if (useSync)
 			{
@@ -207,10 +190,7 @@ namespace OpenTkConsole
 			
             if (keyState.IsKeyDown(Key.Escape))
             {
-				running = false;
-                timer.Stop();
-
-				cleanupAndExit();
+				ExitProgram();
                
             }
 
@@ -219,8 +199,15 @@ namespace OpenTkConsole
 			// Take scene number from track
 
 			testScene.updateScene(keyState);
-
         }
+
+		private void ExitProgram()
+		{
+			running = false;
+			timer.Stop();
+
+			cleanupAndExit();
+		}
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
@@ -278,7 +265,7 @@ namespace OpenTkConsole
 			} catch(System.Net.Sockets.SocketException socketE)
 			{
 
-				Console.WriteLine("Socket exception: " + socketE.Message);
+				Logger.LogError(Logger.ErrorState.Critical, "Socket exception: " + socketE.Message);
 				running = false;
 			}
 		}
@@ -289,7 +276,7 @@ namespace OpenTkConsole
 			IList<string> allDevices = Alc.GetString(nullDevice, AlcGetStringList.DeviceSpecifier);
 			foreach(string s in allDevices)
 			{
-				Console.WriteLine("OpenAL device " + s);
+				Logger.LogInfo("OpenAL device " + s);
 			}
 
 			// Open preferred device
@@ -303,7 +290,7 @@ namespace OpenTkConsole
 			}
 			else
 			{
-				Console.WriteLine("Could not get AL device");
+				Logger.LogError(Logger.ErrorState.Critical, "Could not get AL device");
 				return;
 			}
 
@@ -311,7 +298,7 @@ namespace OpenTkConsole
 			string alVendor = AL.Get(ALGetString.Vendor);
 			string alVersion = AL.Get(ALGetString.Version);
 
-			Console.WriteLine("OpenAL Renderer {0}  Vendor {1}  Version {2}", alRenderer, alVendor, alVersion);
+			Logger.LogInfo(string.Format("OpenAL Renderer {0}  Vendor {1}  Version {2}", alRenderer, alVendor, alVersion));
 
 
 			Error.checkALError("initAudio");
@@ -327,7 +314,7 @@ namespace OpenTkConsole
 			string vorbisEXTName = "AL_EXT_vorbis";
 			if (AL.IsExtensionPresent(vorbisEXTName) && dataisVorbis)
 			{
-				Console.WriteLine("AL can use vorbis");
+				Logger.LogInfo("AL can use vorbis");
 				IntPtr vorbisBuffer = System.IntPtr.Zero;
 				int vorbisSize = 0;
 				AL.BufferData(alBuffer, ALFormat.VorbisExt, vorbisBuffer, vorbisSize, frequenzy);

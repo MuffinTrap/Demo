@@ -28,13 +28,11 @@ namespace OpenTkConsole
 		}
 
 		public List<Material> materials;
-		private string dataDir;
 
-		public MaterialManager(string dataDirectory)
+		public MaterialManager()
 		{
 			materials = new List<Material>();
-			dataDir = dataDirectory;
-			loadMaterial("white.mtl");
+			createMaterial("white", Color.White);
 		}
 
 		public Material GetMaterialByName(string materialName)
@@ -53,16 +51,15 @@ namespace OpenTkConsole
 
 		public Material loadMaterial(string materialFileName)
 		{
-			string fullPath = dataDir + materialFileName;
 			StreamReader sourceFile = null;
 
 			try
 			{
-				sourceFile = new StreamReader(fullPath);
+				sourceFile = new StreamReader(materialFileName);
 			}
 			catch(Exception streamException)
 			{
-				Console.WriteLine("Failed to load material from file " + materialFileName + " Error:" + streamException.Message);
+				Logger.LogError(Logger.ErrorState.Limited, "Failed to load material from file " + materialFileName + " Error:" + streamException.Message);
 				return null;
 			}
 
@@ -150,7 +147,7 @@ namespace OpenTkConsole
 
 			materials.Add(newMaterial);
 
-			Console.WriteLine("Loaded material from file " + materialFileName);
+			Logger.LogInfo("Loaded material from file " + materialFileName);
 
 			return newMaterial;
 		}
@@ -173,7 +170,7 @@ namespace OpenTkConsole
 			
 			materials.Add(newMaterial);
 
-			Console.WriteLine("Create material with name " + materialName);
+			Logger.LogInfo("Created material with name " + materialName);
 		}
 		
 		int createTexture(System.Drawing.Color textureColor)
@@ -193,7 +190,7 @@ namespace OpenTkConsole
 
 		int loadTexture(string textureFileName)
 		{
-            Console.WriteLine("loadTexture " + textureFileName);
+            Logger.LogInfo("loadTexture " + textureFileName);
 			string fullPath = dataDir + textureFileName;
 
 			int textureId = -1;
@@ -205,14 +202,14 @@ namespace OpenTkConsole
 			}
 			catch (FileNotFoundException e)
 			{
-				Console.WriteLine("Load texture did not find file:" + e.Message);
+				Logger.LogError(Logger.ErrorState.Limited, "Load texture did not find file:" + e.Message);
 			}
 			catch (ArgumentException e)
 			{
-				Console.WriteLine("Load texture did not find file:" + e.Message);
+				Logger.LogError(Logger.ErrorState.Limited, "Load texture did not find file:" + e.Message);
 			}
 
-			Console.WriteLine("Loaded texture from file " + textureFileName);
+			Logger.LogInfo("Loaded texture from file " + textureFileName);
 
 			return textureId;
 		}

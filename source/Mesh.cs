@@ -107,7 +107,7 @@ namespace OpenTkConsole
 
 		//
 
-		static public Mesh CreateTriangleMesh(AssetManager materialManager)
+		static public Mesh CreateTriangleMesh(AssetManager assetManager)
 		{
 			// positions
 
@@ -117,14 +117,14 @@ namespace OpenTkConsole
 			vertices.Add(new PosNorTexVertex(new Vector3(1f, 1f, 0.0f), normal, new Vector2(1.0f, 1.0f)));
 			vertices.Add(new PosNorTexVertex(new Vector3(0.0f, 0.0f, 0.0f), normal, new Vector2(0.5f, 0.0f)));
 
-			return new Mesh(vertices, materialManager.GetMaterialByName("white"));
+			return new Mesh(vertices, assetManager.GetMaterial("white"));
 		}
 			
 		public Mesh(List<PosNorTexVertex> vertices, MaterialManager.Material meshMaterial)
 		{
 			if (meshMaterial == null)
 			{
-				Console.WriteLine("Material was nulle when creating mesh!");
+				Logger.LogError(Logger.ErrorState.Limited, "Material was null when creating mesh!");
 			}
 
 			BufferHandle = GL.GenBuffer();
@@ -165,11 +165,11 @@ namespace OpenTkConsole
 			// Check!
 			if (locations.positionLocation == locations.normalLocation|| locations.normalLocation == locations.texCoordLocation)
 			{
-				Console.WriteLine("Data indices are same, buffering will fail.");
+				Logger.LogError(Logger.ErrorState.Limited, "Data indices are same, buffering will fail.");
 			}
 			if (locations.positionLocation == -1)
 			{
-				Console.WriteLine("Position location is invalid.");
+				Logger.LogError(Logger.ErrorState.Limited, "Position location is invalid.");
 			}
 
             GL.VertexAttribPointer(index: locations.positionLocation, size: PosNorTexVertex.getElementsInPosition()
@@ -236,7 +236,7 @@ namespace OpenTkConsole
 				vertices.Add( new PosNorTexVertex(positions[(int)face.positionIndex - 1],  normals[(int)face.normalIndex - 1], texCoords[(int)face.texCoordIndex - 1]));
             }
 
-			Console.WriteLine("Mesh read from " + filename);
+			Logger.LogInfo("Mesh read from " + filename);
 
 			return new Mesh(vertices, meshMaterial);
 		}

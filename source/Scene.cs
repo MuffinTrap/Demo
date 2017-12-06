@@ -54,7 +54,8 @@ class RotatingScene : IScene
 	
 	public void loadScene(AssetManager assetManager)
 	{	
-		shaderProgram = new ShaderProgram(assetManager.GetShader("vertex.vs"), assetManager.GetShader("fragment.fs"));
+		// Load program from single file...
+		shaderProgram = new ShaderProgram(assetManager.GetShader("objmesh.vs"), assetManager.GetShader("objmesh.fs"));
 		
 		Error.checkGLError("Scene.loadScene");
 
