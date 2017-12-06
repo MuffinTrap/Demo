@@ -6,8 +6,6 @@ uniform mat4 projectionMatrix;
 uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 
-uniform vec4 uDiffuseColor;
-uniform float uScale;
 
 // attributes of our vertex
 in vec3 vPosition;
@@ -15,7 +13,7 @@ in vec3 vNormal;
 in vec2 vTexCoord;
 
 out vec2 fTexCoord;
-out vec4 fDiffuseColor; // must match name in fragment shader
+out vec4 fLightColor; // must match name in fragment shader
 
 vec4 directLight(vec4 normal, vec4 lightDir)
 {
@@ -31,8 +29,8 @@ vec4 directLight(vec4 normal, vec4 lightDir)
 void main()
 {
 	// gl_Position is a special variable of OpenGL that must be set
-	 gl_Position =  projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition * uScale,	1.0);
-	
+	 gl_Position =  projectionMatrix * viewMatrix * modelMatrix * vec4(vPosition, 1.0);
+
 	// 
 	vec4 transNormal = viewMatrix * modelMatrix * vec4(vNormal, 0.0f);
 	vec4 lightDir = vec4(0.3f, -0.3f, 0.0f, 0.0f);
@@ -40,6 +38,6 @@ void main()
 	
 	
 	fTexCoord = vTexCoord;
-	fDiffuseColor = (0.1f * uDiffuseColor) + directLight(transNormal, lightDir);
+	fLightColor = directLight(transNormal, lightDir);
 }
 
