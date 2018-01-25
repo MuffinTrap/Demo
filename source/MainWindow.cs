@@ -23,8 +23,6 @@ namespace OpenTkConsole
         private bool running;
 
         // Syncing
-        public Track redColorTrack;
-        public Track greenColorTrack;
         public Device syncDevice;
 
         private int bpm;
@@ -224,9 +222,9 @@ namespace OpenTkConsole
 
             Color4 backColor;
             backColor.A = 1.0f;
-            backColor.R = redColorTrack.GetValue(syncRow);
-            backColor.G = greenColorTrack.GetValue(syncRow);
-            backColor.B = 0.8f;
+			backColor.R = 0.1f;
+			backColor.G = 0.1f;
+            backColor.B = 0.1f;
             GL.ClearColor(backColor);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -246,9 +244,9 @@ namespace OpenTkConsole
 		void loadSyncer()
 		{
 			syncDevice = new Device("test", false);
-            redColorTrack = syncDevice.GetTrack("redColor");
-            greenColorTrack = syncDevice.GetTrack("greenColor");
-
+            // redColorTrack = syncDevice.GetTrack("redColor");
+            // greenColorTrack = syncDevice.GetTrack("greenColor");
+			
 			if (useSync)
 			{
 				connectSyncer();

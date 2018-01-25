@@ -18,10 +18,70 @@ namespace OpenTkConsole
         public int IndexBufferHandle;
 		public int VertexAmount;
 
+		public enum vertexType
+		{
+			posNorTex,
+			posTex
+		}
+
+		public vertexType usedVertex;
+
 		private float rotationY;
 
 		public string MeshName { get; set; }
+
+		public const int bytesPerFloat = 4;
+		public static int getElementsInPosition()
+		{
+			return 3;
+		}
+
+		public static int getElementsInTexCoord()
+		{
+			return 2;
+		}
+
+		public static int getElementsInDiffuseColor()
+		{
+			return 4;
+		}
 		
+		public static int getElementsInNormal() { return getElementsInPosition(); }
+
+		public static int getPositionSizeBytes()
+		{
+			return getElementsInPosition() * bytesPerFloat;
+		}
+
+		public static int getTexCoordSizeBytes()
+		{
+			return getElementsInTexCoord() * bytesPerFloat;
+		}
+
+		public static int getDiffuseColorSizeBytes()
+		{
+			return getElementsInDiffuseColor() * bytesPerFloat;
+		}
+
+		public static int getNormalSizeBytes() { return getElementsInNormal() * bytesPerFloat; }
+
+		public int getVertexSize()
+		{
+			int vertexSize = 0;
+			switch (usedVertex)
+			{
+				case vertexType.posNorTex:
+					vertexSize = getPositionSizeBytes() + getNormalSizeBytes() + getTexCoordSizeBytes();
+					break;
+
+				case vertexType.posTex:
+					vertexSize = getPositionSizeBytes() + getTexCoordSizeBytes();
+					break;
+			}
+
+			return vertexSize;
+		}
+
 		public struct PosNorTexVertex
 		{
 			Vector3 position;
@@ -34,31 +94,17 @@ namespace OpenTkConsole
 				normal = nor;
 				texCoord = uv;
 			}
+		}
 
-			const int bytesPerFloat = 4;
+		public struct PosTexVertex
+		{
+			Vector3 position;
+			Vector2 texCoord;
 
-			public static int getPositionSizeBytes()
+			public PosTexVertex(Vector3 pos, Vector2 uv)
 			{
-				return getElementsInPosition() * bytesPerFloat;
-			}
-
-			public static int getTexCoordSizeBytes()
-			{
-				return getElementsInTexCoord() * bytesPerFloat;
-			}
-			
-			public static int getNormalSizeBytes() { return getElementsInNormal() * bytesPerFloat; }
-
-			public static int getElementsInPosition()
-			{
-				return 3;
-			}
-			
-			public static int getElementsInNormal() { return getElementsInPosition(); }
-
-			public static int getElementsInTexCoord()
-			{
-				return 2;
+				position = pos;
+				texCoord = uv;
 			}
 		}
 
@@ -67,11 +113,9 @@ namespace OpenTkConsole
 			public int positionLocation;
 			public int normalLocation;
 			public int texCoordLocation;
+			public int diffuseColorLocation;
 		}
 
-		private List<PosNorTexVertex> rawVertices;
-       // private List<uint> rawIndices;
-		
 		public Matrix4Uniform worldMatrix;
 
 		// RenderingComponent
@@ -89,13 +133,17 @@ namespace OpenTkConsole
 
 		private void UpdateWorldMatrix()
 		{
-			worldMatrix.Matrix = Matrix4.CreateTranslation(WorldPosition)  * Matrix4.CreateRotationY(rotationY) * Matrix4.CreateScale(Scale);
+			Matrix4 T = Matrix4.CreateTranslation(WorldPosition);
+			Matrix4 R = Matrix4.CreateRotationY(rotationY);
+			Matrix4 S = Matrix4.CreateScale(Scale);
+			worldMatrix.Matrix = T * S * R;
 		}
 
 		//
 
-		static public Mesh CreateTriangleMesh(AssetManager assetManager)
+		static public Mesh CreateTriangleMesh(AssetManager assetManager, AttributeLocations locations)
 		{
+			Mesh triMesh = new Mesh();
 			// positions
 
 			List<PosNorTexVertex> vertices = new List<PosNorTexVertex>();
@@ -104,48 +152,77 @@ namespace OpenTkConsole
 			vertices.Add(new PosNorTexVertex(new Vector3(1f, 1f, 0.0f), normal, new Vector2(1.0f, 1.0f)));
 			vertices.Add(new PosNorTexVertex(new Vector3(0.0f, 0.0f, 0.0f), normal, new Vector2(0.5f, 0.0f)));
 
-			return new Mesh(vertices, assetManager.GetMaterial("white"));
+			triMesh.VertexAmount = vertices.Count;
+
+			GL.BindVertexArray(triMesh.VAOHandle);
+			GL.BindBuffer(BufferTarget.ArrayBuffer, triMesh.BufferHandle);
+			GL.BufferData(BufferTarget.ArrayBuffer, triMesh.VertexAmount * triMesh.getVertexSize()
+				, vertices.ToArray(), BufferUsageHint.StaticDraw);
+
+			triMesh.enableAttributes(locations, triMesh.VertexAmount, triMesh.getVertexSize());
+
+			triMesh.MeshMaterial = assetManager.GetMaterial("white");
+
+			Error.checkGLError("Quad Mesh constructor");
+
+			return triMesh;
+		}
+
+		static public Mesh CreateTexturedQuadMesh(AssetManager assetManager, Mesh.AttributeLocations locations)
+		{
+			Mesh quadMesh = new Mesh();
+
+			List<PosTexVertex> vertices = new List<PosTexVertex>();
+
+			vertices.Add(new PosTexVertex(new Vector3(-1f, -1f, 0.0f),		 new Vector2(0.0f, 0.0f)));
+			vertices.Add(new PosTexVertex(new Vector3(-1f, 1f, 0.0f),		 new Vector2(1.0f, 0.0f)));
+			vertices.Add(new PosTexVertex(new Vector3(1.0f, 1.0f, 0.0f),		 new Vector2(1.0f, 1.0f)));
+																	
+			vertices.Add(new PosTexVertex(new Vector3(1f, 1f, 0.0f),			 new Vector2(1.0f, 1.0f)));
+			vertices.Add(new PosTexVertex(new Vector3(1f, -1f, 0.0f),		 new Vector2(1.0f, 0.0f)));
+			vertices.Add(new PosTexVertex(new Vector3(-1.0f, -1.0f, 0.0f),	 new Vector2(0.0f, 0.0f)));
+
+			quadMesh.VertexAmount = vertices.Count;
+			
+			GL.BindVertexArray(quadMesh.VAOHandle);
+			GL.BindBuffer(BufferTarget.ArrayBuffer, quadMesh.BufferHandle);
+			GL.BufferData(BufferTarget.ArrayBuffer, quadMesh.VertexAmount * quadMesh.getVertexSize()
+				, vertices.ToArray(), BufferUsageHint.StaticDraw);
+
+			quadMesh.enableAttributes(locations, quadMesh.VertexAmount, quadMesh.getVertexSize());
+
+			Error.checkGLError("Quad Mesh constructor");
+
+			return quadMesh;
 		}
 			
-		public Mesh(List<PosNorTexVertex> vertices, MaterialManager.Material meshMaterial)
-		{
-			if (meshMaterial == null)
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Material was null when creating mesh!");
-			}
+		public Mesh()
+		{ 
+			GenerateBufferHandles();
+	
+			Error.checkGLError("Mesh constructor");
+			SetupDefaultTransform();
+		}
 
+		void GenerateBufferHandles()
+		{
 			BufferHandle = GL.GenBuffer();
 			VAOHandle = GL.GenVertexArray();
-            IndexBufferHandle = GL.GenBuffer();
-			
-			VertexAmount = vertices.Count;
-			
-			Error.checkGLError("Mesh constructor");
-
-			 rawVertices = vertices;
-
-			MeshMaterial = meshMaterial;
-			 
-			 // Transformcomponent
-			 worldMatrix = new Matrix4Uniform("modelMatrix");
-			 worldMatrix.Matrix = Matrix4.Identity;
+		}
+		
+		void SetupDefaultTransform()
+		{
+			// Transformcomponent
+			worldMatrix = new Matrix4Uniform("modelMatrix");
+			worldMatrix.Matrix = Matrix4.Identity;
 
 			// RenderingComponent
 			Scale = 1.0f;
 			rotationY = 0.0f;
-
 		}
-		
-		public void bufferData(AttributeLocations locations)
-		{
-			int vertexSize = PosNorTexVertex.getPositionSizeBytes() + PosNorTexVertex.getNormalSizeBytes() + PosNorTexVertex.getTexCoordSizeBytes();
-       
-			GL.BindVertexArray(VAOHandle);
-			
-			GL.BindBuffer(BufferTarget.ArrayBuffer, BufferHandle);
-			
-			GL.BufferData(BufferTarget.ArrayBuffer, VertexAmount * vertexSize, rawVertices.ToArray(), BufferUsageHint.StaticDraw);
 
+		public void enableAttributes(AttributeLocations locations, int vertexAmount, int vertexSizeBytes)
+		{
             //  Vertex attributes
 
 			// Check!
@@ -158,25 +235,51 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Limited, "Position location is invalid.");
 			}
 
-            GL.VertexAttribPointer(index: locations.positionLocation, size: PosNorTexVertex.getElementsInPosition()
-                , type: VertexAttribPointerType.Float
-                , normalized: false, stride: vertexSize, offset: 0);
+			int runningOffset = 0;
 
-		   
-		   GL.VertexAttribPointer(index: locations.normalLocation, size: PosNorTexVertex.getElementsInNormal()
-		   , type: VertexAttribPointerType.Float
-		   , normalized: false, stride: vertexSize, offset: PosNorTexVertex.getPositionSizeBytes());
-		   
-		   
-			GL.VertexAttribPointer(index: locations.texCoordLocation, size: PosNorTexVertex.getElementsInTexCoord()
-		   , type: VertexAttribPointerType.Float
-		   , normalized: false, stride: vertexSize, offset: PosNorTexVertex.getNormalSizeBytes() + PosNorTexVertex.getNormalSizeBytes());
+            GL.VertexAttribPointer(index: locations.positionLocation, size: getElementsInPosition()
+                , type: VertexAttribPointerType.Float
+                , normalized: false, stride: vertexSizeBytes, offset: runningOffset);
 
 			GL.EnableVertexAttribArray(locations.positionLocation);
-			GL.EnableVertexAttribArray(locations.normalLocation);
-			GL.EnableVertexAttribArray(locations.texCoordLocation);
+
+			runningOffset += getPositionSizeBytes();
+
+
+			if (locations.normalLocation != -1)
+			{
+				GL.VertexAttribPointer(index: locations.normalLocation, size: getElementsInNormal()
+				, type: VertexAttribPointerType.Float
+				, normalized: false, stride: vertexSizeBytes, offset: runningOffset );
+
+				GL.EnableVertexAttribArray(locations.normalLocation);
+
+				runningOffset += getNormalSizeBytes();
+			}
+
+			if (locations.texCoordLocation != -1)
+			{
+				GL.VertexAttribPointer(index: locations.texCoordLocation, size: getElementsInTexCoord()
+			   , type: VertexAttribPointerType.Float
+			   , normalized: false, stride: vertexSizeBytes, offset: runningOffset);
+
+				GL.EnableVertexAttribArray(locations.texCoordLocation);
+
+				runningOffset += getTexCoordSizeBytes();
+			}
+		   
+			if (locations.diffuseColorLocation != -1)
+			{
+				GL.VertexAttribPointer(index: locations.diffuseColorLocation, size: getElementsInDiffuseColor()
+				   , type: VertexAttribPointerType.Float
+				   , normalized: false, stride: vertexSizeBytes, offset: runningOffset);
+
+				GL.EnableVertexAttribArray(locations.diffuseColorLocation);
+
+				runningOffset += getDiffuseColorSizeBytes();
+			}
 			
-			Error.checkGLError("Mesh.bufferData");
+			Error.checkGLError("Mesh.enableAttributes");
 		}
 
 		public void updateUniforms(ShaderProgram shaderProgram)
@@ -199,8 +302,14 @@ namespace OpenTkConsole
 			}
 		}
 
-        // Reads on .obs file
-        static public Mesh CreateFromFile(string filename, MaterialManager materialManager)
+		public void setLocationAndScale(Vector3 position, float scale)
+		{
+			WorldPosition = position;
+			Scale = scale;
+		}
+
+		// Reads on .obs file
+		static public Mesh CreateFromFile(string filename, MaterialManager materialManager)
         {
             List<OBJFileReader.OBJFace> faces = new List<OBJFileReader.OBJFace>();
 
@@ -221,7 +330,21 @@ namespace OpenTkConsole
 
 			Logger.LogInfo("Mesh read from " + filename);
 
-			return new Mesh(vertices, meshMaterial);
+			Mesh fileMesh = new Mesh();
+
+			fileMesh.VertexAmount = vertices.Count;
+
+			GL.BindVertexArray(fileMesh.VAOHandle);
+			GL.BindBuffer(BufferTarget.ArrayBuffer, fileMesh.BufferHandle);
+			GL.BufferData(BufferTarget.ArrayBuffer, fileMesh.VertexAmount * fileMesh.getVertexSize()
+				, vertices.ToArray(), BufferUsageHint.StaticDraw);
+
+			fileMesh.MeshMaterial = meshMaterial;
+
+			Error.checkGLError("File Mesh constructor");
+
+			return fileMesh;
+
 		}
 	}
 }
