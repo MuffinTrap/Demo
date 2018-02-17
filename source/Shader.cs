@@ -1,10 +1,12 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Collections;
 
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
+using System.Collections.Generic;
 
 namespace OpenTkConsole
 {
@@ -55,10 +57,74 @@ namespace OpenTkConsole
 	public class ShaderProgram
 	{
 		private readonly int handle;
-		private bool inUse;
+
+		public List<ShaderAttribute> attributes;
+		public List<ShaderAttribute> uniforms;
 		
 		static public int defaultPositionLocation = 0;
 		
+		private ShaderAttribute typeToAttributes(ActiveUniformType type)
+		{
+			int bt = MeshData.BytesPerFloat;
+			ShaderAttribute result;
+
+			switch(type)
+			{
+				case ActiveUniformType.Float:
+					result = new ShaderAttribute("Float", 0, bt, 1);
+					break;
+				case ActiveUniformType.FloatVec2:
+					result = new ShaderAttribute("FloatVec2", 0, bt * 2, 2);
+					break;
+				case ActiveUniformType.FloatVec3:
+					result = new ShaderAttribute("FloatVec3", 0, bt * 3, 3);
+					break;
+				case ActiveUniformType.FloatVec4:
+					result = new ShaderAttribute("FloatVec4", 0, bt * 4, 4);
+					break;
+				case ActiveUniformType.FloatMat4:
+					result = new ShaderAttribute("FloatMat4", 0, bt * 16, 16);
+					break;
+
+				default:
+					result = new ShaderAttribute("Default", 0, 0, 0);
+					break;
+			}
+
+			return result;
+		}
+
+		private ShaderAttribute typeToAttributes(ActiveAttribType type)
+		{
+			int bt = MeshData.BytesPerFloat;
+			ShaderAttribute result;
+
+			switch (type)
+			{
+				case ActiveAttribType.Float:
+					result = new ShaderAttribute("Float", 0, bt, 1);
+					break;
+				case ActiveAttribType.FloatVec2:
+					result = new ShaderAttribute("FloatVec2", 0, bt * 2, 2);
+					break;
+				case ActiveAttribType.FloatVec3:
+					result = new ShaderAttribute("FloatVec3", 0, bt * 3, 3);
+					break;
+				case ActiveAttribType.FloatVec4:
+					result = new ShaderAttribute("FloatVec4", 0, bt * 4, 4);
+					break;
+				case ActiveAttribType.FloatMat4:
+					result = new ShaderAttribute("FloatMat4", 0, bt * 16, 16);
+					break;
+
+				default:
+					result = new ShaderAttribute("Default", 0, 0, 0);
+					break;
+			}
+
+			return result;
+		}
+
 		public ShaderProgram(params Shader[] shaders)
 		{
 			this.handle = GL.CreateProgram();
@@ -85,6 +151,8 @@ namespace OpenTkConsole
 
             Logger.LogInfo("Program linked. Uniform amount " + uniformAmount);
 
+			uniforms = new List<ShaderAttribute>(uniformAmount);
+
 			int maxShaderNameSize = 100;
             StringBuilder shaderName = new StringBuilder(maxShaderNameSize);
             int writtenLength;
@@ -93,7 +161,12 @@ namespace OpenTkConsole
 			for (int i = 0; i < uniformAmount; i++)
 			{
                 GL.GetActiveUniform(this.handle, i, maxShaderNameSize, out writtenLength, out uniformSize, out type, shaderName);
-               Logger.LogInfo("Uniform: " + i + " name :" + shaderName.ToString());
+
+				string uniformName = shaderName.ToString();
+				ShaderAttribute info = typeToAttributes(type);
+				Logger.LogInfo("Uniform: " + i + " name :" + uniformName + " Size: " + info.sizeElements + " Type: " + info.name);
+
+				uniforms.Add(new ShaderAttribute(shaderName.ToString(), GetUniformLocation(handle, uniformName), info.sizeBytes, info.sizeElements));
 			}
 
 			int attributeAmount = -1;
@@ -103,15 +176,19 @@ namespace OpenTkConsole
 
 			Logger.LogInfo("Attribute amount " + attributeAmount);
 
+			attributes = new List<ShaderAttribute>(attributeAmount);
+
 			for (int i = 0; i < attributeAmount; i++)
 			{
 				GL.GetActiveAttrib(this.handle, i, maxShaderNameSize, out writtenLength, out attrSize, out attribType, shaderName);
 
 				string attribName = shaderName.ToString();
-				int location = GetAttributeLocation(attribName);
-				Logger.LogInfo("Attribute " + i + ": Name :" + attribName + " Size: " + attrSize + " Location: " + location);
-			}
+				int location = GetAttributeLocation(handle, attribName);
+				ShaderAttribute info = typeToAttributes(attribType);
+				Logger.LogInfo("Attribute " + i + ": Name :" + attribName + " Size: " + info.sizeElements + " Location: " + location + " Type: " + info.name);
 
+				attributes.Add(new ShaderAttribute(attribName, location, info.sizeBytes, info.sizeElements));
+			}
 			
             foreach (var shader in shaders)
 			{
@@ -121,12 +198,10 @@ namespace OpenTkConsole
 		
 		public void Use()
 		{
-			
-			GL.UseProgram(this.handle);
-			inUse = true;
+			GL.UseProgram(handle);
 		}
 		
-		public int GetAttributeLocation(string name)
+		private static int GetAttributeLocation(int handle, string name)
 		{
 			/*
 			if (!inUse)
@@ -135,11 +210,11 @@ namespace OpenTkConsole
 			}
 			*/
 			
-			if (!GL.IsProgram(this.handle))
+			if (!GL.IsProgram(handle))
 			{
 				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
 			}
-			int location = GL.GetAttribLocation(this.handle, name);
+			int location = GL.GetAttribLocation(handle, name);
 			if (location == -1)
 			{
 				Logger.LogInfo("Attribute " + name + " not found");
@@ -147,19 +222,21 @@ namespace OpenTkConsole
 			return location;
 		}
 		
-		public int GetUniformLocation(string name)
+		private static int GetUniformLocation(int handle, string name)
 		{
+			/*
 			if (!inUse)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "Program " + name + " not in use! cannot get uniform location");
 			}
+			*/
 		
-			if (!GL.IsProgram(this.handle))
+			if (!GL.IsProgram(handle))
 			{
 				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
 			}
 			
-			int location = GL.GetUniformLocation(this.handle, name);
+			int location = GL.GetUniformLocation(handle, name);
 			if (location == -1)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "Uniform " + name + " not found");
@@ -172,6 +249,32 @@ namespace OpenTkConsole
 		{
 			int uniformLocation = GetUniformLocation(samplerName);
 			GL.Uniform1(uniformLocation, location);
+		}
+
+		public int GetUniformLocation(string name)
+		{
+			foreach(ShaderAttribute a in uniforms)
+			{
+				if (a.name == name)
+				{
+					return a.index;
+				}
+			}
+			Logger.LogError(Logger.ErrorState.Limited, "Uniform " + name + " not found");
+			return -1;
+		}
+
+		public int GetAttributeLocation(string name)
+		{
+			foreach (ShaderAttribute a in attributes)
+			{
+				if (a.name == name)
+				{
+					return a.index;
+				}
+			}
+			Logger.LogError(Logger.ErrorState.Limited, "Attribute " + name + " not found");
+			return -1;
 		}
 	}
 }

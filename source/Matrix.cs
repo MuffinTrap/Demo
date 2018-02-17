@@ -21,6 +21,7 @@ namespace OpenTkConsole
 		public Matrix4Uniform(string name)
 		{
 			this.name = name;
+			matrix = Matrix4.Identity;
 		}
 		
 		public void Set(ShaderProgram program)

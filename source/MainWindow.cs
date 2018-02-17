@@ -86,7 +86,7 @@ namespace OpenTkConsole
 			// Pass syncer to scenes.
 			try
 			{
-				testScene = new RotatingScene();
+				testScene = new TestScene();
 				testScene.loadScene(assetManager);
 			}
 			catch (Exception exception)
@@ -161,20 +161,24 @@ namespace OpenTkConsole
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-			if (Logger.ProgramErrorState == Logger.ErrorState.Critical
-			|| Logger.ProgramErrorState == Logger.ErrorState.Limited)
+			if (running)
 			{
-				//ExitProgram();
+				if (Logger.ProgramErrorState == Logger.ErrorState.Critical
+				|| Logger.ProgramErrorState == Logger.ErrorState.Limited)
+				{
+					Logger.LogPhase("Error detected, program has stopped. ESC to Exit");
+					running = false;
+				}
 			}
 
-            HandleKeyboard();
+			HandleKeyboardAndUpdateScene();
 			if (useSync)
 			{
 				Sync();
 			}
         }
 
-        private void HandleKeyboard()
+        private void HandleKeyboardAndUpdateScene()
         {
             var keyState = Keyboard.GetState();
 

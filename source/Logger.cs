@@ -92,43 +92,48 @@ namespace OpenTkConsole
 		static public bool checkGLError(string place)
 		{
 			bool errorFound = false;
-			while (GL.GetError() != ErrorCode.NoError)
+			ErrorCode error = ErrorCode.NoError;
+			do
 			{
-				string ErrorType = null;
-				
-				
-				switch(GL.GetError())
+				error = GL.GetError();
+				if (error != ErrorCode.NoError)
 				{
-					case ErrorCode.InvalidEnum:
-						ErrorType = "Invalid Enum";
-						break;
-					case ErrorCode.InvalidFramebufferOperation:
-						ErrorType = "Invalid Framebuffer Operation";
-						break;
-					case ErrorCode.InvalidOperation:
-						ErrorType = "Invalid Operation";
-						break;
-					case ErrorCode.InvalidValue:
-						ErrorType = "Invalid Value";
-						break;
-					case ErrorCode.OutOfMemory:
-						ErrorType = "Out of Memory";
-						break;
-					case ErrorCode.StackOverflow:
-						ErrorType = "Stack Overflow";
-						break;
-					case ErrorCode.ContextLost:
-						ErrorType = "Context Lost";
-					break;
-					default:
-						ErrorType = "? error";
-						break;
+					string ErrorType = null;
+
+					switch (error)
+					{
+						case ErrorCode.InvalidEnum:
+							ErrorType = "Invalid Enum";
+							break;
+						case ErrorCode.InvalidFramebufferOperation:
+							ErrorType = "Invalid Framebuffer Operation";
+							break;
+						case ErrorCode.InvalidOperation:
+							ErrorType = "Invalid Operation";
+							break;
+						case ErrorCode.InvalidValue:
+							ErrorType = "Invalid Value";
+							break;
+						case ErrorCode.OutOfMemory:
+							ErrorType = "Out of Memory";
+							break;
+						case ErrorCode.StackOverflow:
+							ErrorType = "Stack Overflow";
+							break;
+						case ErrorCode.ContextLost:
+							ErrorType = "Context Lost";
+							break;
+						default:
+							ErrorType = "? error";
+							break;
+					}
+
+					Logger.LogError(Logger.ErrorState.Critical, ("GL error in " + place + " : " + ErrorType));
+
+					errorFound = true;
 				}
+			} while (error != ErrorCode.NoError);
 
-				Logger.LogError(Logger.ErrorState.Critical, ("GL error in " + place + " : " + ErrorType));
-
-				errorFound = true;
-			}
 			return errorFound;
 		}
 

@@ -44,8 +44,8 @@ class RotatingScene : IScene
 	}
 	
 	public void loadScene(AssetManager assetManager)
-	{	
-		// Load program from single file...
+	{
+			// Load program from single file...
 		shaderProgram = new ShaderProgram(assetManager.GetShader("objmesh.vs"), assetManager.GetShader("objmesh.fs"));
 		
 		Error.checkGLError("Scene.loadScene");
@@ -56,17 +56,17 @@ class RotatingScene : IScene
 		voxelMesh = new DrawableMesh(
 			name: "Monu9"
 			, data: assetManager.getMeshData("monu9.obj")
-			, attributes: ShaderManager.getDefaultAttributes(shaderProgram)
+			, attributes: ShaderManager.getAttributes(new List<ShaderAttributeName> { ShaderAttributeName.Position, ShaderAttributeName.TexCoord, ShaderAttributeName.Normal }, shaderProgram)
 			, transform: new TransformComponent()
 			, material: assetManager.GetMaterial("palette")
 			, shader: shaderProgram);
 	
 		voxelMesh.Transform.setLocationAndScale(new Vector3(0.0f, 0.0f, 0.0f), 0.1f);
 
-		projectionMatrix = new Matrix4Uniform("projectionMatrix");
+		projectionMatrix = new Matrix4Uniform(ShaderAttribute.getUniformName(ShaderUniformName.ProjectionMatrix));
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
 
-		viewMatrix = new Matrix4Uniform("viewMatrix");
+		viewMatrix = new Matrix4Uniform(ShaderAttribute.getUniformName(ShaderUniformName.ViewMatrix));
 		viewMatrix.Matrix = camera.GetViewMatrix();
 
 		GL.Enable(EnableCap.DepthTest);

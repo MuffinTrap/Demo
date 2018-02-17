@@ -43,7 +43,7 @@ namespace OpenTkConsole
 			quadMesh = new DrawableMesh(
 				"Quad"
 				, MeshDataGenerator.CreateTexturedQuadMesh(assetManager)
-				, ShaderManager.getDefaultAttributes(shaderProgram)
+				, ShaderManager.getAttributes(new List<ShaderAttributeName> { ShaderAttributeName.Position, ShaderAttributeName.TexCoord },shaderProgram)
 				, new TransformComponent()
 				, null
 				, shaderProgram);
@@ -79,8 +79,6 @@ namespace OpenTkConsole
 		{
 			camera.Update(keyState);
 			viewMatrix.Matrix = camera.GetViewMatrix();
-
 		}
 	}
-
 }

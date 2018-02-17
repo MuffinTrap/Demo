@@ -39,11 +39,17 @@ namespace OpenTkConsole
 
 		public void draw()
 		{
-			Transform.UpdateWorldMatrix();
-			Transform.worldMatrix.Set(ShaderProgram);
-			
-			GL.ActiveTexture(TextureUnit.Texture0);
-			GL.BindTexture(TextureTarget.Texture2D, BoundMaterial.textureGLIndex);
+			if (Transform != null)
+			{
+				Transform.UpdateWorldMatrix();
+				Transform.worldMatrix.Set(ShaderProgram);
+			}
+
+			if (BoundMaterial != null)
+			{
+				GL.ActiveTexture(TextureUnit.Texture0);
+				GL.BindTexture(TextureTarget.Texture2D, BoundMaterial.textureGLIndex);
+			}
 
 			GL.BindVertexArray(Data.VAOHandle);
 
