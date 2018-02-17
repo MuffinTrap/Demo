@@ -78,7 +78,7 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Limited, "Shader link failed: " + GL.GetProgramInfoLog(handle));
             }
 
-            int uniformAmount;
+			int uniformAmount = -1;
             GL.GetProgram(handle, GetProgramParameterName.ActiveUniforms, out uniformAmount);
 			
 			Error.checkGLError("Shader()");
@@ -95,6 +95,23 @@ namespace OpenTkConsole
                 GL.GetActiveUniform(this.handle, i, maxShaderNameSize, out writtenLength, out uniformSize, out type, shaderName);
                Logger.LogInfo("Uniform: " + i + " name :" + shaderName.ToString());
 			}
+
+			int attributeAmount = -1;
+			GL.GetProgram(handle, GetProgramParameterName.ActiveAttributes, out attributeAmount);
+			ActiveAttribType attribType;
+			int attrSize = -1;
+
+			Logger.LogInfo("Attribute amount " + attributeAmount);
+
+			for (int i = 0; i < attributeAmount; i++)
+			{
+				GL.GetActiveAttrib(this.handle, i, maxShaderNameSize, out writtenLength, out attrSize, out attribType, shaderName);
+
+				string attribName = shaderName.ToString();
+				int location = GetAttributeLocation(attribName);
+				Logger.LogInfo("Attribute " + i + ": Name :" + attribName + " Size: " + attrSize + " Location: " + location);
+			}
+
 			
             foreach (var shader in shaders)
 			{
@@ -111,19 +128,21 @@ namespace OpenTkConsole
 		
 		public int GetAttributeLocation(string name)
 		{
+			/*
 			if (!inUse)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "Program not in use! Cannot get attribute location");
 			}
+			*/
 			
 			if (!GL.IsProgram(this.handle))
 			{
-				Console.WriteLine("Not a program");
+				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
 			}
 			int location = GL.GetAttribLocation(this.handle, name);
 			if (location == -1)
 			{
-				Logger.LogError(Logger.ErrorState.Limited, "Attribute " + name + " not found");
+				Logger.LogInfo("Attribute " + name + " not found");
 			}
 			return location;
 		}
@@ -132,12 +151,12 @@ namespace OpenTkConsole
 		{
 			if (!inUse)
 			{
-				Logger.LogError(Logger.ErrorState.Limited, "Program not in use! cannot get uniform location");
+				Logger.LogError(Logger.ErrorState.Limited, "Program " + name + " not in use! cannot get uniform location");
 			}
 		
 			if (!GL.IsProgram(this.handle))
 			{
-				Logger.LogError(Logger.ErrorState.Limited, "Not a program");
+				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
 			}
 			
 			int location = GL.GetUniformLocation(this.handle, name);

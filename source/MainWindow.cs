@@ -164,7 +164,7 @@ namespace OpenTkConsole
 			if (Logger.ProgramErrorState == Logger.ErrorState.Critical
 			|| Logger.ProgramErrorState == Logger.ErrorState.Limited)
 			{
-				ExitProgram();
+				//ExitProgram();
 			}
 
             HandleKeyboard();

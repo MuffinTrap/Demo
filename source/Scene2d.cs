@@ -14,7 +14,7 @@ namespace OpenTkConsole
 	{
 		ShaderProgram shaderProgram;
 
-		Mesh quadMesh;
+		DrawableMesh quadMesh;
 
 		Matrix4Uniform projectionMatrix;
 		Matrix4Uniform viewMatrix;
@@ -35,14 +35,19 @@ namespace OpenTkConsole
 			Error.checkGLError("Scene.loadScene");
 
 			shaderProgram.Use();
-			Mesh.AttributeLocations locations = new Mesh.AttributeLocations();
-			locations.positionLocation = shaderProgram.GetAttributeLocation("vPosition");
-			locations.texCoordLocation = shaderProgram.GetAttributeLocation("vTexCoord");
-			locations.normalLocation = -1;
-			locations.diffuseColorLocation = shaderProgram.GetAttributeLocation("vDiffuseColor");
+			
+
+			int diffuseColorLocation = shaderProgram.GetAttributeLocation("vDiffuseColor");
 			shaderProgram.setSamplerUniform("inputTexture", 0);
 
-			quadMesh = Mesh.CreateTexturedQuadMesh(assetManager, locations);
+			quadMesh = new DrawableMesh(
+				"Quad"
+				, MeshDataGenerator.CreateTexturedQuadMesh(assetManager)
+				, ShaderManager.getDefaultAttributes(shaderProgram)
+				, new TransformComponent()
+				, null
+				, shaderProgram);
+
 
 			projectionMatrix = new Matrix4Uniform("projectionMatrix");
 			projectionMatrix.Matrix = Matrix4.CreateOrthographic(1.0f, 1.0f, 0.1f, 100.0f);
@@ -57,14 +62,6 @@ namespace OpenTkConsole
 
 		}
 
-		public void drawMesh(Mesh mesh)
-		{
-			mesh.updateUniforms(shaderProgram);
-			GL.BindVertexArray(mesh.VAOHandle);
-			GL.DrawArrays(PrimitiveType.Triangles, 0, mesh.VertexAmount);
-			GL.BindVertexArray(0);
-			GL.BindTexture(TextureTarget.Texture2D, 0);
-		}
 
 		public void drawScene() 
 		{
@@ -73,7 +70,7 @@ namespace OpenTkConsole
 			projectionMatrix.Set(shaderProgram);
 			viewMatrix.Set(shaderProgram);
 
-			drawMesh(quadMesh);
+			quadMesh.draw();
 
 			Error.checkGLError("Scene.drawScene");
 		}
@@ -84,8 +81,6 @@ namespace OpenTkConsole
 			viewMatrix.Matrix = camera.GetViewMatrix();
 
 		}
-
-
 	}
 
 }

@@ -9,6 +9,7 @@ namespace OpenTkConsole
 		private MeshManager meshManager;
 		private ShaderManager shaderManager;
 
+
 		public AssetManager(string dataDirectory)
 		{
 			// Find data directory and go to it
@@ -63,14 +64,14 @@ namespace OpenTkConsole
 			return materialManager.GetMaterialByName(materialName);
 		}
 
+		public MeshData getMeshData(string fileName)
+		{
+			return meshManager.GetMeshData(fileName);
+		}
+
 		public Shader GetShader(string shaderName)
 		{
 			return shaderManager.GetShader(shaderName);
-		}
-
-		public Mesh GetMesh(string meshName)
-		{
-			return meshManager.GetMesh(meshName);
 		}
 
 		private string FindDirectory(string directoryName)

@@ -3,8 +3,63 @@ using System.Collections.Generic;
 
 namespace OpenTkConsole
 {
+	public struct ShaderAttribute
+	{
+		public ShaderAttribute(string nameP, int indexP, int sizeBytesP, int sizeElementsP)
+		{
+			name = nameP;
+			index = indexP;
+			sizeBytes = sizeBytesP;
+			sizeElements = sizeElementsP;
+		}
+
+		public int index;
+		public string name;
+		public int sizeBytes;
+		public int sizeElements;
+
+		public static string getPositionAttributeName()
+		{
+			return "vPosition";
+		}
+
+		public static string getNormalAttributeName()
+		{
+			return "vNormal";
+		}
+
+		public static string getTexCoordAttributeName()
+		{
+			return "vTexCoord";
+		}
+	}
+
+	
 	public class ShaderManager
 	{
+		public static List<ShaderAttribute> getDefaultAttributes(ShaderProgram shaderProgram)
+		{
+			List<ShaderAttribute> attributes = new List<ShaderAttribute>();
+
+			attributes.Add(new ShaderAttribute(ShaderAttribute.getPositionAttributeName()
+				, shaderProgram.GetAttributeLocation(ShaderAttribute.getPositionAttributeName())
+				, MeshData.getPositionSizeBytes()
+				, MeshData.getElementsInPosition()));
+
+			attributes.Add(new ShaderAttribute(ShaderAttribute.getTexCoordAttributeName()
+				, shaderProgram.GetAttributeLocation(ShaderAttribute.getTexCoordAttributeName())
+				, MeshData.getTexCoordSizeBytes()
+				, MeshData.getElementsInTexCoord()));
+
+			attributes.Add(new ShaderAttribute(ShaderAttribute.getNormalAttributeName()
+			, shaderProgram.GetAttributeLocation(ShaderAttribute.getNormalAttributeName())
+			, MeshData.getNormalSizeBytes()
+			, MeshData.getElementsInNormal()));
+
+			return attributes;
+
+		}
+
 		private List<Shader> allShaders;
 
 		public ShaderManager(string shaderDir)

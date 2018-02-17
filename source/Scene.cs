@@ -31,7 +31,7 @@ class RotatingScene : IScene
 { 
 	ShaderProgram shaderProgram;
 
-	Mesh voxelMesh;
+	DrawableMesh voxelMesh;
 	
 	Matrix4Uniform projectionMatrix;
 	Matrix4Uniform viewMatrix;
@@ -51,15 +51,17 @@ class RotatingScene : IScene
 		Error.checkGLError("Scene.loadScene");
 
 		shaderProgram.Use();
-		Mesh.AttributeLocations locations = new Mesh.AttributeLocations();
-		locations.positionLocation = shaderProgram.GetAttributeLocation("vPosition");
-		locations.normalLocation = shaderProgram.GetAttributeLocation("vNormal");
-		locations.texCoordLocation = shaderProgram.GetAttributeLocation("vTexCoord");
+		
 		shaderProgram.setSamplerUniform("inputTexture", 0);
-
-		voxelMesh = assetManager.GetMesh("monu9.obj");
-		voxelMesh.enableAttributes(locations, voxelMesh.VertexAmount, voxelMesh.getVertexSize());
-		voxelMesh.setLocationAndScale(new Vector3(0.0f, 0.0f, 0.0f), 0.1f);
+		voxelMesh = new DrawableMesh(
+			name: "Monu9"
+			, data: assetManager.getMeshData("monu9.obj")
+			, attributes: ShaderManager.getDefaultAttributes(shaderProgram)
+			, transform: new TransformComponent()
+			, material: assetManager.GetMaterial("palette")
+			, shader: shaderProgram);
+	
+		voxelMesh.Transform.setLocationAndScale(new Vector3(0.0f, 0.0f, 0.0f), 0.1f);
 
 		projectionMatrix = new Matrix4Uniform("projectionMatrix");
 		projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
@@ -72,17 +74,6 @@ class RotatingScene : IScene
 
 		Error.checkGLError("Scene.loadScene");
 	}
-
-	
-
-	public void drawMesh(Mesh mesh)
-	{
-		mesh.updateUniforms(shaderProgram);
-		GL.BindVertexArray(mesh.VAOHandle);
-		GL.DrawArrays(PrimitiveType.Triangles, 0, mesh.VertexAmount);
-		GL.BindVertexArray(0);
-		GL.BindTexture(TextureTarget.Texture2D, 0);
-	}
 	
 	public void drawScene()
 	{
@@ -90,11 +81,10 @@ class RotatingScene : IScene
 		
 		projectionMatrix.Set(shaderProgram);
 		viewMatrix.Set(shaderProgram);
-	
-		drawMesh(voxelMesh);
+
+		voxelMesh.draw();
 
 		Error.checkGLError("Scene.drawScene");
-
 	}
 
 	public void updateScene(KeyboardState keyState)
@@ -102,7 +92,7 @@ class RotatingScene : IScene
 		camera.Update(keyState);
 		viewMatrix.Matrix = camera.GetViewMatrix();
 
-			//voxelMesh.rotate(0.01f);
+		// voxelMesh.Transform.rotateAroundY(0.01f);
 	}
 }
 }

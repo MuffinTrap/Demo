@@ -35,7 +35,7 @@ namespace OpenTkConsole
 			createMaterial("white", Color.White);
 		}
 
-		public Material GetMaterialByName(string materialName)
+		public MaterialManager.Material GetMaterialByName(string materialName)
 		{
 			foreach (Material m in materials)
 			{

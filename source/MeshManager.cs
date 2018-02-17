@@ -5,11 +5,11 @@ namespace OpenTkConsole
 {
 	public class MeshManager
 	{
-		private List<Mesh> allMeshes;
+		private List<MeshData> allMeshes;
 
 		public MeshManager(MaterialManager materialManager, string modelDir)
 		{
-			allMeshes = new List<Mesh>();
+			allMeshes = new List<MeshData>();
 			// Load all meshes and their materials
 
 			string topDir = Directory.GetCurrentDirectory();
@@ -23,8 +23,8 @@ namespace OpenTkConsole
 				{
 					if (fileEntry.EndsWith(".obj"))
 					{
-						Mesh newMesh = Mesh.CreateFromFile(fileEntry, materialManager);
-						newMesh.MeshName = fileEntry.Substring(fileEntry.LastIndexOf('\\') + 1);
+						MeshData newMesh = MeshDataGenerator.CreateFromFile(fileEntry, materialManager);
+						newMesh.sourceFileName = fileEntry.Substring(fileEntry.LastIndexOf('\\') + 1);
 						allMeshes.Add(newMesh);
 					}
 				}
@@ -34,11 +34,11 @@ namespace OpenTkConsole
 
 		}
 
-		public Mesh GetMesh(string meshName)
+		public MeshData GetMeshData(string sourceFileName)
 		{
-			foreach (Mesh s in allMeshes)
+			foreach (MeshData s in allMeshes)
 			{
-				if (s.MeshName == meshName)
+				if (s.sourceFileName == sourceFileName)
 				{
 					return s;
 				}
