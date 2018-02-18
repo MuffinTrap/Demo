@@ -53,7 +53,19 @@ namespace OpenTkConsole
 
 			GL.BindVertexArray(Data.VAOHandle);
 
-			GL.DrawArrays(PrimitiveType.Triangles, 0, Data.VertexAmount);
+			switch (Data.drawType)
+			{
+				case MeshData.DataDrawType.Triangles:
+				GL.DrawArrays(PrimitiveType.Triangles, 0, Data.VertexAmount);
+					break;
+				case MeshData.DataDrawType.Lines:
+					GL.DrawArrays(PrimitiveType.Lines, 0, Data.VertexAmount);
+					break;
+				case MeshData.DataDrawType.Points:
+					GL.DrawArrays(PrimitiveType.Points, 0, Data.VertexAmount);
+					break;
+			}
+			
 
 			GL.BindVertexArray(0);
 			GL.BindTexture(TextureTarget.Texture2D, 0);

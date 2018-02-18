@@ -40,6 +40,7 @@ namespace OpenTkConsole
 		bool useAudio;
 
 		IScene testScene;
+		List<IScene> scenes;
         Stopwatch timer;
 
         public MainWindow()
@@ -82,17 +83,29 @@ namespace OpenTkConsole
 			string dataFolder = "data";
 			AssetManager assetManager = new AssetManager(dataFolder);
 
+			Logger.LogPhase("Asset manager is created");
+			assetManager.printLoadedAssets();
+
 			// Materials and scenes
 			// Pass syncer to scenes.
+			scenes = new List<IScene>();
 			try
 			{
-				testScene = new TestScene();
+				testScene = new RotatingScene();
 				testScene.loadScene(assetManager);
+
+				IScene ts = new TestScene();
+				ts.loadScene(assetManager);
+				scenes.Add(ts);
+				scenes.Add(testScene);
 			}
 			catch (Exception exception)
 			{
 				Logger.LogError(Logger.ErrorState.Critical, "Caugh exception when loading scene " + exception.Message);
 			}
+
+			Logger.LogPhase("Scenes have been loaded");
+			
 
 			// Audio
 			useAudio = false;
@@ -202,8 +215,10 @@ namespace OpenTkConsole
 			// Pass input to scene
 
 			// Take scene number from track
-
-			testScene.updateScene(keyState);
+			foreach (IScene s in scenes)
+			{
+				s.updateScene(keyState);
+			}
         }
 
 		private void ExitProgram()
@@ -233,7 +248,10 @@ namespace OpenTkConsole
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
 			// Draw models
-			testScene.drawScene();
+			foreach(IScene s in scenes)
+			{
+				s.drawScene();
+			}
 
 			// Scene drawing ends
 			

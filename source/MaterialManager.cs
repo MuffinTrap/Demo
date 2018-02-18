@@ -25,6 +25,11 @@ namespace OpenTkConsole
 			public Vector3 alpha;
 			public Vector3 diffuse;
 			public Vector3 specular;
+
+			public string getInfoString()
+			{
+				return "Name: " + materialName + " Texture: " + textureName + " GLi: " + textureGLIndex;
+			}
 		}
 
 		public List<Material> materials;
@@ -33,6 +38,15 @@ namespace OpenTkConsole
 		{
 			materials = new List<Material>();
 			createMaterial("white", Color.White);
+		}
+
+		public void printLoadedAssets()
+		{
+			
+				foreach (MaterialManager.Material m in materials)
+				{
+					Logger.LogInfo("Loaded material " + m.getInfoString());
+				}
 		}
 
 		public MaterialManager.Material GetMaterialByName(string materialName)
@@ -44,10 +58,23 @@ namespace OpenTkConsole
 					return m;
 				}
 			}
-
+			Logger.LogError(Logger.ErrorState.Limited, "No material with name " + materialName + " exists in MaterialManager");
 			return null;
 		}
-		
+
+		private bool doesMaterialExist(string materialName)
+		{
+			foreach (Material m in materials)
+			{
+				if (m.materialName == materialName)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+
 
 		public Material loadMaterial(string materialFileName)
 		{
@@ -85,13 +112,10 @@ namespace OpenTkConsole
 			}
 			while (line != null);
 
-
-			newMaterial = GetMaterialByName(materialName);
-			
-			if (newMaterial != null)
+			if (doesMaterialExist(materialName))
 			{
 				sourceFile.Close();
-				return newMaterial;
+				return GetMaterialByName(materialName);
 			}
 			else
 			{
@@ -154,7 +178,7 @@ namespace OpenTkConsole
 
 		void createMaterial(string materialName, Color materialColor)
 		{
-			if (GetMaterialByName(materialName) != null)
+			if (doesMaterialExist(materialName))
 			{
 				return;
 			}

@@ -12,7 +12,7 @@ namespace OpenTkConsole
 
 	public enum ShaderUniformName
 	{
-		ModelMatrix,
+		WorldMatrix,
 		ProjectionMatrix,
 		ViewMatrix,
 
@@ -55,7 +55,7 @@ namespace OpenTkConsole
 		{
 			switch (name)
 			{
-				case ShaderUniformName.ModelMatrix: return "modelMatrix";
+				case ShaderUniformName.WorldMatrix: return "worldMatrix";
 				case ShaderUniformName.ProjectionMatrix: return "projectionMatrix";
 				case ShaderUniformName.ViewMatrix: return "viewMatrix";
 				case ShaderUniformName.DiffuseColor: return "uDiffuseColor";

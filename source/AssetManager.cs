@@ -57,6 +57,14 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Critical, "Data directory not found");
 			}
 
+			
+
+		}
+
+		public void printLoadedAssets()
+		{
+			materialManager.printLoadedAssets();
+			meshManager.printLoadedAssets();
 		}
 
 		public MaterialManager.Material GetMaterial(string materialName)

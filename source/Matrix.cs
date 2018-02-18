@@ -26,13 +26,13 @@ namespace OpenTkConsole
 		
 		public void Set(ShaderProgram program)
 		{
-			 var i = program.GetUniformLocation(this.name);
+			int i = program.GetUniformLocation(this.name);
 			 
-			Error.checkGLError("Matrix.GetLocation");
+			Error.checkGLError("Matrix.GetUniformLocation of " + name);
 			 
-			 GL.UniformMatrix4(i, false, ref this.matrix);
+			GL.UniformMatrix4(i, false, ref this.matrix);
 
-            Error.checkGLError("Matrix.SetValue");
+			Error.checkGLError("Matrix.SetValue");
         }
 	}
 }

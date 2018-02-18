@@ -43,7 +43,18 @@ namespace OpenTkConsole
 					return s;
 				}
 			}
+
+			Logger.LogError(Logger.ErrorState.Critical, "No mesh with sourceFileName " + sourceFileName + "exists");
 			return null;
+		}
+
+		public void printLoadedAssets()
+		{
+			foreach (MeshData m in allMeshes)
+			{
+				Logger.LogInfo("Loaded mesh " + m.getInfoString());
+			}
+
 		}
 	}
 	
