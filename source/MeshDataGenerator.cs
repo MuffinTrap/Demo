@@ -7,7 +7,7 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
-
+using System.Linq;
 
 namespace OpenTkConsole
 {
@@ -31,22 +31,66 @@ namespace OpenTkConsole
 			// Create positions 
 			newData.VertexAmount = faces.Count;
 
-			newData.positions = new List<Vector3>();
-			newData.texCoords = new List<Vector2>();
-			newData.normals = new List<Vector3>();
-
 			newData.hasPositionData = true;
 			newData.hasTexCoordData = true;
 			newData.hasNormalData = true;
 
+			bool useIndices = true;
 
+			List<OBJFileReader.OBJFace> uniqueFaces = new List<OBJFileReader.OBJFace>();
+			
+
+			if (useIndices)
+			{
+				newData.indices = new List<int>();
+				newData.hasIndexData = true;
+			}
+			
+			newData.positions = new List<Vector3>();
+			newData.texCoords = new List<Vector2>();
+			newData.normals = new List<Vector3>();
+			
 			foreach (OBJFileReader.OBJFace face in faces)
 			{
-				newData.positions.Add(positions[(int)face.positionIndex - 1]);
-				newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
-				newData.normals.Add(normals[(int)face.normalIndex - 1]);
+				if (useIndices)
+				{
+					OBJFileReader.OBJFinder finder = new OBJFileReader.OBJFinder(face);
+					int faceIndex = uniqueFaces.FindIndex(finder.isSame);
+					if (faceIndex == -1)
+					{
+						uniqueFaces.Add(face);
+					}
+					faceIndex = uniqueFaces.FindIndex(finder.isSame);
+
+					newData.indices.Add(faceIndex);
+				}
+				else
+				{
+					newData.positions.Add(positions[(int)face.positionIndex - 1]);
+					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
+					newData.normals.Add(normals[(int)face.normalIndex - 1]);
+				}
 			}
 
+			if (useIndices)
+			{
+				int printTimes = 20;
+
+				foreach (int i in newData.indices)
+				{
+					OBJFileReader.OBJFace face = uniqueFaces[i];
+					newData.positions.Add(positions[(int)face.positionIndex - 1]);
+					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
+					newData.normals.Add(normals[(int)face.normalIndex - 1]);
+
+					if (printTimes > 0)
+					{
+						Logger.LogInfo("" + i + " Face " + face.positionIndex + "/" + face.texCoordIndex + "/" + face.normalIndex);
+						printTimes--;
+					}
+				}
+
+			}
 			Logger.LogInfo("Mesh Data read from " + filename);
 
 			newData.drawType = MeshData.DataDrawType.Triangles;

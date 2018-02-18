@@ -14,6 +14,46 @@ namespace OpenTkConsole
 {
 	static class OBJFileReader
 	{
+		public class FaceComparer : IComparer<OBJFace>
+		{
+			public int Compare(OBJFace a, OBJFace b)
+			{
+				if (
+					a.normalIndex == b.normalIndex
+					&& a.positionIndex == b.positionIndex
+					&& a.texCoordIndex == b.texCoordIndex)
+				{
+					return 0;
+				}
+				else
+				{
+					if (a.positionIndex > b.positionIndex)
+					{
+						return 1;
+					}
+					else
+					{
+						return -1;
+					}
+				}
+			}
+		}
+
+		public class OBJFinder
+		{
+			private OBJFace targetFace;
+			public OBJFinder(OBJFace target)
+			{
+				targetFace = target;
+			}
+
+			public bool isSame(OBJFace test)
+			{
+				FaceComparer f = new FaceComparer();
+				return (f.Compare(targetFace, test) == 0);
+			}
+		}
+
 		public struct OBJFace
 		{
 			public uint positionIndex;
