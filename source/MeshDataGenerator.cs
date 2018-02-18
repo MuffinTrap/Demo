@@ -76,16 +76,15 @@ namespace OpenTkConsole
 			{
 				int printTimes = 20;
 
-				foreach (int i in newData.indices)
+				foreach (OBJFileReader.OBJFace face in uniqueFaces)
 				{
-					OBJFileReader.OBJFace face = uniqueFaces[i];
 					newData.positions.Add(positions[(int)face.positionIndex - 1]);
 					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
 					newData.normals.Add(normals[(int)face.normalIndex - 1]);
 
 					if (printTimes > 0)
 					{
-						Logger.LogInfo("" + i + " Face " + face.positionIndex + "/" + face.texCoordIndex + "/" + face.normalIndex);
+						Logger.LogInfo("Face " + face.positionIndex + "/" + face.texCoordIndex + "/" + face.normalIndex);
 						printTimes--;
 					}
 				}

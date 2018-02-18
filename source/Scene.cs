@@ -52,10 +52,10 @@ class RotatingScene : IScene
 		shaderProgram.setSamplerUniform("inputTexture", 0);
 		voxelMesh = new DrawableMesh(
 			name: "Monu9"
-			, data: assetManager.getMeshData("tinybox.obj")
+			, data: assetManager.getMeshData("monu9.obj")
 			, attributes: ShaderManager.getAttributes(new List<ShaderAttributeName> { ShaderAttributeName.Position, ShaderAttributeName.TexCoord, ShaderAttributeName.Normal }, shaderProgram)
 			, transform: new TransformComponent()
-			, material: assetManager.GetMaterial("tinybox")
+			, material: assetManager.GetMaterial("palette")
 			, shader: shaderProgram);
 	
 		voxelMesh.Transform.setLocationAndScale(new Vector3(0.0f, 0.0f, 0.0f), 0.2f);
