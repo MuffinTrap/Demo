@@ -71,6 +71,9 @@ namespace OpenTkConsole
 
 			triMesh.hasPositionData = true;
 
+			triMesh.indices = new List<int> { 0, 1, 2 };
+			triMesh.hasIndexData = true;
+
 			triMesh.VertexAmount = 3;
 			triMesh.drawType = MeshData.DataDrawType.Triangles;
 
@@ -88,27 +91,26 @@ namespace OpenTkConsole
 
 			List<Vector3> positions = new List<Vector3>();
 
-			positions.Add(new Vector3(-1f, -1f, 0.0f));
-			positions.Add(new Vector3(-1f, 1f, 0.0f)		);
-			positions.Add(new Vector3(1.0f, 1.0f, 0.0f)		);
-			positions.Add(new Vector3(1f, 1f, 0.0f)			);
-			positions.Add(new Vector3(1f, -1f, 0.0f)		);
-			positions.Add(new Vector3(-1.0f, -1.0f, 0.0f)	);
+			positions.Add(new Vector3(-1.0f, -1.0f, 0.0f));	// 0
+			positions.Add(new Vector3(-1.0f,  1.0f, 0.0f));	// 1
+			positions.Add(new Vector3( 1.0f,  1.0f, 0.0f));	// 2
+			positions.Add(new Vector3( 1.0f, -1.0f, 0.0f));	// 3
 
 			List<Vector2> texCoords = new List<Vector2>();
 
 			texCoords.Add(new Vector2(0.0f, 0.0f));
-			texCoords.Add(new Vector2(1.0f, 0.0f));
+			texCoords.Add(new Vector2(0.0f, 1.0f));
 			texCoords.Add(new Vector2(1.0f, 1.0f));
-			texCoords.Add(new Vector2(1.0f, 1.0f));
 			texCoords.Add(new Vector2(1.0f, 0.0f));
-			texCoords.Add(new Vector2(0.0f, 0.0f));
 
 			quadMesh.positions = positions;
 			quadMesh.texCoords = texCoords;
 
 			quadMesh.hasPositionData = true;
 			quadMesh.hasTexCoordData = true;
+
+			quadMesh.indices = new List<int> { 0, 1, 2, 2, 3, 0};
+			quadMesh.hasIndexData = true;
 
 			quadMesh.VertexAmount = positions.Count;
 

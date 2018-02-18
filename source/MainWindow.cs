@@ -38,8 +38,7 @@ namespace OpenTkConsole
 
 		// Audio
 		bool useAudio;
-
-		IScene testScene;
+		
 		List<IScene> scenes;
         Stopwatch timer;
 
@@ -91,13 +90,14 @@ namespace OpenTkConsole
 			scenes = new List<IScene>();
 			try
 			{
-				testScene = new RotatingScene();
-				testScene.loadScene(assetManager);
+				scenes.Add(new RotatingScene());
+				scenes.Add(new TestScene());
+				scenes.Add(new Scene2D());
 
-				IScene ts = new TestScene();
-				ts.loadScene(assetManager);
-				scenes.Add(ts);
-				scenes.Add(testScene);
+				foreach (IScene s in scenes)
+				{
+					s.loadScene(assetManager);
+				}
 			}
 			catch (Exception exception)
 			{

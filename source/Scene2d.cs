@@ -10,18 +10,15 @@ using OpenTK.Input;
 
 namespace OpenTkConsole
 {
-	class Scene2D : IScene 
+	public class Scene2D : IScene 
 	{
 		ShaderProgram shaderProgram;
 
 		DrawableMesh quadMesh;
 
-		Matrix4Uniform projectionMatrix;
-		Matrix4Uniform viewMatrix;
-
 		CameraComponent camera;
 
-		Scene2D()
+		public Scene2D()
 		{
 			camera = new CameraComponent();
 		}
@@ -36,8 +33,6 @@ namespace OpenTkConsole
 
 			shaderProgram.Use();
 			
-
-			int diffuseColorLocation = shaderProgram.GetAttributeLocation("vDiffuseColor");
 			shaderProgram.setSamplerUniform("inputTexture", 0);
 
 			quadMesh = new DrawableMesh(
@@ -45,15 +40,10 @@ namespace OpenTkConsole
 				, MeshDataGenerator.CreateTexturedQuadMesh(assetManager)
 				, ShaderManager.getAttributes(new List<ShaderAttributeName> { ShaderAttributeName.Position, ShaderAttributeName.TexCoord },shaderProgram)
 				, new TransformComponent()
-				, null
+				, assetManager.GetMaterial("konata")
 				, shaderProgram);
 
-
-			projectionMatrix = new Matrix4Uniform("projectionMatrix");
-			projectionMatrix.Matrix = Matrix4.CreateOrthographic(1.0f, 1.0f, 0.1f, 100.0f);
-
-			viewMatrix = new Matrix4Uniform("viewMatrix");
-			viewMatrix.Matrix = camera.GetViewMatrix();
+			quadMesh.Transform.setLocationAndScale(new Vector3(0.0f, 11.0f, 0.0f), 1);
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
@@ -67,18 +57,17 @@ namespace OpenTkConsole
 		{
 			shaderProgram.Use();
 
-			projectionMatrix.Set(shaderProgram);
-			viewMatrix.Set(shaderProgram);
+			camera.setMatrices(shaderProgram);
 
 			quadMesh.draw();
 
-			Error.checkGLError("Scene.drawScene");
+			Error.checkGLError("Scene2D.drawScene");
 		}
 
 		public void updateScene(KeyboardState keyState) 
 		{
 			camera.Update(keyState);
-			viewMatrix.Matrix = camera.GetViewMatrix();
+			quadMesh.Transform.rotateAroundY(0.04f);
 		}
 	}
 }

@@ -31,16 +31,22 @@ namespace OpenTkConsole
 			{
 				normalBufferHandle = GL.GenBuffer();
 			}
+			if (hasIndexData)
+			{
+				indexBufferHandle = GL.GenBuffer();
+			}
 		}
 
 		// Data and validity
 		public List<Vector3> positions = null;
 		public List<Vector3> normals = null;
 		public List<Vector2> texCoords = null;
+		public List<int> indices = null;
 
 		public bool hasPositionData = false;
 		public bool hasTexCoordData = false;
 		public bool hasNormalData = false;
+		public bool hasIndexData = false;
 
 		public enum DataDrawType
 		{
@@ -56,7 +62,7 @@ namespace OpenTkConsole
 		public int texCoordBufferHandle = -1;
 		public int normalBufferHandle = -1;
 
-		public int IndexBufferHandle = -1;
+		public int indexBufferHandle = -1;
 
 		public string sourceFileName = "NO SOURCE";
 
@@ -178,6 +184,12 @@ namespace OpenTkConsole
 				{
 					enableAttribute(aNormal);
 				}
+			}
+
+			if (hasIndexData)
+			{
+				GL.BindBuffer(BufferTarget.ElementArrayBuffer, indexBufferHandle);
+				GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Count * BytesPerFloat, indices.ToArray(), BufferUsageHint.StaticDraw);
 			}
 
 			Error.checkGLError("MeshData.bufferData " + sourceFileName);

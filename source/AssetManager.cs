@@ -26,9 +26,16 @@ namespace OpenTkConsole
 			if (dataDirFound)
 			{
 				materialManager = new MaterialManager();
-			
-				// Find mesh/model directory
 
+				// 
+				string textureDirName = "textures";
+				string textureDir = FindDirectory(textureDirName);
+				if (textureDir != null)
+				{
+					materialManager.loadAllFromDir(textureDir);
+				}
+
+				// Find mesh/model directory
 				string modelDirName = "models";
 				string modelDir = FindDirectory(modelDirName);
 				if (modelDir != null)
@@ -51,6 +58,8 @@ namespace OpenTkConsole
 				{
 					Logger.LogError(Logger.ErrorState.Critical, "Shader directory not found");
 				}
+
+				
 			}
 			else
 			{

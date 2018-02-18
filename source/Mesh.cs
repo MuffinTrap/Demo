@@ -53,17 +53,30 @@ namespace OpenTkConsole
 
 			GL.BindVertexArray(Data.VAOHandle);
 
+			PrimitiveType beginType = PrimitiveType.Triangles;
+
 			switch (Data.drawType)
 			{
 				case MeshData.DataDrawType.Triangles:
-				GL.DrawArrays(PrimitiveType.Triangles, 0, Data.VertexAmount);
+					beginType = PrimitiveType.Triangles;
 					break;
 				case MeshData.DataDrawType.Lines:
-					GL.DrawArrays(PrimitiveType.Lines, 0, Data.VertexAmount);
+					beginType = PrimitiveType.Lines;
 					break;
 				case MeshData.DataDrawType.Points:
-					GL.DrawArrays(PrimitiveType.Points, 0, Data.VertexAmount);
+					beginType = PrimitiveType.Points;
+					GL.PointSize(5.0f);
 					break;
+			}
+
+			if (Data.hasIndexData)
+			{
+				int bufferOffset = 0;
+				GL.DrawElements(beginType, Data.indices.Count, DrawElementsType.UnsignedInt, bufferOffset);
+			}
+			else
+			{
+				GL.DrawArrays(beginType, 0, Data.VertexAmount);
 			}
 			
 

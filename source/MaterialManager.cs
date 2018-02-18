@@ -74,7 +74,26 @@ namespace OpenTkConsole
 			return false;
 		}
 
+		public void loadAllFromDir(string directoryName)
+		{
+			string topDir = Directory.GetCurrentDirectory();
 
+			string[] directories = Directory.GetDirectories(directoryName);
+			foreach (string dir in directories)
+			{
+				Directory.SetCurrentDirectory(dir);
+				string[] files = Directory.GetFiles(dir);
+				foreach (string fileEntry in files)
+				{
+					if (fileEntry.EndsWith(".mtl"))
+					{
+						loadMaterial(fileEntry);
+					}
+				}
+			}
+
+			Directory.SetCurrentDirectory(topDir);
+		}
 
 		public Material loadMaterial(string materialFileName)
 		{

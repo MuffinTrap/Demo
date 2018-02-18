@@ -13,10 +13,8 @@ namespace OpenTkConsole
 	public class TestScene : IScene
 	{
 		ShaderProgram shaderProgram;
-		List<DrawableMesh> triangles;
 		List<DrawableMesh> cornerTriangles;
 		DrawableMesh megaGrid;
-		int meshAmount;
 
 		CameraComponent camera;
 
@@ -27,8 +25,6 @@ namespace OpenTkConsole
 		public TestScene()
 		{
 			camera = new CameraComponent();
-			meshAmount = 9;
-			triangles = new List<DrawableMesh>(meshAmount);
 			cornerTriangles = new List<DrawableMesh>(4);
 
 			worldWidth = 30;
@@ -48,12 +44,6 @@ namespace OpenTkConsole
 			List<ShaderAttributeName> attrs = new List<ShaderAttributeName> { ShaderAttributeName.Position};
 			List<ShaderAttribute> attributes = ShaderManager.getAttributes(attrs, shaderProgram);
 
-			for (int m = 0; m < meshAmount; m++)
-			{
-				DrawableMesh t = new DrawableMesh("Triangle", MeshDataGenerator.CreateTriangleMesh(assetManager), attributes, new TransformComponent(), null, shaderProgram);
-				t.Transform.setLocationAndScale(new Vector3((float)m - 3.0f, (float)m - 2.0f, (float)m - 3.0f), 1);
-				triangles.Add(t);
-			}
 
 			for (float cx = -1; cx <= 1; cx++)
 			{
@@ -85,11 +75,6 @@ namespace OpenTkConsole
 			camera.setMatrices(shaderProgram);
 
 			megaGrid.draw();
-
-			for (int m = 0; m < meshAmount; m++)
-			{
-			//	triangles[m].draw();
-			}
 
 			foreach (DrawableMesh ct in cornerTriangles)
 			{
