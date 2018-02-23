@@ -25,6 +25,17 @@ namespace OpenTkConsole
 			rotationY = 0.0f;
 		}
 
+		public TransformComponent(Vector3 position) : this()
+		{
+			WorldPosition = position;
+		}
+
+		public TransformComponent(Vector3 position, float scale) : this()
+		{
+			WorldPosition = position;
+			Scale = scale;
+		}
+
 		public Vector3 WorldPosition
 		{
 			get; set;

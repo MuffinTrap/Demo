@@ -23,9 +23,14 @@ namespace OpenTkConsole
 		set;
 		}
 
+		private int lastMouseX = 0;
+		private int lastMouseY = 0;
+
+		private int cameraDebug = 0;
+
 		public float speed;
 
-		private float yaw = 180.0f;
+		private float yaw = 0.0f;
 		private float pitch = 0.0f;
 
 		private Matrix4Uniform viewMatrix;
@@ -37,7 +42,7 @@ namespace OpenTkConsole
 			Position = new Vector3(0, 0, 0.0f);
 
 			// THE NEGATIVE IS TO THE DEPTH
-			Direction = new Vector3(0, 0, 1.0f);
+			Direction = CalculateEulerDirection(pitch, yaw);
 			Up = new Vector3(0.0f, 1.0f, 0.0f);
 
 
@@ -48,6 +53,10 @@ namespace OpenTkConsole
 			projectionMatrix = new Matrix4Uniform(ShaderAttribute.getUniformName(ShaderUniformName.ProjectionMatrix));
 
 			projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
+
+			viewMatrix.Matrix = GetViewMatrix();
+
+			Logger.LogInfo("Camera start. Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
 		}
 
 		public void SetTarget(Vector3 targetPosition)
@@ -89,7 +98,7 @@ namespace OpenTkConsole
 			return LookAtDirection(position, direction, up);
 		}
 
-		public void Update(KeyboardState keyState)
+		public void Update(KeyboardState keyState, MouseState mouseState)
 		{
 			Vector3 rightX = Vector3.Normalize(Vector3.Cross(Up, Direction));
 
@@ -124,34 +133,65 @@ namespace OpenTkConsole
 
 			// Direction
 
+			// Rotation around Y is 0 when direction is x, z = (1,0)
+			// It increases counter-clockwise
 
 			float yawSpeedDegrees = 1.0f;
 
 			if (keyState.IsKeyDown(key: Key.Q))
 			{
-				yaw -= yawSpeedDegrees;
+				yaw += yawSpeedDegrees;
 			}
 			else if (keyState.IsKeyDown(Key.E))
 			{
-				yaw += yawSpeedDegrees;
+				yaw -= yawSpeedDegrees;
 			}
 
 
+			// Rotation around X is 0 when direction is y, z = (0, -1)
+			// It increases when camera is turned up
 
 			float pitchSpeedDegrees = 1.0f;
 
 			if (keyState.IsKeyDown(key: Key.T))
 			{
-				pitch -= pitchSpeedDegrees;
+				pitch += pitchSpeedDegrees;
 			}
 			else if (keyState.IsKeyDown(Key.G))
 			{
-				pitch += pitchSpeedDegrees;
+				pitch -= pitchSpeedDegrees;
 			}
+
+
+
+			// Mouse state
+
+			int mouseMoveX = mouseState.X - lastMouseX;
+			int mouseMoveY = mouseState.Y - lastMouseY;
+
+			lastMouseX = mouseState.X;
+			lastMouseY = mouseState.Y;
+
+			float mouseSensitivity = 0.1f;
+			float mouseMoveFX = mouseMoveX * mouseSensitivity;
+			float mouseMoveFY = mouseMoveY * mouseSensitivity;
+
+			yaw += mouseMoveFX;
+			pitch += mouseMoveFY;
+
+
 
 			pitch = MathHelper.Clamp(pitch, -89, 89);
 
 			Direction = CalculateEulerDirection(pitch, yaw);
+
+			cameraDebug++;
+			if (cameraDebug > 120)
+			{
+				//Logger.LogInfo("Camera Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
+				cameraDebug = 0;
+			}
+			
 		}
 
 		// Looking around
@@ -173,7 +213,7 @@ namespace OpenTkConsole
 			double directionZ = pz * yz;
 
 
-			Vector3 lookDir = new Vector3(Convert.ToSingle(directionX), Convert.ToSingle(directionY), Convert.ToSingle(directionZ));
+			Vector3 lookDir =  new Vector3(Convert.ToSingle(directionX), Convert.ToSingle(directionY), Convert.ToSingle(directionZ));
 			return Vector3.Normalize(lookDir);
 		}
 	}

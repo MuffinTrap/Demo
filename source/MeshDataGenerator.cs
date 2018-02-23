@@ -74,21 +74,12 @@ namespace OpenTkConsole
 
 			if (useIndices)
 			{
-				int printTimes = 20;
-
 				foreach (OBJFileReader.OBJFace face in uniqueFaces)
 				{
 					newData.positions.Add(positions[(int)face.positionIndex - 1]);
 					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
 					newData.normals.Add(normals[(int)face.normalIndex - 1]);
-
-					if (printTimes > 0)
-					{
-						Logger.LogInfo("Face " + face.positionIndex + "/" + face.texCoordIndex + "/" + face.normalIndex);
-						printTimes--;
-					}
 				}
-
 			}
 			Logger.LogInfo("Mesh Data read from " + filename);
 

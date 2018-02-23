@@ -84,9 +84,9 @@ namespace OpenTkConsole
 			Error.checkGLError("Scene.drawScene");
 		}
 
-		public void updateScene(KeyboardState keyState)
+		public void updateScene(KeyboardState keyState, MouseState mouseState)
 		{
-			camera.Update(keyState);
+			camera.Update(keyState, mouseState);
 
 			foreach (DrawableMesh ct in cornerTriangles)
 			{

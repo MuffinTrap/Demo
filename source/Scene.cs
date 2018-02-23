@@ -15,7 +15,7 @@ public interface IScene
 {
 	void loadScene(AssetManager materialManager);
 	void drawScene();
-	void updateScene(KeyboardState keyState);
+	void updateScene(KeyboardState keyState, MouseState mouseState);
 }
 
 class EmptyScene : IScene
@@ -24,7 +24,7 @@ class EmptyScene : IScene
 
 	public void drawScene() {}
 
-	public void updateScene(KeyboardState keyState) {}
+	public void updateScene(KeyboardState keyState, MouseState mouseState) {}
 }
 
 class RotatingScene : IScene
@@ -77,9 +77,9 @@ class RotatingScene : IScene
 		Error.checkGLError("Scene.drawScene");
 	}
 
-	public void updateScene(KeyboardState keyState)
+	public void updateScene(KeyboardState keyState, MouseState mouseState)
 	{
-		camera.Update(keyState);
+		camera.Update(keyState, mouseState);
 		// voxelMesh.Transform.rotateAroundY(0.01f);
 	}
 }

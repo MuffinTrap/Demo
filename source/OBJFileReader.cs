@@ -87,6 +87,31 @@ namespace OpenTkConsole
 			return vec;
 		}
 
+		public static float readFloat(string floatLine)
+		{
+			char[] split = { ' ' };
+			string[] values = floatLine.Split(split);
+
+			float value = 0.0f;
+
+			if (values.Length == 2)  // X #
+			{
+				// use . as separator instead of system default
+				System.Globalization.NumberFormatInfo nfi = new CultureInfo("en-US", false).NumberFormat;
+
+				try
+				{
+					value = Single.Parse(values[1], nfi);
+				}
+				catch (FormatException e)
+				{
+					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, values[1]));
+				}
+			}
+
+			return value;
+		}
+
 		public static Vector2 readVector2(string vectorLine)
 		{
 			char[] split = { ' ' };

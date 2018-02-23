@@ -80,9 +80,11 @@ namespace OpenTkConsole
 			songLength = 5.0f; // seconds
 
 			string dataFolder = "data";
-			AssetManager assetManager = new AssetManager(dataFolder);
+			AssetManager.WorkingDir = dataFolder;
+			AssetManager assetManager = AssetManager.GetAssetManagerSingleton();
 
 			Logger.LogPhase("Asset manager is created");
+			assetManager.LoadAll();
 			assetManager.printLoadedAssets();
 
 			// Materials and scenes
@@ -90,9 +92,10 @@ namespace OpenTkConsole
 			scenes = new List<IScene>();
 			try
 			{
-				scenes.Add(new RotatingScene());
+				//scenes.Add(new RotatingScene());
 				scenes.Add(new TestScene());
 				scenes.Add(new Scene2D());
+				scenes.Add(assetManager.GetScene("tia.sce"));
 
 				foreach (IScene s in scenes)
 				{
@@ -214,10 +217,12 @@ namespace OpenTkConsole
 
 			// Pass input to scene
 
+			var mouseState = Mouse.GetState();
+
 			// Take scene number from track
 			foreach (IScene s in scenes)
 			{
-				s.updateScene(keyState);
+				s.updateScene(keyState, mouseState);
 			}
         }
 

@@ -44,7 +44,7 @@ namespace OpenTkConsole
 				}
 			}
 
-			Logger.LogError(Logger.ErrorState.Critical, "No mesh with sourceFileName " + sourceFileName + "exists");
+			Logger.LogError(Logger.ErrorState.Critical, "No mesh with sourceFileName " + sourceFileName + " exists");
 			return null;
 		}
 
