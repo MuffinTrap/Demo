@@ -37,11 +37,14 @@ namespace OpenTkConsole
 
 			bool useIndices = true;
 
-			List<OBJFileReader.OBJFace> uniqueFaces = new List<OBJFileReader.OBJFace>();
+			List<OBJFileReader.OBJFace> uniqueFaces = null;
+			Dictionary<OBJFileReader.OBJFace, int> uniqueFacesDict = null;
 			
 
 			if (useIndices)
 			{
+				uniqueFaces = new List<OBJFileReader.OBJFace>();
+				uniqueFacesDict = new Dictionary<OBJFileReader.OBJFace, int>();
 				newData.indices = new List<int>();
 				newData.hasIndexData = true;
 			}
@@ -49,22 +52,34 @@ namespace OpenTkConsole
 			newData.positions = new List<Vector3>();
 			newData.texCoords = new List<Vector2>();
 			newData.normals = new List<Vector3>();
-			
+
+			bool addFace = true;
+
 			foreach (OBJFileReader.OBJFace face in faces)
 			{
 				if (useIndices)
 				{
-					OBJFileReader.OBJFinder finder = new OBJFileReader.OBJFinder(face);
-					int faceIndex = uniqueFaces.FindIndex(finder.isSame);
-					if (faceIndex == -1)
+					//OBJFileReader.OBJFinder finder = new OBJFileReader.OBJFinder(face);
+					bool alreadyFound = uniqueFacesDict.ContainsKey(face);
+					int faceIndex = -1;
+					if (alreadyFound)
 					{
-						uniqueFaces.Add(face);
+						uniqueFacesDict.TryGetValue(face, out faceIndex);
+						addFace = false;
 					}
-					faceIndex = uniqueFaces.FindIndex(finder.isSame);
+					else
+					{
+						faceIndex = uniqueFacesDict.Count;
+						uniqueFacesDict.Add(face, faceIndex);
 
+						// Add face info to arrays
+						addFace = true;
+					}
 					newData.indices.Add(faceIndex);
 				}
-				else
+				
+				// This is always true when not using indices
+				if (addFace)
 				{
 					newData.positions.Add(positions[(int)face.positionIndex - 1]);
 					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
@@ -72,15 +87,6 @@ namespace OpenTkConsole
 				}
 			}
 
-			if (useIndices)
-			{
-				foreach (OBJFileReader.OBJFace face in uniqueFaces)
-				{
-					newData.positions.Add(positions[(int)face.positionIndex - 1]);
-					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
-					newData.normals.Add(normals[(int)face.normalIndex - 1]);
-				}
-			}
 			Logger.LogInfo("Mesh Data read from " + filename);
 
 			newData.drawType = MeshData.DataDrawType.Triangles;

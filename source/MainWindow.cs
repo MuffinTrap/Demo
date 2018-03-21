@@ -230,6 +230,7 @@ namespace OpenTkConsole
 		{
 			running = false;
 			timer.Stop();
+			Logger.LogPhase("Exit Program");
 
 			cleanupAndExit();
 		}

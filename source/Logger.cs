@@ -1,5 +1,6 @@
 
 using System;
+using System.Diagnostics;
 
 using OpenTK.Graphics.OpenGL;
 
@@ -10,6 +11,7 @@ namespace OpenTkConsole
 	static class Logger
 	{
 
+		static Stopwatch timer;
 
 		public enum ErrorState
 		{
@@ -38,7 +40,8 @@ namespace OpenTkConsole
 		static public void LogPhase(string message)
 		{
 			PrintLogType(LogType.Phase);
-			Console.WriteLine(message);
+			Console.Write(message);
+			PrintElapsedTime();
 		}
 
 		static public void LogWarning(string message)
@@ -79,9 +82,20 @@ namespace OpenTkConsole
 			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 
+		static private void PrintElapsedTime()
+		{
+			Console.ForegroundColor = ConsoleColor.Cyan;
+			timer.Stop();
+			TimeSpan elapsed = timer.Elapsed;
+			Console.WriteLine("+++ time :" + elapsed.Seconds + "s. ");
+			timer.Restart();
+		}
+
 		static Logger()
 		{
 			ProgramErrorState = ErrorState.NoErrors;
+			timer = new Stopwatch();
+			timer.Start();
 		}
 	}
 
