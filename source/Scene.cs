@@ -14,7 +14,7 @@ namespace OpenTkConsole
 public interface IScene
 {
 	void loadScene(AssetManager materialManager);
-	void drawScene();
+	void drawScene(float cameraFrame);
 	void updateScene(KeyboardState keyState, MouseState mouseState);
 }
 
@@ -22,7 +22,7 @@ class EmptyScene : IScene
 {
 	public void loadScene(AssetManager assetManager) {}
 
-	public void drawScene() {}
+	public void drawScene(float cameraFrame) {}
 
 	public void updateScene(KeyboardState keyState, MouseState mouseState) {}
 }
@@ -67,7 +67,7 @@ class RotatingScene : IScene
 		Error.checkGLError("Scene.loadScene");
 	}
 	
-	public void drawScene()
+	public void drawScene(float cameraFrame)
 	{
 		shaderProgram.Use();
 		camera.setMatrices(shaderProgram);

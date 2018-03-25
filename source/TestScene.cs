@@ -18,6 +18,8 @@ namespace OpenTkConsole
 
 		CameraComponent camera;
 
+		List<PosAndDir> cameraFrames;
+
 		float worldWidth;
 		float worldDepth;
 		
@@ -26,6 +28,15 @@ namespace OpenTkConsole
 		{
 			camera = new CameraComponent();
 			cornerTriangles = new List<DrawableMesh>(4);
+
+			cameraFrames = new List<PosAndDir>();
+			cameraFrames.Add(new PosAndDir(new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f,0.0f, 0.0f)));
+			cameraFrames.Add(new PosAndDir(new Vector3(0.0f, 0.0f, 10.0f), new Vector3(1.0f, 0.0f, -1.0f)));
+			cameraFrames.Add(new PosAndDir(new Vector3(10.0f, 3.0f, -3.0f), new Vector3(0.0f, 0.0f, -1.0f)));
+			cameraFrames.Add(new PosAndDir(new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 0.0f, 0.0f)));
+
+			camera.Position = cameraFrames[0].position;
+			camera.Direction = cameraFrames[0].direction;
 
 			worldWidth = 30;
 			worldDepth = 30;
@@ -67,10 +78,21 @@ namespace OpenTkConsole
 			GL.DepthFunc(DepthFunction.Less);
 		}
 
-		public void drawScene()
+		public void drawScene(float cameraFrame)
 		{
+			int firstFrame = (int)Math.Floor(cameraFrame);
+			int secondFrame = firstFrame + 1;
+			float diff = cameraFrame - (float)firstFrame;
+
+			if (firstFrame < cameraFrames.Count && secondFrame < cameraFrames.Count)
+			{
+				camera.Position = cameraFrames[firstFrame].position * (1.0f - diff) + cameraFrames[secondFrame].position * (diff);
+
+				camera.Direction = cameraFrames[firstFrame].direction * (1.0f - diff) + cameraFrames[secondFrame].direction * (diff);
+			}
 
 			shaderProgram.Use();
+
 
 			camera.setMatrices(shaderProgram);
 
@@ -86,7 +108,9 @@ namespace OpenTkConsole
 
 		public void updateScene(KeyboardState keyState, MouseState mouseState)
 		{
+
 			camera.Update(keyState, mouseState);
+			
 
 			foreach (DrawableMesh ct in cornerTriangles)
 			{

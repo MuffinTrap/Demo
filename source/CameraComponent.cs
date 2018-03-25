@@ -5,6 +5,18 @@ using System;
 
 namespace OpenTkConsole
 {
+	public struct PosAndDir
+	{
+		public Vector3 position;
+		public Vector3 direction;
+
+		public PosAndDir(Vector3 posParam, Vector3 dirParam)
+		{
+			position = posParam;
+			direction = dirParam;
+		}
+	}
+
 	public class CameraComponent
 	{
 		// Camera

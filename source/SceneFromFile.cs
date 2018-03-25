@@ -40,7 +40,7 @@ namespace OpenTkConsole
 			Error.checkGLError("Scene.loadScene");
 		}
 
-		public void drawScene()
+		public void drawScene(float cameraFrame)
 		{
 			MainShader.Use();
 			camera.setMatrices(MainShader);

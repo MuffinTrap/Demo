@@ -53,7 +53,7 @@ namespace OpenTkConsole
 		}
 
 
-		public void drawScene() 
+		public void drawScene(float cameraFrame) 
 		{
 			shaderProgram.Use();
 

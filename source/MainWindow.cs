@@ -25,6 +25,12 @@ namespace OpenTkConsole
         // Syncing
         public Device syncDevice;
 
+		Track sceneNumber;
+		Track cameraFrame;
+
+		private int currentSceneIndex = 0;
+		private float currentCameraFrame = 0.0f;
+
         private int bpm;
         private int rowsPerBeat;
 
@@ -34,10 +40,10 @@ namespace OpenTkConsole
         bool paused;
 		bool spaceDown;
 
-        bool useSync;
+		bool useSync = false;
 
 		// Audio
-		bool useAudio;
+		bool useAudio = false;
 		
 		List<IScene> scenes;
         Stopwatch timer;
@@ -73,7 +79,7 @@ namespace OpenTkConsole
 			spaceDown = false;
 
 			// SYNC
-			useSync = false;
+			useSync = true;
 			loadSyncer();
 			bpm = 120;
 			rowsPerBeat = 4;
@@ -172,7 +178,10 @@ namespace OpenTkConsole
                 connectSyncer();
             }
 
-            Title = $"Seconds: {secondsElapsed:0} Row: {syncRow}";
+			currentSceneIndex = (int)Math.Floor(sceneNumber.GetValue(syncRow));
+			currentCameraFrame = cameraFrame.GetValue(syncRow);
+
+			Title = $"Seconds: {secondsElapsed:0} Row: {syncRow}";
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -220,10 +229,14 @@ namespace OpenTkConsole
 			var mouseState = Mouse.GetState();
 
 			// Take scene number from track
+			scenes[currentSceneIndex].updateScene(keyState, mouseState);
+
+			/*
 			foreach (IScene s in scenes)
 			{
 				s.updateScene(keyState, mouseState);
 			}
+			*/
         }
 
 		private void ExitProgram()
@@ -254,10 +267,14 @@ namespace OpenTkConsole
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
 			// Draw models
+			
+			scenes[currentSceneIndex].drawScene(currentCameraFrame);
+			/*
 			foreach(IScene s in scenes)
 			{
 				s.drawScene();
 			}
+			*/
 
 			// Scene drawing ends
 			
@@ -272,8 +289,8 @@ namespace OpenTkConsole
 		void loadSyncer()
 		{
 			syncDevice = new Device("test", false);
-            // redColorTrack = syncDevice.GetTrack("redColor");
-            // greenColorTrack = syncDevice.GetTrack("greenColor");
+			sceneNumber = syncDevice.GetTrack("Scene");
+			cameraFrame = syncDevice.GetTrack("CameraFrame");
 			
 			if (useSync)
 			{
