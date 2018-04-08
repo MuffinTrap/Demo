@@ -80,19 +80,36 @@ namespace OpenTkConsole
 
 		public void drawScene(float cameraFrame)
 		{
+			// Interpolate between frames
+			// If there is no second frame stay still
+
 			int firstFrame = (int)Math.Floor(cameraFrame);
 			int secondFrame = firstFrame + 1;
-			float diff = cameraFrame - (float)firstFrame;
 
-			if (firstFrame < cameraFrames.Count && secondFrame < cameraFrames.Count)
+			bool firstInFrames = firstFrame < cameraFrames.Count;
+			bool secondInFrames = secondFrame < cameraFrames.Count;
+			if (firstInFrames && secondInFrames)
 			{
-				camera.Position = cameraFrames[firstFrame].position * (1.0f - diff) + cameraFrames[secondFrame].position * (diff);
+				Vector3 startPos = cameraFrames[firstFrame].position;
+				Vector3 startDir = cameraFrames[firstFrame].direction;
+				Vector3 targetPos = cameraFrames[secondFrame].position;
+				Vector3 targetDir = cameraFrames[secondFrame].direction;
 
-				camera.Direction = cameraFrames[firstFrame].direction * (1.0f - diff) + cameraFrames[secondFrame].direction * (diff);
+				float diff = cameraFrame - (float)firstFrame;
+				camera.Position = startPos * (1.0f - diff) + targetPos * (diff);
+				camera.Direction = startDir * (1.0f - diff) + targetDir * (diff);
 			}
-
+			else if (firstInFrames && !secondInFrames)
+			{
+				camera.Position = cameraFrames[firstFrame].position;
+				camera.Direction = cameraFrames[firstFrame].direction;
+			}
+			else
+			{
+				// nop
+			}
+			
 			shaderProgram.Use();
-
 
 			camera.setMatrices(shaderProgram);
 
