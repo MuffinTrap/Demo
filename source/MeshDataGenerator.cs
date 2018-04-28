@@ -24,7 +24,7 @@ namespace OpenTkConsole
 
 			List<OBJFileReader.OBJFace> faces = new List<OBJFileReader.OBJFace>();
 
-			MaterialManager.Material meshMaterial = new MaterialManager.Material();
+			Material meshMaterial = new Material();
 
 			OBJFileReader.readOBJ(filename, materialManager, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
 

@@ -42,24 +42,13 @@ class RotatingScene : IScene
 	
 	public void loadScene(AssetManager assetManager)
 	{
-			// Load program from single file...
-		shaderProgram = new ShaderProgram(assetManager.GetShader("objmesh.vs"), assetManager.GetShader("objmesh.fs"));
-		
-		Error.checkGLError("Scene.loadScene");
-
+		shaderProgram = assetManager.GetShaderProgram("objmesh");
 		shaderProgram.Use();
-		
 		shaderProgram.setSamplerUniform("inputTexture", 0);
-		voxelMesh = new DrawableMesh(
-			name: "Monu9"
-			, data: assetManager.getMeshData("monu9.obj")
-			, attributes: ShaderManager.getAttributes(new List<ShaderAttributeName> { ShaderAttributeName.Position, ShaderAttributeName.TexCoord, ShaderAttributeName.Normal }, shaderProgram)
-			, transform: new TransformComponent()
-			, material: assetManager.GetMaterial("palette")
-			, shader: shaderProgram);
-	
-		voxelMesh.Transform.setLocationAndScale(new Vector3(0.0f, 0.0f, 0.0f), 0.2f);
 
+		voxelMesh = assetManager.GetMesh("Monu9", "monu9.obj", "palette"
+		, shaderProgram
+		, new Vector3(0.0f, 0.0f, 0.0f), 0.2f);
 
 		GL.Enable(EnableCap.DepthTest);
 		GL.DepthFunc(DepthFunction.Less);

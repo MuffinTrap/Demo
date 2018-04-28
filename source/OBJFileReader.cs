@@ -166,7 +166,7 @@ namespace OpenTkConsole
 			return face;
 		}
 
-		public static void readMaterialFile(string mttlibLine, MaterialManager materialManager, ref MaterialManager.Material material)
+		public static void readMaterialFile(string mttlibLine, MaterialManager materialManager, ref Material material)
 		{
 			// mtllib voxelColor.mtl
 			char[] space = { ' ' };
@@ -178,7 +178,7 @@ namespace OpenTkConsole
 			material = materialManager.loadMaterial(fullPath);
 		}
 
-		public static void readOBJ(string filename, MaterialManager materialManager, ref List<OBJFileReader.OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<Vector2> texCoords, ref MaterialManager.Material material)
+		public static void readOBJ(string filename, MaterialManager materialManager, ref List<OBJFileReader.OBJFace> faces, ref List<Vector3> positions, ref List<Vector3> normals, ref List<Vector2> texCoords, ref Material material)
 		{
 			// Sections 
 			// . normals 

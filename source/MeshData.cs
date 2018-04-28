@@ -197,6 +197,23 @@ namespace OpenTkConsole
 			return true;
 		}
 
+		public List<ShaderAttributeName> GetNeededAttributes()
+		{
+			List<ShaderAttributeName> list = new List<ShaderAttributeName>();
+			if (hasPositionData)
+			{
+				list.Add(ShaderAttributeName.Position);
+			}
+			if (hasNormalData)
+			{
+				list.Add(ShaderAttributeName.Normal);
+			}
+			if (hasTexCoordData)
+			{
+				list.Add(ShaderAttributeName.TexCoord);
+			}
+			return list;
+		}
 
 		public static int BytesPerFloat
 		{
@@ -205,8 +222,6 @@ namespace OpenTkConsole
 				return 4;
 			}
 		}
-
-
 
 		public static int getElementsInPosition()
 		{
@@ -223,7 +238,10 @@ namespace OpenTkConsole
 			return 4;
 		}
 
-		public static int getElementsInNormal() { return getElementsInPosition(); }
+		public static int getElementsInNormal() 
+		{ 
+			return getElementsInPosition(); 
+		}
 
 		public static int getPositionSizeBytes()
 		{

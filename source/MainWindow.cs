@@ -79,7 +79,7 @@ namespace OpenTkConsole
 			spaceDown = false;
 
 			// SYNC
-			useSync = true;
+			useSync = false;
 			loadSyncer();
 			bpm = 120;
 			rowsPerBeat = 4;

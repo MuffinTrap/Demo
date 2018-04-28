@@ -21,9 +21,9 @@ namespace OpenTkConsole
 
 		public ShaderProgram ShaderProgram { get; set; }
 
-		public MaterialManager.Material BoundMaterial { get; set; }
+		public Material BoundMaterial { get; set; }
 		
-		public DrawableMesh(string name, MeshData data, List<ShaderAttribute> attributes, TransformComponent transform, MaterialManager.Material material, ShaderProgram shader)
+		public DrawableMesh(string name, MeshData data, List<ShaderAttribute> attributes, TransformComponent transform, Material material, ShaderProgram shader)
 		{
 			Name = name;
 			Data = data;

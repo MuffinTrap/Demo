@@ -14,7 +14,7 @@ namespace OpenTkConsole
 		private static AssetManager singleton;
 		private static string dataDirectory;
 
-		public static string WorkingDir{ get; set; }
+		public static string WorkingDir { get; set; }
 
 		public static AssetManager GetAssetManagerSingleton()
 		{
@@ -37,7 +37,7 @@ namespace OpenTkConsole
 			{
 				string dir = FindDirectory(dataDirectory);
 				if (dir != null)
-				{ 
+				{
 					dataDirFound = true;
 					Directory.SetCurrentDirectory(dir);
 				}
@@ -93,8 +93,8 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Critical, "Data directory not found");
 			}
 		}
-		
-		
+
+
 
 		public void printLoadedAssets()
 		{
@@ -102,7 +102,7 @@ namespace OpenTkConsole
 			meshManager.printLoadedAssets();
 		}
 
-		public MaterialManager.Material GetMaterial(string materialName)
+		public Material GetMaterial(string materialName)
 		{
 			return materialManager.GetMaterialByName(materialName);
 		}
@@ -115,6 +115,48 @@ namespace OpenTkConsole
 		public Shader GetShader(string shaderName)
 		{
 			return shaderManager.GetShader(shaderName);
+		}
+
+		public ShaderProgram GetShaderProgram(string shaderName)
+		{
+			return new ShaderProgram(GetShader(shaderName + ".vs"), GetShader(shaderName + ".fs"));
+		}
+
+		public ShaderProgram GetShaderProgram(string vertexName, string fragmentName)
+		{
+			return new ShaderProgram(GetShader(vertexName + ".vs"), GetShader(fragmentName + ".fs"));
+		}
+
+		public DrawableMesh GetMesh(string name
+			, string modelFile
+			, string material
+			, ShaderProgram shader
+			, Vector3 position
+			, float scale)
+		{
+			MeshData data = getMeshData(modelFile);
+			return GetMesh(name, data, material, shader, position, scale);
+			
+		}
+
+		public DrawableMesh GetMesh(string name
+		, MeshData data
+		, string material
+		, ShaderProgram shader
+		, Vector3 position
+		, float scale)
+		{
+			// What attributes does this data need/use?
+			List<ShaderAttributeName> attr = data.GetNeededAttributes();
+			TransformComponent t = new TransformComponent();
+			t.setLocationAndScale(position, scale);
+			Material m = null;
+			if (material != null)
+			{
+				m = GetMaterial(material);
+			}
+
+			return new DrawableMesh(name, data, ShaderManager.getAttributes(attr, shader), t, m, shader);
 		}
 
 		public SceneFromFile GetScene(string sceneFileName)

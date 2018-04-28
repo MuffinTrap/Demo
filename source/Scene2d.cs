@@ -26,30 +26,23 @@ namespace OpenTkConsole
 		public void loadScene(AssetManager assetManager)
 		{
 			// Load program from single file...
-			shaderProgram = new ShaderProgram(assetManager.GetShader("texturequad.vs")
-			, assetManager.GetShader("texturequad.fs"));
-
-			Error.checkGLError("Scene.loadScene");
+			shaderProgram = assetManager.GetShaderProgram("texturequad");
 
 			shaderProgram.Use();
 			
 			shaderProgram.setSamplerUniform("inputTexture", 0);
 
-			quadMesh = new DrawableMesh(
-				"Quad"
-				, MeshDataGenerator.CreateTexturedQuadMesh(assetManager)
-				, ShaderManager.getAttributes(new List<ShaderAttributeName> { ShaderAttributeName.Position, ShaderAttributeName.TexCoord },shaderProgram)
-				, new TransformComponent()
-				, assetManager.GetMaterial("konata")
-				, shaderProgram);
-
-			quadMesh.Transform.setLocationAndScale(new Vector3(0.0f, 11.0f, 0.0f), 1);
+			quadMesh = assetManager.GetMesh("Konata"
+			, MeshDataGenerator.CreateTexturedQuadMesh(assetManager)
+			, "konata"
+			, shaderProgram
+			, new Vector3(0.0f, 11.0f, 0.0f)
+			, 1.0f);
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
 
 			Error.checkGLError("Scene.loadScene");
-
 		}
 
 

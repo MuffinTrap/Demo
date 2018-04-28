@@ -52,10 +52,6 @@ namespace OpenTkConsole
 
 			shaderProgram.Use();
 
-			List<ShaderAttributeName> attrs = new List<ShaderAttributeName> { ShaderAttributeName.Position};
-			List<ShaderAttribute> attributes = ShaderManager.getAttributes(attrs, shaderProgram);
-
-
 			for (float cx = -1; cx <= 1; cx++)
 			{
 				for (float cz = -1; cz <= 1; cz++)
@@ -64,15 +60,22 @@ namespace OpenTkConsole
 					{
 						continue;
 					}
-					DrawableMesh t = new DrawableMesh("Triangle(" + cx + ",0," + cz + ")", MeshDataGenerator.CreateTriangleMesh(assetManager), attributes, new TransformComponent(), null, shaderProgram);
-					t.Transform.setLocationAndScale(new Vector3(cx * (worldWidth /2), 0, cz * (worldDepth/2)), 1);
+					DrawableMesh t = assetManager.GetMesh("Triangle(" + cx + ",0," + cz + ")"
+					, MeshDataGenerator.CreateTriangleMesh(assetManager)
+					, null
+					, shaderProgram
+					, new Vector3(cx * (worldWidth / 2), 0, cz * (worldDepth / 2)), 1);
+
 					cornerTriangles.Add(t);
 				}
 				
 			}
 
-			megaGrid = new DrawableMesh("MegaGrid", MeshDataGenerator.CreateXZGrid(worldWidth, worldDepth, 1, 1), attributes, new TransformComponent(), null, shaderProgram);
-			megaGrid.Transform.setLocationAndScale(new Vector3(0.0f, -1.0f, 0.0f), 1);
+			megaGrid = assetManager.GetMesh("Megagrid"
+			, MeshDataGenerator.CreateXZGrid(worldWidth, worldDepth, 1, 1)
+			, null
+			, shaderProgram
+			, new Vector3(0.0f, -1.0f, 0.0f), 1);
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);

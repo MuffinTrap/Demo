@@ -12,26 +12,25 @@ using OpenTK.Graphics.OpenGL;
 
 namespace OpenTkConsole
 {
+	// Material
+	public class Material
+	{
+		public string materialName;
+		public string textureName;
+		public int textureGLIndex;
+		public float illumination;
+		public Vector3 alpha;
+		public Vector3 diffuse;
+		public Vector3 specular;
+
+		public string getInfoString()
+		{
+			return "Name: " + materialName + " Texture: " + textureName + " GLi: " + textureGLIndex;
+		}
+	}
 
 	public class MaterialManager
 	{
-		// Material
-		public class Material
-		{
-			public string materialName;
-			public string textureName;
-			public int textureGLIndex;
-			public float illumination;
-			public Vector3 alpha;
-			public Vector3 diffuse;
-			public Vector3 specular;
-
-			public string getInfoString()
-			{
-				return "Name: " + materialName + " Texture: " + textureName + " GLi: " + textureGLIndex;
-			}
-		}
-
 		public List<Material> materials;
 
 		public MaterialManager()
@@ -43,13 +42,13 @@ namespace OpenTkConsole
 		public void printLoadedAssets()
 		{
 			
-				foreach (MaterialManager.Material m in materials)
+				foreach (Material m in materials)
 				{
 					Logger.LogInfo("Loaded material " + m.getInfoString());
 				}
 		}
 
-		public MaterialManager.Material GetMaterialByName(string materialName)
+		public Material GetMaterialByName(string materialName)
 		{
 			foreach (Material m in materials)
 			{
