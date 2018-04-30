@@ -39,17 +39,12 @@ namespace OpenTkConsole
 
         bool paused;
 		bool spaceDown;
-
-		bool useSync = false;
-
-		// Audio
-		bool useAudio = false;
 		
 		List<IScene> scenes;
         Stopwatch timer;
 
         public MainWindow()
-            : base(854, 480, 
+            : base(800, 460, 
                   GraphicsMode.Default,
                   "OpenTK party",
                   GameWindowFlags.Default,
@@ -61,9 +56,10 @@ namespace OpenTkConsole
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
 
 			Logger.LogPhase("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
-            base.TargetUpdateFrequency = 120.0;
+			base.TargetUpdateFrequency = DemoSettings.GetDefaults().UpdatesPerSecond;
 
 			base.Location = new Point(510, 10);
+
         }
 
         protected override void OnResize(EventArgs e)
@@ -79,7 +75,6 @@ namespace OpenTkConsole
 			spaceDown = false;
 
 			// SYNC
-			useSync = false;
 			loadSyncer();
 			bpm = 120;
 			rowsPerBeat = 4;
@@ -117,9 +112,8 @@ namespace OpenTkConsole
 			
 
 			// Audio
-			useAudio = false;
 
-			if (useAudio)
+			if (DemoSettings.GetDefaults().AudioEnabled)
 			{
 				initAudio();
 			}
@@ -197,7 +191,7 @@ namespace OpenTkConsole
 			}
 
 			HandleKeyboardAndUpdateScene();
-			if (useSync)
+			if (DemoSettings.GetDefaults().SyncEnabled)
 			{
 				Sync();
 			}
@@ -292,7 +286,7 @@ namespace OpenTkConsole
 			sceneNumber = syncDevice.GetTrack("Scene");
 			cameraFrame = syncDevice.GetTrack("CameraFrame");
 			
-			if (useSync)
+			if (DemoSettings.GetDefaults().SyncEnabled)
 			{
 				connectSyncer();
 				
@@ -413,7 +407,7 @@ namespace OpenTkConsole
 		void cleanupAndExit()
 		{
 			syncDevice.Dispose();
-			if (useAudio)
+			if (DemoSettings.GetDefaults().AudioEnabled)
 			{
 				shutDownAudio();
 			}

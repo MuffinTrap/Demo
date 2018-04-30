@@ -98,7 +98,7 @@ namespace OpenTkConsole
 			return newData;
 		}
 
-		static public MeshData CreateTriangleMesh(AssetManager assetManager)
+		static public MeshData CreateTriangleMesh()
 		{
 			MeshData triMesh = new MeshData();
 			triMesh.sourceFileName = "triangle";
@@ -124,7 +124,37 @@ namespace OpenTkConsole
 			return triMesh;
 		}
 
-		static public MeshData CreateTexturedQuadMesh(AssetManager assetManager)
+		static public MeshData CreateQuadMesh()
+		{
+			MeshData quadMesh = new MeshData();
+			quadMesh.sourceFileName = "quad";
+
+			List<Vector3> positions = new List<Vector3>();
+
+			positions.Add(new Vector3(-1.0f, -1.0f, 0.0f)); // 0
+			positions.Add(new Vector3(-1.0f, 1.0f, 0.0f));  // 1
+			positions.Add(new Vector3(1.0f, 1.0f, 0.0f));   // 2
+			positions.Add(new Vector3(1.0f, -1.0f, 0.0f));  // 3
+
+			quadMesh.positions = positions;
+
+			quadMesh.hasPositionData = true;
+
+			quadMesh.indices = new List<int> { 0, 1, 2, 2, 3, 0 };
+			quadMesh.hasIndexData = true;
+
+			quadMesh.VertexAmount = positions.Count;
+
+			quadMesh.drawType = MeshData.DataDrawType.Triangles;
+
+			quadMesh.GenerateBufferHandles();
+
+			Error.checkGLError("Quad Mesh Data creation");
+
+			return quadMesh;
+		}
+
+		static public MeshData CreateTexturedQuadMesh()
 		{
 			MeshData quadMesh = new MeshData();
 			quadMesh.sourceFileName = "quad";

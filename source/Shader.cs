@@ -251,6 +251,11 @@ namespace OpenTkConsole
 			GL.Uniform1(uniformLocation, location);
 		}
 
+		public void SetColorUniform(int uniformLocation , Vector4 color)
+		{
+			GL.Uniform4(uniformLocation, color);
+		}
+
 		public int GetUniformLocation(string name)
 		{
 			foreach(ShaderAttribute a in uniforms)
