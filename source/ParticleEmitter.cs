@@ -4,10 +4,6 @@ using OpenTK;
 
 namespace OpenTkConsole
 {
-
-
-
-
 	public class ParticleEmitter
 	{
 		public TransformComponent Transform { get; set; }

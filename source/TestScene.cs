@@ -152,6 +152,7 @@ namespace OpenTkConsole
 				if (par.isActive)
 				{
 					part.Transform.WorldPosition = mat[par.matrixIndex].ExtractTranslation();
+					part.Transform.SetRotationMatrix(camera.GetRotationMatrix());
 					part.draw();
 				}
 			}

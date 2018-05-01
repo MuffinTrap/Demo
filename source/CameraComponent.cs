@@ -85,8 +85,13 @@ namespace OpenTkConsole
 
 		public Matrix4 GetViewMatrix()
 		{
-			return LookAtDirection(Position, Direction, Up);
+			Matrix4 cameraCoordinates = LookAtDirection(Position, Direction, Up);
+
+			cameraCoordinates.Transpose();
+			Matrix4 translationInverse = Matrix4.CreateTranslation(Position).Inverted();
+			return translationInverse * cameraCoordinates;
 		}
+
 
 		public Matrix4 LookAtDirection(Vector3 position, Vector3 direction, Vector3 up)
 		{
@@ -99,15 +104,19 @@ namespace OpenTkConsole
 				, new Vector4(direction, 0.0f)
 				, new Vector4(0, 0, 0, 1));
 
-			cameraCoordinates.Transpose();
-			Matrix4 translationInverse = Matrix4.CreateTranslation(position).Inverted();
-			return translationInverse * cameraCoordinates;
+			
+			return cameraCoordinates;
 		}
 
 		public Matrix4 LookAtTarget(Vector3 position, Vector3 target, Vector3 up)
 		{
 			Vector3 direction = Vector3.Normalize(target - position);
 			return LookAtDirection(position, direction, up);
+		}
+
+		public Matrix4 GetRotationMatrix()
+		{
+			return LookAtDirection(Position, Direction, Up);
 		}
 
 		public void Update(KeyboardState keyState, MouseState mouseState)

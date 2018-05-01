@@ -203,13 +203,6 @@ namespace OpenTkConsole
 		
 		private static int GetAttributeLocation(int handle, string name)
 		{
-			/*
-			if (!inUse)
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Program not in use! Cannot get attribute location");
-			}
-			*/
-			
 			if (!GL.IsProgram(handle))
 			{
 				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
@@ -224,13 +217,6 @@ namespace OpenTkConsole
 		
 		private static int GetUniformLocation(int handle, string name)
 		{
-			/*
-			if (!inUse)
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Program " + name + " not in use! cannot get uniform location");
-			}
-			*/
-		
 			if (!GL.IsProgram(handle))
 			{
 				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
@@ -242,7 +228,6 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Limited, "Uniform " + name + " not found");
 			}
 			return location;
-			
 		}
 
 		public void setSamplerUniform(string samplerName, int location)
