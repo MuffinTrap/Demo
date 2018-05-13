@@ -95,8 +95,9 @@ namespace OpenTkConsole
 			{
 				//scenes.Add(new RotatingScene());
 				scenes.Add(new TestScene());
-				scenes.Add(new Scene2D());
-				scenes.Add(assetManager.GetScene("tia.sce"));
+				//scenes.Add(new Scene2D());
+				//scenes.Add(assetManager.GetScene("tia.sce"));
+				//scenes.Add(new UnicornScene());
 
 				foreach (IScene s in scenes)
 				{
@@ -222,15 +223,17 @@ namespace OpenTkConsole
 
 			var mouseState = Mouse.GetState();
 
-			// Take scene number from track
-			scenes[currentSceneIndex].updateScene(keyState, mouseState);
-
-			/*
-			foreach (IScene s in scenes)
+			if (DemoSettings.GetDefaults().SyncEnabled)
 			{
-				s.updateScene(keyState, mouseState);
+				scenes[currentSceneIndex].updateScene(keyState, mouseState);
 			}
-			*/
+			else
+			{
+				foreach (IScene s in scenes)
+				{
+					s.updateScene(keyState, mouseState);
+				}
+			}
         }
 
 		private void ExitProgram()
@@ -261,14 +264,18 @@ namespace OpenTkConsole
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
 			// Draw models
-			
-			scenes[currentSceneIndex].drawScene(currentCameraFrame);
-			/*
-			foreach(IScene s in scenes)
+
+			if (DemoSettings.GetDefaults().SyncEnabled)
 			{
-				s.drawScene();
+				scenes[currentSceneIndex].drawScene(currentCameraFrame);
 			}
-			*/
+			else
+			{
+				foreach (IScene s in scenes)
+				{
+					s.drawScene(0);
+				}
+			}
 
 			// Scene drawing ends
 			

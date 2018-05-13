@@ -19,17 +19,21 @@ namespace OpenTkConsole
 		CameraComponent camera;
 		ParticleEmitter emitter;
 
-		List<PosAndDir> cameraFrames;
+		List<PosAndDir> cameraFrames = new List<PosAndDir>();
 
 		float worldWidth;
 		float worldDepth;
-		
+		public void setCameraFrames(List<PosAndDir> frames) { }
+
+		Vector3 cameraTarget = new Vector3(0, 1, 0);
+		//float angleSpeed = 0.01f;
 
 		public TestScene()
 		{
 			camera = new CameraComponent();
 			cornerTriangles = new List<DrawableMesh>(4);
 
+			/*
 			cameraFrames = new List<PosAndDir>();
 			cameraFrames.Add(new PosAndDir(new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f,0.0f, 0.0f)));
 			cameraFrames.Add(new PosAndDir(new Vector3(0.0f, 0.0f, 10.0f), new Vector3(1.0f, 0.0f, -1.0f)));
@@ -38,6 +42,7 @@ namespace OpenTkConsole
 
 			camera.Position = cameraFrames[0].position;
 			camera.Direction = cameraFrames[0].direction;
+			*/
 
 			worldWidth = 30;
 			worldDepth = 30;
@@ -78,7 +83,7 @@ namespace OpenTkConsole
 			, shaderProgram
 			, new Vector3(0.0f, -1.0f, 0.0f), 1);
 
-			emitter = new ParticleEmitter(20, 3.0f, new Vector3(0, 0, 0));
+			emitter = new ParticleEmitter(200, 30.0f, 0.5f, new Vector3(0, 0, 0), ParticleEmitter.EmitterShape.Rectangle, new Vector3(4.0f ,0.3f, 4.0f));
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
@@ -90,31 +95,7 @@ namespace OpenTkConsole
 			// If there is no second frame stay still
 			if (DemoSettings.GetDefaults().CameraSetting == DemoSettings.CameraMode.Frames)
 			{
-				int firstFrame = (int)Math.Floor(cameraFrame);
-				int secondFrame = firstFrame + 1;
-
-				bool firstInFrames = firstFrame < cameraFrames.Count;
-				bool secondInFrames = secondFrame < cameraFrames.Count;
-				if (firstInFrames && secondInFrames)
-				{
-					Vector3 startPos = cameraFrames[firstFrame].position;
-					Vector3 startDir = cameraFrames[firstFrame].direction;
-					Vector3 targetPos = cameraFrames[secondFrame].position;
-					Vector3 targetDir = cameraFrames[secondFrame].direction;
-
-					float diff = cameraFrame - (float)firstFrame;
-					camera.Position = startPos * (1.0f - diff) + targetPos * (diff);
-					camera.Direction = startDir * (1.0f - diff) + targetDir * (diff);
-				}
-				else if (firstInFrames && !secondInFrames)
-				{
-					camera.Position = cameraFrames[firstFrame].position;
-					camera.Direction = cameraFrames[firstFrame].direction;
-				}
-				else
-				{
-					// nop
-				}
+				camera.setFrame(cameraFrame, cameraFrames);
 			}
 			
 			shaderProgram.Use();
@@ -128,34 +109,7 @@ namespace OpenTkConsole
 				ct.draw();
 			}
 
-			// Draw particles, but how?
-
-			ShaderProgram pShader = emitter.ParticleShader;
-			pShader.Use();
-			camera.setMatrices(pShader);
-			List<Matrix4> mat = emitter.Matrices;
-			DrawableMesh part = emitter.ParticleMesh;
-			int colorLoc = pShader.GetUniformLocation("uParticleColor");
-			if (colorLoc != -1)
-			{
-				pShader.SetColorUniform(colorLoc, new Vector4(1, 0, 0, 1));
-			}
-			else
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Invalid uniform location");
-			}
-			
-
-			for (int p = 0; p < emitter.Particles.Count; p++)
-			{
-				ParticleEmitter.Particle par = emitter.Particles[p];
-				if (par.isActive)
-				{
-					part.Transform.WorldPosition = mat[par.matrixIndex].ExtractTranslation();
-					part.Transform.SetRotationMatrix(camera.GetRotationMatrix());
-					part.draw();
-				}
-			}
+			emitter.Draw(camera);
 			
 			
 				
@@ -166,7 +120,7 @@ namespace OpenTkConsole
 		{
 
 			camera.Update(keyState, mouseState);
-			
+			//camera.Orbit(angleSpeed, 3.0f, cameraTarget);
 
 			foreach (DrawableMesh ct in cornerTriangles)
 			{

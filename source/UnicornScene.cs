@@ -18,7 +18,14 @@ namespace OpenTkConsole
 		DrawableMesh unicornMesh;
 		//DrawableMesh hillMesh;
 
+		Vector3 cameraPos = new Vector3(0, 5, 10);
+		Vector3 cameraTarget = new Vector3(0, 0, 0);
+		float cameraAngle = 0.0f;
+		const float fullCircle = (float)(Math.PI * 2.0f);
+		float angleSpeed = fullCircle / (float)DemoSettings.GetDefaults().UpdatesPerSecond;
+
 		CameraComponent camera;
+		public void setCameraFrames(List<PosAndDir> frames) { }
 
 		public UnicornScene()
 		{
@@ -43,6 +50,10 @@ namespace OpenTkConsole
 			GL.DepthFunc(DepthFunction.Less);
 
 			Error.checkGLError("Scene.loadScene");
+
+			camera.Position = cameraPos;
+			camera.SetTarget(cameraTarget);
+
 		}
 
 		public void drawScene(float cameraFrame)
@@ -65,8 +76,16 @@ namespace OpenTkConsole
 		public void updateScene(KeyboardState keyState, MouseState mouseState)
 		{
 			camera.Update(keyState, mouseState);
-			
+
 			// Orbiting camera around unicorn mesh
+			cameraAngle += angleSpeed;
+			if (cameraAngle > fullCircle)
+			{
+				cameraAngle -= fullCircle;
+			}
+			Matrix4 rot = Matrix4.CreateRotationY(cameraAngle);
+			camera.Position = Vector3.TransformVector(cameraPos, rot);
+			camera.SetTarget(cameraTarget);
 		}
 	}
 }

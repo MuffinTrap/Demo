@@ -1,6 +1,6 @@
 using OpenTK;
 using OpenTK.Input;
-
+using System.Collections.Generic;
 using System;
 
 namespace OpenTkConsole
@@ -45,6 +45,8 @@ namespace OpenTkConsole
 		private float yaw = 0.0f;
 		private float pitch = 0.0f;
 
+		private float orbitAngle = 0.0f;
+
 		private Matrix4Uniform viewMatrix;
 		private Matrix4Uniform projectionMatrix;
 
@@ -73,7 +75,7 @@ namespace OpenTkConsole
 
 		public void SetTarget(Vector3 targetPosition)
 		{
-			Direction = Vector3.Normalize(targetPosition - Position);
+			Direction = Vector3.Normalize(Position - targetPosition);
 		}
 
 		public void setMatrices(ShaderProgram program)
@@ -236,6 +238,49 @@ namespace OpenTkConsole
 
 			Vector3 lookDir =  new Vector3(Convert.ToSingle(directionX), Convert.ToSingle(directionY), Convert.ToSingle(directionZ));
 			return Vector3.Normalize(lookDir);
+		}
+
+		// Changing frame
+		public void setFrame(float cameraFrame, List<PosAndDir> cameraFrames)
+		{
+			int firstFrame = (int)Math.Floor(cameraFrame);
+			int secondFrame = firstFrame + 1;
+
+			bool firstInFrames = firstFrame < cameraFrames.Count;
+			bool secondInFrames = secondFrame < cameraFrames.Count;
+			if (firstInFrames && secondInFrames)
+			{
+				Vector3 startPos = cameraFrames[firstFrame].position;
+				Vector3 startDir = cameraFrames[firstFrame].direction;
+				Vector3 targetPos = cameraFrames[secondFrame].position;
+				Vector3 targetDir = cameraFrames[secondFrame].direction;
+
+				float diff = cameraFrame - (float)firstFrame;
+				Position = startPos * (1.0f - diff) + targetPos * (diff);
+				Direction = startDir * (1.0f - diff) + targetDir * (diff);
+			}
+			else if (firstInFrames && !secondInFrames)
+			{
+				Position = cameraFrames[firstFrame].position;
+				Direction = cameraFrames[firstFrame].direction;
+			}
+			else
+			{
+				// nop
+			}
+		}
+
+		public void Orbit(float speed, float distance, Vector3 targetPoint)
+		{
+			orbitAngle += speed;
+			const float fullCircle = (float)(Math.PI * 2.0f);
+			if (orbitAngle > fullCircle)
+			{
+				orbitAngle -= fullCircle;
+			}
+			Matrix4 rot = Matrix4.CreateRotationY(orbitAngle);
+			Position = targetPoint + Vector3.TransformVector(new Vector3(0, 0, distance), rot);
+			SetTarget(targetPoint);
 		}
 	}
 

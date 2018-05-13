@@ -15,6 +15,17 @@ namespace OpenTkConsole
 		public List<DrawableMesh> allModels;
 
 		CameraComponent camera;
+		List<PosAndDir> cameraFrames;
+		public void setCameraFrames(List<PosAndDir> frames) 
+		{
+			cameraFrames = frames;
+			if (cameraFrames.Count > 0)
+			{
+				camera.Position = cameraFrames[0].position;
+				camera.Direction = cameraFrames[0].direction;
+			}
+		}
+
 		public string ConfigFile { get; }
 
 		public SceneFromFile(string sceneFile)
@@ -42,8 +53,10 @@ namespace OpenTkConsole
 
 		public void drawScene(float cameraFrame)
 		{
+			camera.setFrame(cameraFrame, cameraFrames);
 			MainShader.Use();
 			camera.setMatrices(MainShader);
+			
 
 			foreach(DrawableMesh m in allModels)
 			{

@@ -23,12 +23,17 @@ namespace OpenTkConsole
 
 
 		private double emitCounter;
-		private double lifeCounter;
 		private int maxParticles;
 
-		private Random randomGenerator;
+		private int colorUniformLocation;
 
-		public struct Particle
+		private Random randomGenerator;
+		
+		public float Width { get; set; }
+		public float Height { get; set; }
+		public float Lenght { get; set; }
+
+		public class Particle
 		{
 			public bool isActive;
 			public int matrixIndex;
@@ -37,13 +42,34 @@ namespace OpenTkConsole
 			public float timeLeft;
 		}
 
-		public ParticleEmitter(int particleAmount, float emitRate, Vector3 worldPosition)
+		public enum EmitterShape
+		{
+			Point,
+			Rectangle
+		}
+
+		public EmitterShape Shape { get; set; }
+
+		public void SetColors(List<Vector3> possibleColors)
+		{
+			if (possibleColors.Count > 0)
+			{
+				colors = possibleColors;
+			}
+		}
+		private List<Vector3> colors;
+		
+
+		public ParticleEmitter(int particleAmount, float emitRate, float lifeTime, Vector3 worldPosition, EmitterShape shape, Vector3 sizes)
 		{
 			maxParticles = particleAmount;
 			// Load quad mesh
 			AssetManager ass = AssetManager.GetAssetManagerSingleton();
 
 			ParticleShader = ass.GetShaderProgram("particle");
+
+			
+
 			ParticleMesh = ass.GetMesh("particle", MeshDataGenerator.CreateQuadMesh(), null, ParticleShader
 			, new Vector3(0, 0, 0), 0.1f);
 
@@ -52,21 +78,36 @@ namespace OpenTkConsole
 			ActiveParticles = 0;
 			EmitRate = emitRate;
 			emitCounter = 0.0f;
-			LifeTime = 1.0f;
+			LifeTime = lifeTime;
 			ParticleSpeed = 1.0f;
 			EmitDirection = new Vector3(0, 1, 0);
 			ParticleSize = 1.0f;
 			Transform = new TransformComponent();
 			Transform.WorldPosition = worldPosition;
 
+			Shape = shape;
+			Width = sizes.X;
+			Height = sizes.Y;
+			Lenght = sizes.Z;
+
 			randomGenerator = new Random();
+
+			ParticleShader.Use();
+			colorUniformLocation = ParticleShader.GetUniformLocation("uParticleColor");
+			if (colorUniformLocation != -1)
+			{
+				ParticleShader.SetColorUniform(colorUniformLocation, new Vector4(1, 0, 0, 1));
+			}
+			else
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "Invalid uniform location");
+			}
 		}
 
 		public void update()
 		{
 			double dt = 1.0 / DemoSettings.GetDefaults().UpdatesPerSecond;
 			emitCounter += dt;
-			lifeCounter += dt;
 
 			float emitTarget = (1.0f / EmitRate);
 
@@ -79,19 +120,19 @@ namespace OpenTkConsole
 					ActiveParticles += 1;
 					if (Matrices.Count < ActiveParticles)
 					{
-						Matrix4 newMatrix = new Matrix4();
-						newMatrix = Matrix4.CreateTranslation(Transform.WorldPosition);
-						Matrices.Add(newMatrix);
-
-						Particle p = new Particle();
-						p.matrixIndex = Matrices.Count - 1;
-						float rx = (float)(EmitDirection.X + (1.0 - 2.0 * randomGenerator.NextDouble()));
-						float rz = (float)(EmitDirection.Z + (1.0 - 2.0 * randomGenerator.NextDouble()));
-						p.direction = new Vector3(rx, EmitDirection.Y, rz);
-						p.direction.Normalize();
-						p.timeLeft = LifeTime;
-						p.isActive = true;
-						Particles.Add(p);
+						Emit();
+					}
+				}
+				else
+				{
+					// find first inactive
+					for (int i = 0; i < Particles.Count; i++)
+					{
+						if (!Particles[i].isActive)
+						{
+							Restart(Particles[i]);
+							break;
+						}
 					}
 				}
 
@@ -111,6 +152,62 @@ namespace OpenTkConsole
 				else
 				{
 					p.isActive = false;
+				}
+			}
+		}
+
+		public void Emit()
+		{
+			Particle p = new Particle();
+			Matrices.Add(Matrix4.CreateTranslation(Transform.WorldPosition));
+			p.matrixIndex = Matrices.Count - 1;
+			Restart(p);
+			Particles.Add(p);
+		}
+
+		public void Restart(Particle p)
+		{
+			Vector3 pos = Transform.WorldPosition;
+			if (Shape == EmitterShape.Rectangle)
+			{
+				pos.X += GetRandomFromRange(Width);
+				pos.Y += GetRandomFromRange(Height);
+				pos.Z += GetRandomFromRange(Lenght);
+			}
+			Matrices[p.matrixIndex] = Matrix4.CreateTranslation(pos);
+
+			float rx = EmitDirection.X + GetRandomFromRange(1.0f);
+			float rz = EmitDirection.Z + GetRandomFromRange(1.0f);
+			p.direction = new Vector3(rx, EmitDirection.Y, rz);
+			p.direction.Normalize();
+			p.timeLeft = LifeTime;
+			p.isActive = true;
+		}
+
+		public float GetRandomFromRange(float Max)
+		{
+			return Max - (float)randomGenerator.NextDouble() * 2.0f * Max;
+		}
+
+		
+
+		public void Draw(CameraComponent camera)
+		{
+			// Draw particles, but how?
+
+			ParticleShader.Use();
+			camera.setMatrices(ParticleShader);
+			List<Matrix4> mat = Matrices;
+			DrawableMesh part = ParticleMesh;
+			
+			for (int p = 0; p < Particles.Count; p++)
+			{
+				ParticleEmitter.Particle par = Particles[p];
+				if (par.isActive)
+				{
+					part.Transform.WorldPosition = mat[par.matrixIndex].ExtractTranslation();
+					part.Transform.SetRotationMatrix(camera.GetRotationMatrix());
+					part.draw();
 				}
 			}
 		}

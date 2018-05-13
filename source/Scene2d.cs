@@ -23,6 +23,8 @@ namespace OpenTkConsole
 			camera = new CameraComponent();
 		}
 
+		public void setCameraFrames(List<PosAndDir> frames) { }
+
 		public void loadScene(AssetManager assetManager)
 		{
 			// Load program from single file...

@@ -67,6 +67,9 @@ namespace OpenTkConsole
 			bool vsFound = false;
 			bool fsFound = false;
 
+			bool framesFound = true;
+			List<PosAndDir> cameraFrames = new List<PosAndDir>();
+
 			string vsName = null;
 			string fsName = null;
 
@@ -125,6 +128,25 @@ namespace OpenTkConsole
 					fsName = tokens[1];
 				}
 
+				if (line.Contains("frames"))
+				{
+					// Start reading camera frames
+					framesFound = true;
+				}
+
+				if (line.StartsWith("f "))
+				{
+					// f 1,1,1 1,1,1
+					string[] tokens = line.Split(space);
+					if (tokens.Length == 3)
+					{
+						PosAndDir p = new PosAndDir();
+						p.position = OBJFileReader.readVector3(tokens[1]);
+						p.direction = OBJFileReader.readVector3(tokens[2]);
+						cameraFrames.Add(p);
+					}
+				}
+
 
 				if (nameFound && positionFound && scaleFound)
 				{
@@ -160,6 +182,10 @@ namespace OpenTkConsole
 
 			} while (line != null);
 
+			if (framesFound)
+			{
+				scene.setCameraFrames(cameraFrames);
+			}
 
 			sourceFile.Close();
 

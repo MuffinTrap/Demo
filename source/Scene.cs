@@ -16,6 +16,7 @@ public interface IScene
 	void loadScene(AssetManager materialManager);
 	void drawScene(float cameraFrame);
 	void updateScene(KeyboardState keyState, MouseState mouseState);
+	void setCameraFrames(List<PosAndDir> frames);
 }
 
 class EmptyScene : IScene
@@ -25,6 +26,8 @@ class EmptyScene : IScene
 	public void drawScene(float cameraFrame) {}
 
 	public void updateScene(KeyboardState keyState, MouseState mouseState) {}
+
+	public void setCameraFrames(List<PosAndDir> frames) { }
 }
 
 class RotatingScene : IScene
@@ -34,6 +37,8 @@ class RotatingScene : IScene
 	DrawableMesh voxelMesh;
 	
 	CameraComponent camera;
+
+	public void setCameraFrames(List<PosAndDir> frames) { }
 
 	public RotatingScene()
 	{
