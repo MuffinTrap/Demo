@@ -218,5 +218,85 @@ namespace OpenTkConsole
 
 			return grid;
 		}
+
+		static public MeshData CreateTerrain(float width, float depth, float trianglesPerUnit)
+		{
+			MeshData terrain = new MeshData();
+			terrain.sourceFileName = "Terrain" + width + "x" + depth;
+			terrain.positions = new List<Vector3>();
+			terrain.texCoords = new List<Vector2>();
+			terrain.indices = new List<int>();
+
+			int quadsWidth = (int)Math.Floor(trianglesPerUnit * width);
+			int quadsDepth = (int)Math.Floor(trianglesPerUnit * depth);
+			int widthVertices = quadsWidth * 2;
+			int depthVertices = quadsDepth * 2;
+			float triangleSideWidth = width / (quadsWidth);
+			float triangleSideDepth = depth / (quadsDepth);
+			
+			/* Quad rows  -> width   V depth
+			 *		0  (1 4) 5
+			 *		2  (3 6) 7
+			 *      8  (9
+			 *      10 (11
+			 */
+
+			float widthStartPos = -(width / 2);
+			float depthStartPos = -(depth / 2);
+			int indice = 0;
+	
+			for (int qd = 0; qd < quadsDepth; qd++)
+			{
+				for (int qw = 0; qw < quadsWidth; qw++)
+				{
+					// 0
+					float xCoord = widthStartPos + qw * triangleSideWidth;
+					float zCoord = depthStartPos + qd * triangleSideDepth;
+
+					//Logger.LogInfo("Terrain piece (" + qw + "," + qd + " at: " + xCoord + ", " + zCoord + " Size: " + triangleSideWidth + ", " + triangleSideDepth);
+
+					terrain.positions.Add(new Vector3(xCoord
+											, 0.0f
+											, zCoord));
+					terrain.texCoords.Add(new Vector2(0.0f, 0.0f));
+
+					// 1
+					terrain.positions.Add(new Vector3(xCoord + triangleSideWidth
+										, 0.0f
+										, zCoord));
+					terrain.texCoords.Add(new Vector2(1.0f, 0.0f));
+
+					// 2
+					terrain.positions.Add(new Vector3(xCoord
+											, 0.0f
+											, zCoord + triangleSideDepth));
+					terrain.texCoords.Add(new Vector2(0.0f, 1.0f));
+
+					// 3
+					terrain.positions.Add(new Vector3(xCoord + triangleSideWidth
+										, 0.0f
+										, zCoord + triangleSideDepth));
+					terrain.texCoords.Add(new Vector2(1.0f, 1.0f));
+
+					terrain.indices.Add(indice);
+					terrain.indices.Add(indice + 1);
+					terrain.indices.Add(indice + 2);
+					terrain.indices.Add(indice + 3);
+					terrain.indices.Add(indice + 2);
+					terrain.indices.Add(indice + 1);
+					indice += 4;
+				}
+			}
+
+			terrain.hasPositionData = true;
+			terrain.hasIndexData = true;
+			terrain.hasTexCoordData = true;
+			terrain.VertexAmount = widthVertices * depthVertices;
+			terrain.drawType = MeshData.DataDrawType.Triangles;
+
+			terrain.GenerateBufferHandles();
+			Error.checkGLError("Terrain Mesh Data creation");
+			return terrain;
+		}
 	}
 }

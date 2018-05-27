@@ -270,7 +270,7 @@ namespace OpenTkConsole
 			}
 		}
 
-		public void Orbit(float speed, float distance, Vector3 targetPoint)
+		public void Orbit(float speed, float height, float distance, Vector3 targetPoint)
 		{
 			orbitAngle += speed;
 			const float fullCircle = (float)(Math.PI * 2.0f);
@@ -279,7 +279,7 @@ namespace OpenTkConsole
 				orbitAngle -= fullCircle;
 			}
 			Matrix4 rot = Matrix4.CreateRotationY(orbitAngle);
-			Position = targetPoint + Vector3.TransformVector(new Vector3(0, 0, distance), rot);
+			Position = targetPoint + Vector3.TransformVector(new Vector3(0, height, distance), rot);
 			SetTarget(targetPoint);
 		}
 	}

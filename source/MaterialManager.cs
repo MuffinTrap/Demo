@@ -37,6 +37,7 @@ namespace OpenTkConsole
 		{
 			materials = new List<Material>();
 			createMaterial("white", Color.White);
+			createMaterial("green", Color.ForestGreen);
 		}
 
 		public void printLoadedAssets()
@@ -217,7 +218,7 @@ namespace OpenTkConsole
 		
 		int createTexture(System.Drawing.Color textureColor)
 		{
-			int size = 32;
+			int size = 4;
 			Bitmap map = new Bitmap(size, size);
 				for (int x = 0; x < size; x++)
 				{

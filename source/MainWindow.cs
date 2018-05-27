@@ -94,10 +94,10 @@ namespace OpenTkConsole
 			try
 			{
 				//scenes.Add(new RotatingScene());
-				scenes.Add(new TestScene());
+				//scenes.Add(new TestScene());
 				//scenes.Add(new Scene2D());
 				//scenes.Add(assetManager.GetScene("tia.sce"));
-				//scenes.Add(new UnicornScene());
+				scenes.Add(new UnicornScene());
 
 				foreach (IScene s in scenes)
 				{
