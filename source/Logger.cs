@@ -97,6 +97,11 @@ namespace OpenTkConsole
 			timer = new Stopwatch();
 			timer.Start();
 		}
+
+		static public void ResetColors()
+		{
+			Console.ForegroundColor = ConsoleColor.White;
+		}
 	}
 
 

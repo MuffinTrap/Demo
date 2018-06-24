@@ -240,6 +240,15 @@ namespace OpenTkConsole
 		{
 			GL.Uniform4(uniformLocation, color);
 		}
+		public void SetVec3Uniform(int uniformLocation , Vector3 value)
+		{
+			GL.Uniform3(uniformLocation, value);
+
+		}
+		public void SetFloatUniform(int uniformLocation , float value)
+		{
+			GL.Uniform1(uniformLocation, value);
+		}
 
 		public int GetUniformLocation(string name)
 		{

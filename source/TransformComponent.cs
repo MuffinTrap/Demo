@@ -60,7 +60,7 @@ namespace OpenTkConsole
 		public void UpdateWorldMatrix()
 		{
 			Matrix4 T = Matrix4.CreateTranslation(WorldPosition);
-			Matrix4 R = rotationMatrix;
+			Matrix4 R = CreateRotationMatrixFromAxisAngle();
 			Matrix4 S = Matrix4.CreateScale(Scale);
 			worldMatrix.Matrix = S * R * T;
 		}

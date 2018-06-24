@@ -93,11 +93,12 @@ namespace OpenTkConsole
 			scenes = new List<IScene>();
 			try
 			{
+				scenes.Add(new LightScene());
 				//scenes.Add(new RotatingScene());
-				//scenes.Add(new TestScene());
+				scenes.Add(new TestScene());
 				//scenes.Add(new Scene2D());
 				//scenes.Add(assetManager.GetScene("tia.sce"));
-				scenes.Add(new UnicornScene());
+				//scenes.Add(new UnicornScene());
 
 				foreach (IScene s in scenes)
 				{
@@ -418,6 +419,7 @@ namespace OpenTkConsole
 			{
 				shutDownAudio();
 			}
+			Logger.ResetColors();
 			Exit();
 		}
     }

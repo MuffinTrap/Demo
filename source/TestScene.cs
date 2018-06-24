@@ -109,7 +109,7 @@ namespace OpenTkConsole
 				ct.draw();
 			}
 
-			emitter.Draw(camera);
+			//emitter.Draw(camera);
 			
 			
 				
@@ -126,7 +126,7 @@ namespace OpenTkConsole
 			{
 				ct.Transform.rotateAroundY(0.05f);
 			}
-			emitter.update();
+			//emitter.update();
 		}
 
 	}

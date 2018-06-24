@@ -124,10 +124,18 @@ namespace OpenTkConsole
 			return triMesh;
 		}
 
-		static public MeshData CreateQuadMesh()
+		static public MeshData CreateQuadMesh(bool createNormals, bool createTexCoords)
 		{
 			MeshData quadMesh = new MeshData();
 			quadMesh.sourceFileName = "quad";
+			if (createNormals)
+			{
+				quadMesh.sourceFileName += "_normals";
+			}
+			if (createTexCoords)
+			{
+				quadMesh.sourceFileName += "_texCoords";
+			}
 
 			List<Vector3> positions = new List<Vector3>();
 
@@ -137,11 +145,33 @@ namespace OpenTkConsole
 			positions.Add(new Vector3(1.0f, -1.0f, 0.0f));  // 3
 
 			quadMesh.positions = positions;
-
 			quadMesh.hasPositionData = true;
 
 			quadMesh.indices = new List<int> { 0, 1, 2, 2, 3, 0 };
 			quadMesh.hasIndexData = true;
+
+			if (createTexCoords)
+			{
+				List<Vector2> texCoords = new List<Vector2>();
+
+				texCoords.Add(new Vector2(0.0f, 0.0f));
+				texCoords.Add(new Vector2(0.0f, 1.0f));
+				texCoords.Add(new Vector2(1.0f, 1.0f));
+				texCoords.Add(new Vector2(1.0f, 0.0f));
+				quadMesh.texCoords = texCoords;
+				quadMesh.hasTexCoordData = true;
+			}
+
+			if (createNormals)
+			{
+				List<Vector3> normals = new List<Vector3>();
+				normals.Add(new Vector3(0.0f, 0.0f, 1.0f));
+				normals.Add(new Vector3(0.0f, 0.0f, 1.0f));
+				normals.Add(new Vector3(0.0f, 0.0f, 1.0f));
+				normals.Add(new Vector3(0.0f, 0.0f, 1.0f));
+				quadMesh.normals = normals;
+				quadMesh.hasNormalData = true;
+			}
 
 			quadMesh.VertexAmount = positions.Count;
 
@@ -153,44 +183,72 @@ namespace OpenTkConsole
 
 			return quadMesh;
 		}
-
-		static public MeshData CreateTexturedQuadMesh()
+		static public MeshData CreatePyramidMesh(float baseWidth, float height, bool createNormals, bool createTexCoords)
 		{
-			MeshData quadMesh = new MeshData();
-			quadMesh.sourceFileName = "quad";
+			MeshData pyraMesh = new MeshData();
+			pyraMesh.sourceFileName = "pyramid";
+			if (createNormals)
+			{
+				pyraMesh.sourceFileName += "_normals";
+			}
+			if (createTexCoords)
+			{
+				pyraMesh.sourceFileName += "_texCoords";
+			}
 
 			List<Vector3> positions = new List<Vector3>();
 
-			positions.Add(new Vector3(-1.0f, -1.0f, 0.0f));	// 0
-			positions.Add(new Vector3(-1.0f,  1.0f, 0.0f));	// 1
-			positions.Add(new Vector3( 1.0f,  1.0f, 0.0f));	// 2
-			positions.Add(new Vector3( 1.0f, -1.0f, 0.0f));	// 3
+			// Base
+			float hw = baseWidth / 2.0f;
+			positions.Add(new Vector3(hw, 0.0f, -hw));	// 0
+			positions.Add(new Vector3(hw,  0.0f, hw));	// 1
+			positions.Add(new Vector3(-hw,  0.0f, -hw));	// 2
+			positions.Add(new Vector3(-hw, 0.0f, hw));	// 3
+			positions.Add(new Vector3(0.0f, height, 0.0f)); // 4 peak
 
-			List<Vector2> texCoords = new List<Vector2>();
+			pyraMesh.positions = positions;
+			pyraMesh.VertexAmount = positions.Count;
+			pyraMesh.hasPositionData = true;
 
-			texCoords.Add(new Vector2(0.0f, 0.0f));
-			texCoords.Add(new Vector2(0.0f, 1.0f));
-			texCoords.Add(new Vector2(1.0f, 1.0f));
-			texCoords.Add(new Vector2(1.0f, 0.0f));
+			pyraMesh.indices = new List<int> { 
+			0, 1, 2		// base 
+			, 2, 1, 3	// base 
+			, 0, 1, 4
+			, 1, 3, 4
+			, 2, 3, 4
+			, 2, 0, 4 };
 
-			quadMesh.positions = positions;
-			quadMesh.texCoords = texCoords;
+			pyraMesh.hasIndexData = true;
 
-			quadMesh.hasPositionData = true;
-			quadMesh.hasTexCoordData = true;
+			if (createTexCoords)
+			{
+				List<Vector2> texCoords = new List<Vector2>();
+				texCoords.Add(new Vector2(0.0f, 0.0f));
+				texCoords.Add(new Vector2(0.0f, 1.0f));
+				texCoords.Add(new Vector2(1.0f, 0.0f));
+				texCoords.Add(new Vector2(1.0f, 1.0f));
+				texCoords.Add(new Vector2(0.5f, 1.0f));
+				pyraMesh.texCoords = texCoords;
+				pyraMesh.hasTexCoordData = true;
+			}
 
-			quadMesh.indices = new List<int> { 0, 1, 2, 2, 3, 0};
-			quadMesh.hasIndexData = true;
+			if (false && createNormals)
+			{
+				List<Vector3> normals = new List<Vector3>();
+				// no idea?? 
+				normals.Add(new Vector3());
+				normals.Add(new Vector3());
+				normals.Add(new Vector3());
+				pyraMesh.hasNormalData = false;
+			}
 
-			quadMesh.VertexAmount = positions.Count;
+			pyraMesh.drawType = MeshData.DataDrawType.Triangles;
 
-			quadMesh.drawType = MeshData.DataDrawType.Triangles;
-
-			quadMesh.GenerateBufferHandles();
+			pyraMesh.GenerateBufferHandles();
 
 			Error.checkGLError("Quad Mesh Data creation");
 
-			return quadMesh;
+			return pyraMesh;
 		}
 
 		static public MeshData CreateXZGrid(float width, float depth, float linesPerWidth, float linesPerDepth)

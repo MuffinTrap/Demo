@@ -36,7 +36,6 @@ void main()
 	vec4 lightDir = normalize(vec4(0.0f, -1.0f, 0.0f, 0.0f));
 	vec4 transLight = viewMatrix * lightDir;
 	
-	
 	fTexCoord = vTexCoord;
 	fLightColor = directLight(transNormal, lightDir);
 }

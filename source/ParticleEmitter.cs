@@ -72,7 +72,7 @@ namespace OpenTkConsole
 
 			
 
-			ParticleMesh = ass.GetMesh("particle", MeshDataGenerator.CreateQuadMesh(), null, ParticleShader
+			ParticleMesh = ass.GetMesh("particle", MeshDataGenerator.CreateQuadMesh(false, false), null, ParticleShader
 			, new Vector3(0, 0, 0), 0.1f);
 
 			Matrices = new List<Matrix4>(particleAmount);

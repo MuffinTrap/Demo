@@ -1,14 +1,16 @@
 @echo off
 cls
 rem Builds demoparty. Call in the same directory as the source and build folders
-
+setlocal
 SET netDir=%1
 set opentkpath=%2
 
 PATH=%netDir%;%PATH%
 
-
-set "files=Program.cs MainWindow.cs Track.cs Device.cs Scene.cs Shader.cs Mesh.cs Matrix.cs"
+setlocal ENABLEDELAYEDEXPANSION
+for /f %%f in ('dir /b source') do (
+	set "files=!files! %%f"
+	)
 pushd source
 call csc.exe %files% -lib:%opentkpath% -r:OpenTK.dll,System.Drawing.dll -out:..\build\demotest.exe
 popd
