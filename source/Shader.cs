@@ -59,72 +59,10 @@ namespace OpenTkConsole
 		private readonly int handle;
 
 		public List<ShaderAttribute> attributes;
-		public List<ShaderAttribute> uniforms;
+		public List<ShaderUniform> uniforms;
 		
 		static public int defaultPositionLocation = 0;
 		
-		private ShaderAttribute typeToAttributes(ActiveUniformType type)
-		{
-			int bt = MeshData.BytesPerFloat;
-			ShaderAttribute result;
-
-			switch(type)
-			{
-				case ActiveUniformType.Float:
-					result = new ShaderAttribute("Float", 0, bt, 1);
-					break;
-				case ActiveUniformType.FloatVec2:
-					result = new ShaderAttribute("FloatVec2", 0, bt * 2, 2);
-					break;
-				case ActiveUniformType.FloatVec3:
-					result = new ShaderAttribute("FloatVec3", 0, bt * 3, 3);
-					break;
-				case ActiveUniformType.FloatVec4:
-					result = new ShaderAttribute("FloatVec4", 0, bt * 4, 4);
-					break;
-				case ActiveUniformType.FloatMat4:
-					result = new ShaderAttribute("FloatMat4", 0, bt * 16, 16);
-					break;
-
-				default:
-					result = new ShaderAttribute("Default", 0, 0, 0);
-					break;
-			}
-
-			return result;
-		}
-
-		private ShaderAttribute typeToAttributes(ActiveAttribType type)
-		{
-			int bt = MeshData.BytesPerFloat;
-			ShaderAttribute result;
-
-			switch (type)
-			{
-				case ActiveAttribType.Float:
-					result = new ShaderAttribute("Float", 0, bt, 1);
-					break;
-				case ActiveAttribType.FloatVec2:
-					result = new ShaderAttribute("FloatVec2", 0, bt * 2, 2);
-					break;
-				case ActiveAttribType.FloatVec3:
-					result = new ShaderAttribute("FloatVec3", 0, bt * 3, 3);
-					break;
-				case ActiveAttribType.FloatVec4:
-					result = new ShaderAttribute("FloatVec4", 0, bt * 4, 4);
-					break;
-				case ActiveAttribType.FloatMat4:
-					result = new ShaderAttribute("FloatMat4", 0, bt * 16, 16);
-					break;
-
-				default:
-					result = new ShaderAttribute("Default", 0, 0, 0);
-					break;
-			}
-
-			return result;
-		}
-
 		public ShaderProgram(params Shader[] shaders)
 		{
 			this.handle = GL.CreateProgram();
@@ -144,14 +82,15 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Limited, "Shader link failed: " + GL.GetProgramInfoLog(handle));
             }
 
+
+			// Load Uniforms
+			///////////////////////////////////
 			int uniformAmount = -1;
             GL.GetProgram(handle, GetProgramParameterName.ActiveUniforms, out uniformAmount);
-			
 			Error.checkGLError("Shader()");
-
-            Logger.LogInfo("Program linked. Uniform amount " + uniformAmount);
-
-			uniforms = new List<ShaderAttribute>(uniformAmount);
+			ShaderUniformManager uniManager = ShaderUniformManager.GetSingleton();
+            Logger.LogInfo("Program linked.\n\tUniform amount " + uniformAmount);
+			uniforms = new List<ShaderUniform>(uniformAmount);
 
 			int maxShaderNameSize = 100;
             StringBuilder shaderName = new StringBuilder(maxShaderNameSize);
@@ -163,10 +102,14 @@ namespace OpenTkConsole
                 GL.GetActiveUniform(this.handle, i, maxShaderNameSize, out writtenLength, out uniformSize, out type, shaderName);
 
 				string uniformName = shaderName.ToString();
-				ShaderAttribute info = typeToAttributes(type);
-				Logger.LogInfo("Uniform: " + i + " name :" + uniformName + " Size: " + info.sizeElements + " Type: " + info.name);
+				ShaderSizeInfo info = uniManager.GetTypeSizeInfo(type);
+				Logger.LogInfo("\tUniform: " + i + " name :" + uniformName + " Size: " + info.sizeElements + " Type: " + uniManager.GetDataTypeString(uniManager.UniformTypeToDataType(type)));
 
-				uniforms.Add(new ShaderAttribute(shaderName.ToString(), GetUniformLocation(handle, uniformName), info.sizeBytes, info.sizeElements));
+				ShaderUniform uniform = uniManager.CreateShaderUniform(uniformName, type, GetUniformLocation(this.handle, uniformName));
+				if (uniform.IsValid())
+				{
+					uniforms.Add(uniform);
+				}
 			}
 
 			int attributeAmount = -1;
@@ -174,7 +117,7 @@ namespace OpenTkConsole
 			ActiveAttribType attribType;
 			int attrSize = -1;
 
-			Logger.LogInfo("Attribute amount " + attributeAmount);
+			Logger.LogInfo("\tAttribute amount " + attributeAmount);
 
 			attributes = new List<ShaderAttribute>(attributeAmount);
 
@@ -184,10 +127,14 @@ namespace OpenTkConsole
 
 				string attribName = shaderName.ToString();
 				int location = GetAttributeLocation(handle, attribName);
-				ShaderAttribute info = typeToAttributes(attribType);
-				Logger.LogInfo("Attribute " + i + ": Name :" + attribName + " Size: " + info.sizeElements + " Location: " + location + " Type: " + info.name);
+				ShaderSizeInfo info = uniManager.GetTypeSizeInfo(attribType);
+				Logger.LogInfo("\tAttribute " + i + ": Name :" + attribName + " Size: " + info.sizeElements + " Location: " + location + " Type: " + uniManager.GetDataTypeString(uniManager.AttribTypeToDataType(attribType)));
 
-				attributes.Add(new ShaderAttribute(attribName, location, info.sizeBytes, info.sizeElements));
+				ShaderAttribute attribute = uniManager.CreateShaderAttribute(attribName, attribType, GetAttributeLocation(this.handle, attribName));
+				if (attribute.IsValid())
+				{
+					attributes.Add(attribute);
+				}	
 			}
 			
             foreach (var shader in shaders)
@@ -195,6 +142,7 @@ namespace OpenTkConsole
 				GL.DeleteShader(shader.Handle);
 			}
 		}
+
 		
 		public void Use()
 		{
@@ -230,12 +178,6 @@ namespace OpenTkConsole
 			return location;
 		}
 
-		public void setSamplerUniform(string samplerName, int location)
-		{
-			int uniformLocation = GetUniformLocation(samplerName);
-			GL.Uniform1(uniformLocation, location);
-		}
-
 		public void SetColorUniform(int uniformLocation , Vector4 color)
 		{
 			GL.Uniform4(uniformLocation, color);
@@ -249,30 +191,41 @@ namespace OpenTkConsole
 		{
 			GL.Uniform1(uniformLocation, value);
 		}
-
-		public int GetUniformLocation(string name)
+		public void SetIntUniform(int uniformLocation , int value)
 		{
-			foreach(ShaderAttribute a in uniforms)
+			GL.Uniform1(uniformLocation, value);
+		}
+
+		public void SetSamplerUniform(int uniformLocation, int textureUnit)
+		{
+			GL.Uniform1(uniformLocation, textureUnit);
+		}
+
+		public int GetUniformLocation(ShaderUniformName name)
+		{
+			foreach(ShaderUniform a in uniforms)
 			{
 				if (a.name == name)
 				{
-					return a.index;
+					return a.location;
 				}
 			}
-			Logger.LogError(Logger.ErrorState.Limited, "Uniform " + name + " not found");
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			Logger.LogError(Logger.ErrorState.Limited, "Uniform " + uniMan.GetUniformName(name) + " location not found");
 			return -1;
 		}
 
-		public int GetAttributeLocation(string name)
+		public int GetAttributeLocation(ShaderAttributeName name)
 		{
 			foreach (ShaderAttribute a in attributes)
 			{
 				if (a.name == name)
 				{
-					return a.index;
+					return a.location;
 				}
 			}
-			Logger.LogError(Logger.ErrorState.Limited, "Attribute " + name + " not found");
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			Logger.LogError(Logger.ErrorState.Limited, "Attribute " + uniMan.GetAttributeName(name) + " location not found");
 			return -1;
 		}
 	}

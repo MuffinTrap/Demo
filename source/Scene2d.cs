@@ -31,8 +31,6 @@ namespace OpenTkConsole
 			shaderProgram = assetManager.GetShaderProgram("texturequad");
 
 			shaderProgram.Use();
-			
-			shaderProgram.setSamplerUniform("inputTexture", 0);
 
 			quadMesh = assetManager.GetMesh("Konata"
 			, MeshDataGenerator.CreateQuadMesh(false, true)

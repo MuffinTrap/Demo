@@ -11,7 +11,7 @@ using OpenTK.Graphics.OpenGL;
 
 namespace OpenTkConsole
 {
-	public class DrawableMesh
+	public class DrawableMesh : IShaderDataOwner
 	{
 		public string Name { get; set; }
 
@@ -36,21 +36,40 @@ namespace OpenTkConsole
 			Error.checkGLError("Mesh constructor of " + name);
 		}
 
+		public void ActivateForDrawing()
+		{
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			uniMan.RegisterDataOwner(this, ShaderUniformName.WorldMatrix);
+			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseTexture);
+		}
+
+		public void SetUniform(ShaderProgram program, int location, ShaderUniformName name)
+		{
+			switch (name)
+			{
+				case ShaderUniformName.WorldMatrix:
+					if (Transform != null)
+					{
+						Transform.UpdateWorldMatrix();
+						Transform.worldMatrix.SetToShader(program, location);
+					}
+					break;
+				case ShaderUniformName.DiffuseTexture:
+					if (BoundMaterial != null)
+					{
+						GL.ActiveTexture(TextureUnit.Texture0);
+						GL.BindTexture(TextureTarget.Texture2D, BoundMaterial.textureGLIndex);
+						program.SetSamplerUniform(location, 0);
+					}
+					break;
+				default:
+					break;
+			}
+		}
+
 
 		public void draw()
 		{
-			if (Transform != null)
-			{
-				Transform.UpdateWorldMatrix();
-				Transform.worldMatrix.Set(ShaderProgram);
-			}
-
-			if (BoundMaterial != null)
-			{
-				GL.ActiveTexture(TextureUnit.Texture0);
-				GL.BindTexture(TextureTarget.Texture2D, BoundMaterial.textureGLIndex);
-			}
-
 			GL.BindVertexArray(Data.VAOHandle);
 
 			PrimitiveType beginType = PrimitiveType.Triangles;

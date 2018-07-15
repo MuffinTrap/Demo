@@ -9,7 +9,7 @@ namespace OpenTkConsole
 
 	public class Matrix4Uniform
 	{
-		private readonly string name;
+		private readonly ShaderUniformName name;
 		private Matrix4 matrix;
 		
 		public Matrix4 Matrix 
@@ -18,21 +18,16 @@ namespace OpenTkConsole
 		}
 			
 		
-		public Matrix4Uniform(string name)
+		public Matrix4Uniform(ShaderUniformName nameParam)
 		{
-			this.name = name;
+			name = nameParam;
 			matrix = Matrix4.Identity;
 		}
-		
-		public void Set(ShaderProgram program)
-		{
-			int i = program.GetUniformLocation(this.name);
-			 
-			Error.checkGLError("Matrix.GetUniformLocation of " + name);
-			 
-			GL.UniformMatrix4(i, false, ref this.matrix);
 
-			Error.checkGLError("Matrix.SetValue");
-        }
+		public void SetToShader(ShaderProgram program, int location)
+		{
+			program.SetMatrix4Uniform(location, ref matrix);
+		}
+		
 	}
 }

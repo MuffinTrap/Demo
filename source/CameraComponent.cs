@@ -17,7 +17,7 @@ namespace OpenTkConsole
 		}
 	}
 
-	public class CameraComponent
+	public class CameraComponent : IShaderDataOwner
 	{
 		// Camera
 		public Vector3 Position {
@@ -59,12 +59,10 @@ namespace OpenTkConsole
 			Direction = CalculateEulerDirection(pitch, yaw);
 			Up = new Vector3(0.0f, 1.0f, 0.0f);
 
-
-
 			speed = 0.05f;
 
-			viewMatrix = new Matrix4Uniform(ShaderAttribute.getUniformName(ShaderUniformName.ViewMatrix));
-			projectionMatrix = new Matrix4Uniform(ShaderAttribute.getUniformName(ShaderUniformName.ProjectionMatrix));
+			viewMatrix = new Matrix4Uniform(ShaderUniformName.ViewMatrix);
+			projectionMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
 
 			projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
 
@@ -78,11 +76,28 @@ namespace OpenTkConsole
 			Direction = Vector3.Normalize(Position - targetPosition);
 		}
 
-		public void setMatrices(ShaderProgram program)
+		public void ActivateForDrawing()
 		{
-			viewMatrix.Matrix = GetViewMatrix();
-			viewMatrix.Set(program);
-			projectionMatrix.Set(program);
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			uniMan.RegisterDataOwner(this, ShaderUniformName.ViewMatrix);
+			uniMan.RegisterDataOwner(this, ShaderUniformName.ProjectionMatrix);
+		}
+
+		public void SetUniform(ShaderProgram program, int location, ShaderUniformName name)
+		{
+			switch(name)
+			{
+				case ShaderUniformName.ViewMatrix:
+					viewMatrix.Matrix = GetViewMatrix();
+					viewMatrix.SetToShader(program, location);
+					break;
+				case ShaderUniformName.ProjectionMatrix:
+					projectionMatrix.SetToShader(program, location);
+					break;
+				default:
+					Logger.LogWarning("This Shader data owner does not have data for uniform: " + ShaderUniformManager.GetSingleton().GetUniformName(name));
+					break;
+			}
 		}
 
 		public Matrix4 GetViewMatrix()
