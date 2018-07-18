@@ -22,9 +22,9 @@ namespace OpenTkConsole
 
 		int viewPositionLocation;
 
-		public LightScene()
+		public LightScene(CameraComponent mainCamera)
 		{
-			camera = new CameraComponent();
+			camera = mainCamera;
 		}
 
 		public void setCameraFrames(List<PosAndDir> frames) { }
@@ -59,6 +59,9 @@ namespace OpenTkConsole
 			int specularPower = 4;
 
 			shaderProgram.Use();
+
+			// How to send light information to shader
+			/*
 			shaderProgram.SetColorUniform(shaderProgram.GetUniformLocation("lightColor"), lightColor);
 			shaderProgram.SetColorUniform(shaderProgram.GetUniformLocation("objectColor"), objectColor);
 			shaderProgram.SetFloatUniform(shaderProgram.GetUniformLocation("ambientStrength"), ambientStrength);
@@ -66,6 +69,7 @@ namespace OpenTkConsole
 			shaderProgram.SetFloatUniform(shaderProgram.GetUniformLocation("specularStrength"), specularStrength);
 			shaderProgram.SetIntUniform(shaderProgram.GetUniformLocation("specularPower"), specularPower);
 			shaderProgram.SetVec3Uniform(shaderProgram.GetUniformLocation("lightPosition"), lightPosition);
+			*/
 			//viewPositionLocation = shaderProgram.GetUniformLocation("viewPosition");
 			lampObjectShader.Use();
 			lampObjectShader.SetColorUniform(lampObjectShader.GetUniformLocation("lampColor"), lightColor);
@@ -73,7 +77,7 @@ namespace OpenTkConsole
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
 
-			camera.Register();
+			camera.ActivateForDrawing();
 			Error.checkGLError("LightScene.loadScene");
 		}
 
@@ -81,12 +85,12 @@ namespace OpenTkConsole
 		public void drawScene(float cameraFrame) 
 		{
 			ShaderUniformManager uniformManager = ShaderUniformManager.GetSingleton();
-			quadMesh.Register();
 			uniformManager.ActivateShader(shaderProgram);
+			quadMesh.ActivateForDrawing();
 			//shaderProgram.SetVec3Uniform(viewPositionLocation, camera.Position);
 			quadMesh.draw();
 
-			lampMesh.Register();
+			lampMesh.ActivateForDrawing();
 			uniformManager.ActivateShader(lampObjectShader);
 			lampMesh.draw();
 

@@ -130,7 +130,7 @@ namespace OpenTkConsole
 				ShaderSizeInfo info = uniManager.GetTypeSizeInfo(attribType);
 				Logger.LogInfo("\tAttribute " + i + ": Name :" + attribName + " Size: " + info.sizeElements + " Location: " + location + " Type: " + uniManager.GetDataTypeString(uniManager.AttribTypeToDataType(attribType)));
 
-				ShaderAttribute attribute = uniManager.CreateShaderAttribute(attribName, attribType, GetAttributeLocation(this.handle, attribName));
+				ShaderAttribute attribute = uniManager.CreateShaderAttribute(attribName, attribType, GetAttributeLocation(this.handle, attribName), info.sizeElements);
 				if (attribute.IsValid())
 				{
 					attributes.Add(attribute);
@@ -194,6 +194,11 @@ namespace OpenTkConsole
 		public void SetIntUniform(int uniformLocation , int value)
 		{
 			GL.Uniform1(uniformLocation, value);
+		}
+
+		public void SetMatrix4Uniform(int uniformLocation, ref Matrix4 value)
+		{
+			GL.UniformMatrix4(uniformLocation, false, ref value);
 		}
 
 		public void SetSamplerUniform(int uniformLocation, int textureUnit)

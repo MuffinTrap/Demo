@@ -2,15 +2,12 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
 
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 
-using OpenTK.Audio.OpenAL;
 
 using RocketNet;
 
@@ -42,6 +39,10 @@ namespace OpenTkConsole
 		
 		List<IScene> scenes;
         Stopwatch timer;
+
+		// Audio
+		IAudioSystem audioSystem;
+		Audio testSong;
 
         public MainWindow()
             : base(800, 460, 
@@ -90,15 +91,15 @@ namespace OpenTkConsole
 
 			// Materials and scenes
 			// Pass syncer to scenes.
+
+			CameraComponent mainCamera = new CameraComponent();
 			scenes = new List<IScene>();
 			try
 			{
-				scenes.Add(new LightScene());
-				//scenes.Add(new RotatingScene());
+				scenes.Add(new LightScene(mainCamera)); // This scene handles the camera update
 				scenes.Add(new TestScene());
-				//scenes.Add(new Scene2D());
+				scenes.Add(new Scene2D());  // This is the gui scene
 				//scenes.Add(assetManager.GetScene("tia.sce"));
-				//scenes.Add(new UnicornScene());
 
 				foreach (IScene s in scenes)
 				{
@@ -114,9 +115,9 @@ namespace OpenTkConsole
 			
 
 			// Audio
-
 			if (DemoSettings.GetDefaults().AudioEnabled)
 			{
+				audioSystem = new OpenALAudio();
 				initAudio();
 			}
 			
@@ -320,96 +321,21 @@ namespace OpenTkConsole
 
 		void initAudio()
 		{
-			IntPtr nullDevice = System.IntPtr.Zero;
-			IList<string> allDevices = Alc.GetString(nullDevice, AlcGetStringList.DeviceSpecifier);
-			foreach(string s in allDevices)
+			string audioFileName = "../data/music/bosca.wav";
+			if (audioSystem.Initialize())
 			{
-				Logger.LogInfo("OpenAL device " + s);
+				testSong = audioSystem.LoadAudioFile(audioFileName);
 			}
+		}
 
-			// Open preferred device
-			ContextHandle alContext;
-			IntPtr ALDevicePtr = Alc.OpenDevice(null);
-			if (ALDevicePtr != null)
-			{
-				int[] deviceAttributes = null;
-				alContext = Alc.CreateContext(ALDevicePtr, deviceAttributes);
-				Alc.MakeContextCurrent(alContext);
-			}
-			else
-			{
-				Logger.LogError(Logger.ErrorState.Critical, "Could not get AL device");
-				return;
-			}
-
-			string alRenderer = AL.Get(ALGetString.Renderer);
-			string alVendor = AL.Get(ALGetString.Vendor);
-			string alVersion = AL.Get(ALGetString.Version);
-
-			Logger.LogInfo(string.Format("OpenAL Renderer {0}  Vendor {1}  Version {2}", alRenderer, alVendor, alVersion));
-
-
-			Error.checkALError("initAudio");
-			int alBuffer = AL.GenBuffer();
-			Error.checkALError("initAudio genBuffer");
-
-			
-			int frequenzy = 44100;
-
-			// Buffer data
-			bool dataisVorbis = false;
-
-			string vorbisEXTName = "AL_EXT_vorbis";
-			if (AL.IsExtensionPresent(vorbisEXTName) && dataisVorbis)
-			{
-				Logger.LogInfo("AL can use vorbis");
-				IntPtr vorbisBuffer = System.IntPtr.Zero;
-				int vorbisSize = 0;
-				AL.BufferData(alBuffer, ALFormat.VorbisExt, vorbisBuffer, vorbisSize, frequenzy);
-			}
-			else
-			{
-				// Load wav
-				
-				FileStream audioFile = File.Open("../data/music/bosca.wav", FileMode.Open, FileAccess.Read);
-				long wavSize = audioFile.Length;
-				byte[] audioContents = new byte[wavSize];
-
-				audioFile.Read(audioContents, 0, (int)wavSize);
-				IntPtr wavBuffer = Marshal.AllocHGlobal(audioContents.Length);
-				Marshal.Copy(audioContents, 0, wavBuffer, audioContents.Length);
-
-				AL.BufferData(alBuffer, ALFormat.Stereo16, wavBuffer, (int)wavSize, frequenzy);
-				Marshal.FreeHGlobal(wavBuffer);
-				audioFile.Close();
-			}
-
-			Error.checkALError("initAudio bufferAudio");
-
-			int alSource = AL.GenSource();
-			Error.checkALError("initAudio genSource");
-
-			// Attach buffer to source.
-			AL.Source(alSource, ALSourcei.Buffer, alBuffer);
-
-			// Set listener and source to same place
-			Vector3 listenerPos = new Vector3(0, 0, 0);
-			Vector3 sourcePos = new Vector3(0, 0, 0);
-			AL.Listener(ALListener3f.Position, ref listenerPos);
-			AL.Source(alSource, ALSource3f.Position, ref sourcePos);
-
-			// Play buffer
-			AL.SourcePlay(alSource);
+		void startAudio()
+		{
+			audioSystem.PlayAudioFile(testSong);
 		}
 
 		void shutDownAudio()
 		{
-			ContextHandle alContext = Alc.GetCurrentContext();
-			IntPtr alDevice = Alc.GetContextsDevice(alContext);
-			ContextHandle emptyContext = ContextHandle.Zero;
-			Alc.MakeContextCurrent(emptyContext);
-			Alc.DestroyContext(alContext);
-			Alc.CloseDevice(alDevice);
+			audioSystem.Shutdown();
 		}
 
 		void cleanupAndExit()

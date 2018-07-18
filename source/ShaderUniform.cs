@@ -20,12 +20,14 @@ namespace OpenTkConsole
 			name = nameParam;
 			dataType = dataTypeParam;
 			location = -1;
+			elementSize = -1;
 		}
-		public ShaderAttribute(ShaderAttributeName nameParam, ShaderDataType dataTypeParam, int locationParam)
+		public ShaderAttribute(ShaderAttributeName nameParam, ShaderDataType dataTypeParam, int locationParam, int elementSizeParam)
 		{
 			name = nameParam;
 			dataType = dataTypeParam;
 			location = locationParam;
+			elementSize = elementSizeParam;
 		}
 
 		public bool IsValid()
@@ -35,7 +37,7 @@ namespace OpenTkConsole
 		public ShaderAttributeName name;
 		public ShaderDataType dataType;
 		public int location;
-
+		public int elementSize;
 	}
 
 	public struct ShaderUniform

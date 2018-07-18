@@ -43,8 +43,6 @@ namespace OpenTkConsole
 
 			MainShader.Use();
 
-			MainShader.setSamplerUniform("inputTexture", 0);
-
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
 
@@ -54,12 +52,13 @@ namespace OpenTkConsole
 		public void drawScene(float cameraFrame)
 		{
 			camera.setFrame(cameraFrame, cameraFrames);
-			MainShader.Use();
-			camera.setMatrices(MainShader);
+			camera.ActivateForDrawing();
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			uniMan.ActivateShader(MainShader);
 			
-
 			foreach(DrawableMesh m in allModels)
 			{
+				m.ActivateForDrawing();
 				m.draw();
 			}
 

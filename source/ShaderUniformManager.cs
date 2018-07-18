@@ -94,6 +94,21 @@ namespace OpenTkConsole
 			return singleton;
 		}
 
+		public void SetData(ShaderProgram shader, ShaderUniformName dataName)
+		{
+			foreach (ShaderUniform uni in shader.uniforms)
+			{
+				if (uni.name == dataName)
+				{
+					IShaderDataOwner owner;
+					if (uniformDataOwners.TryGetValue(uni.name, out owner))
+					{ 
+						owner.SetUniform(shader, uni.location, uni.name);
+					}
+				}
+			}
+		}
+
 		public void ActivateShader(ShaderProgram shader)
 		{
 			shader.Use();
@@ -137,13 +152,13 @@ namespace OpenTkConsole
 			return returnValue;
 		}
 
-		public ShaderAttribute CreateShaderAttribute(string nameString, ActiveAttribType type, int location)
+		public ShaderAttribute CreateShaderAttribute(string nameString, ActiveAttribType type, int location, int sizeElements)
 		{
 			ShaderAttribute returnValue;
 			if (supportedAttributes.ContainsKey(nameString))
 			{
 				ShaderAttribute supported = supportedAttributes[nameString];
-				returnValue = new ShaderAttribute(supported.name, supported.dataType, location);
+				returnValue = new ShaderAttribute(supported.name, supported.dataType, location, sizeElements);
 			}
 			else
 			{

@@ -41,6 +41,9 @@ namespace OpenTkConsole
 			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
 			uniMan.RegisterDataOwner(this, ShaderUniformName.WorldMatrix);
 			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseTexture);
+
+			uniMan.SetData(ShaderProgram, ShaderUniformName.WorldMatrix);
+			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseTexture);
 		}
 
 		public void SetUniform(ShaderProgram program, int location, ShaderUniformName name)
@@ -98,9 +101,12 @@ namespace OpenTkConsole
 				GL.DrawArrays(beginType, 0, Data.VertexAmount);
 			}
 			
-
 			GL.BindVertexArray(0);
-			GL.BindTexture(TextureTarget.Texture2D, 0);
+			
+			if (BoundMaterial != null)
+			{
+				GL.BindTexture(TextureTarget.Texture2D, 0);
+			}
 
 			Error.checkGLError("DrawableMesh.draw " + Name);
 		}

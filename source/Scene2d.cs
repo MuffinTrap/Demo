@@ -12,35 +12,22 @@ namespace OpenTkConsole
 {
 	public class Scene2D : IScene 
 	{
-		ShaderProgram shaderProgram;
+		ShaderProgram guiShader;
 
 		DrawableMesh quadMesh;
 
-		CameraComponent camera;
+		CameraComponent cameraOrthogonal;
 
 		public Scene2D()
 		{
-			camera = new CameraComponent();
+			cameraOrthogonal = new CameraComponent();
 		}
 
 		public void setCameraFrames(List<PosAndDir> frames) { }
 
 		public void loadScene(AssetManager assetManager)
 		{
-			// Load program from single file...
-			shaderProgram = assetManager.GetShaderProgram("texturequad");
-
-			shaderProgram.Use();
-
-			quadMesh = assetManager.GetMesh("Konata"
-			, MeshDataGenerator.CreateQuadMesh(false, true)
-			, "konata"
-			, shaderProgram
-			, new Vector3(0.0f, 11.0f, 0.0f)
-			, 1.0f);
-
-			GL.Enable(EnableCap.DepthTest);
-			GL.DepthFunc(DepthFunction.Less);
+			// This is the gui scene
 
 			Error.checkGLError("Scene.loadScene");
 		}
@@ -48,19 +35,11 @@ namespace OpenTkConsole
 
 		public void drawScene(float cameraFrame) 
 		{
-			shaderProgram.Use();
-
-			camera.setMatrices(shaderProgram);
-
-			quadMesh.draw();
-
 			Error.checkGLError("Scene2D.drawScene");
 		}
 
 		public void updateScene(KeyboardState keyState, MouseState mouseState) 
 		{
-			camera.Update(keyState, mouseState);
-			quadMesh.Transform.rotateAroundY(0.04f);
 		}
 	}
 }

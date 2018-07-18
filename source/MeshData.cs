@@ -77,30 +77,18 @@ namespace OpenTkConsole
 
 		private bool checkAttribute(ShaderAttribute attribute)
 		{
-			if (attribute.name.Length == 0)
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "ShaderAttribute has no name set");
-				return false;
-			}
-
-			if (attribute.index == -1)
+			if (attribute.location == -1)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "Location of attribute " + attribute.name + " is invalid");
-				return false;
-			}
-
-			if (attribute.sizeBytes == 0)
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Size of attribute " + attribute.name + " is zero");
 				return false;
 			}
 			return true;
 		}
 
-		private ShaderAttribute getAttribute(string name, List<ShaderAttribute> attributes)
+		private ShaderAttribute getAttribute(ShaderAttributeName name, List<ShaderAttribute> attributes)
 		{
 			ShaderAttribute result = new ShaderAttribute();
-			result.index = -1;
+			result.location = -1;
 
 			foreach (ShaderAttribute a in attributes)
 			{
@@ -118,13 +106,13 @@ namespace OpenTkConsole
 
 		private void enableAttribute(ShaderAttribute attr)
 		{
-			GL.VertexAttribPointer(index: attr.index, size: attr.sizeElements
+			GL.VertexAttribPointer(index: attr.location, size: attr.elementSize
 						, type: VertexAttribPointerType.Float
 						, normalized: false, stride: 0, offset: 0);
 
-			GL.EnableVertexAttribArray(attr.index);
+			GL.EnableVertexAttribArray(attr.location);
 
-			Error.checkGLError("MeshData.enableAttribute " + attr.name + " i:" + attr.index + " size: " + attr.sizeBytes);
+			Error.checkGLError("MeshData.enableAttribute " + attr.name + " location:" + attr.location + " size: " + attr.elementSize);
 		}
 
 		public bool loadToVAO(List<ShaderAttribute> attributes)
@@ -149,7 +137,7 @@ namespace OpenTkConsole
 				GL.BufferData(BufferTarget.ArrayBuffer, VertexAmount * MeshData.getPositionSizeBytes()
 					, positions.ToArray(), BufferUsageHint.StaticDraw);
 
-				ShaderAttribute aPosition = getAttribute(ShaderAttribute.getAttributeName(ShaderAttributeName.Position), attributes);
+				ShaderAttribute aPosition = getAttribute(ShaderAttributeName.Position, attributes);
 				if (checkAttribute(aPosition))
 				{
 					enableAttribute(aPosition);
@@ -165,7 +153,7 @@ namespace OpenTkConsole
 				GL.BufferData(BufferTarget.ArrayBuffer, VertexAmount * MeshData.getTexCoordSizeBytes()
 					, texCoords.ToArray(), BufferUsageHint.StaticDraw);
 
-				ShaderAttribute aTexCoord = getAttribute(ShaderAttribute.getAttributeName(ShaderAttributeName.TexCoord), attributes);
+				ShaderAttribute aTexCoord = getAttribute(ShaderAttributeName.TexCoord, attributes);
 				if (checkAttribute(aTexCoord))
 				{
 					enableAttribute(aTexCoord);
@@ -179,7 +167,7 @@ namespace OpenTkConsole
 				GL.BufferData(BufferTarget.ArrayBuffer, VertexAmount * MeshData.getNormalSizeBytes()
 					, normals.ToArray(), BufferUsageHint.StaticDraw);
 
-				ShaderAttribute aNormal = getAttribute(ShaderAttribute.getAttributeName(ShaderAttributeName.Normal), attributes);
+				ShaderAttribute aNormal = getAttribute(ShaderAttributeName.Normal, attributes);
 				if (checkAttribute(aNormal))
 				{
 					enableAttribute(aNormal);
