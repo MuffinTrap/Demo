@@ -25,7 +25,7 @@ namespace OpenTkConsole
 
 		public TransformComponent()
 		{
-			worldMatrix = new Matrix4Uniform(ShaderAttribute.getUniformName(ShaderUniformName.WorldMatrix));
+			worldMatrix = new Matrix4Uniform(ShaderUniformName.WorldMatrix);
 			worldMatrix.Matrix = Matrix4.Identity;
 			rotationMatrix = Matrix4.Identity;
 

@@ -46,7 +46,7 @@ namespace OpenTkConsole
 			return true;
 		}
 
-		Audio LoadAudioFile(string filename)
+		public Audio LoadAudioFile(string filename)
 		{
 			// Init complete
 
@@ -98,7 +98,7 @@ namespace OpenTkConsole
 			return loadedAudio;
 		}
 
-		void PlayAudioFile(Audio audioFile)
+		public void PlayAudioFile(Audio audioFile)
 		{
 
 			// Set listener and source to same place

@@ -40,10 +40,11 @@ namespace OpenTkConsole
 		{
 			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
 			uniMan.RegisterDataOwner(this, ShaderUniformName.WorldMatrix);
-			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseTexture);
 
-			uniMan.SetData(ShaderProgram, ShaderUniformName.WorldMatrix);
-			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseTexture);
+			if (BoundMaterial != null)
+			{
+				uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseMap);
+			}
 		}
 
 		public void SetUniform(ShaderProgram program, int location, ShaderUniformName name)
@@ -57,7 +58,7 @@ namespace OpenTkConsole
 						Transform.worldMatrix.SetToShader(program, location);
 					}
 					break;
-				case ShaderUniformName.DiffuseTexture:
+				case ShaderUniformName.DiffuseMap:
 					if (BoundMaterial != null)
 					{
 						GL.ActiveTexture(TextureUnit.Texture0);
@@ -73,7 +74,16 @@ namespace OpenTkConsole
 
 		public void draw()
 		{
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			uniMan.SetData(ShaderProgram, ShaderUniformName.WorldMatrix);
+			if (BoundMaterial != null)
+			{
+				uniMan.SetData(ShaderProgram, ShaderUniformName.DiffuseMap);
+			}
+			Error.checkGLError("DrawableMesh.draw SetData " + Name);
+
 			GL.BindVertexArray(Data.VAOHandle);
+			Error.checkGLError("DrawableMesh.draw BindVertexArray " + Name);
 
 			PrimitiveType beginType = PrimitiveType.Triangles;
 
@@ -100,6 +110,7 @@ namespace OpenTkConsole
 			{
 				GL.DrawArrays(beginType, 0, Data.VertexAmount);
 			}
+			Error.checkGLError("DrawableMesh.draw " + Name);
 			
 			GL.BindVertexArray(0);
 			
@@ -107,8 +118,8 @@ namespace OpenTkConsole
 			{
 				GL.BindTexture(TextureTarget.Texture2D, 0);
 			}
+			Error.checkGLError("DrawableMesh.draw unbind " + Name);
 
-			Error.checkGLError("DrawableMesh.draw " + Name);
 		}
 	}
 }

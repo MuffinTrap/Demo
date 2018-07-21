@@ -20,14 +20,15 @@ namespace OpenTkConsole
 		
 		public static ShaderAttribute getAttribute(ShaderAttributeName name, ShaderProgram shaderProgram)
 		{
-			List<ShaderAttribute> attributes = new List<ShaderAttribute>();
-
-			ShaderAttribute resultAttr = new ShaderAttribute(ShaderAttribute.getAttributeName(name)
-				, shaderProgram.GetAttributeLocation(ShaderAttribute.getAttributeName(name))
-				, ShaderAttribute.getAttributeSizeBytes(name)
-				, ShaderAttribute.getAttributeSizeElements(name));
-
-			return resultAttr;
+			foreach( ShaderAttribute attr in shaderProgram.attributes)
+			{
+				if (attr.name == name)
+				{
+					return attr;
+				}
+			}
+			ShaderAttribute invalid = new ShaderAttribute(ShaderAttributeName.InvalidAttributeName, ShaderDataType.InvalidType);
+			return invalid;
 		}
 
 		private List<Shader> allShaders;

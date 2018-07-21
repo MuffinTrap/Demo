@@ -12,16 +12,18 @@ namespace OpenTkConsole
 {
 	public class TestScene : IScene
 	{
-		ShaderProgram shaderProgram;
+		ShaderProgram gridShader;
 		List<DrawableMesh> cornerTriangles;
 		DrawableMesh megaGrid;
 
+		CameraComponent camera;
 
 		float worldWidth;
 		float worldDepth;
 
-		public TestScene()
+		public TestScene(CameraComponent mainCamera)
 		{
+			camera = mainCamera;
 			cornerTriangles = new List<DrawableMesh>(4);
 
 			worldWidth = 30;
@@ -31,12 +33,11 @@ namespace OpenTkConsole
 		public void loadScene(AssetManager assetManager)
 		{
 			// Load program from single file...
-			shaderProgram = new ShaderProgram(assetManager.GetShader("testmesh.vs")
-			, assetManager.GetShader("testmesh.fs"));
+			gridShader = assetManager.GetShaderProgram("gridmesh");
 
 			Error.checkGLError("Scene.loadScene");
 
-			shaderProgram.Use();
+			gridShader.Use();
 
 			for (float cx = -1; cx <= 1; cx++)
 			{
@@ -49,7 +50,7 @@ namespace OpenTkConsole
 					DrawableMesh t = assetManager.GetMesh("Triangle(" + cx + ",0," + cz + ")"
 					, MeshDataGenerator.CreateTriangleMesh()
 					, null
-					, shaderProgram
+					, gridShader
 					, new Vector3(cx * (worldWidth / 2), 0, cz * (worldDepth / 2)), 1);
 
 					cornerTriangles.Add(t);
@@ -60,8 +61,10 @@ namespace OpenTkConsole
 			megaGrid = assetManager.GetMesh("Megagrid"
 			, MeshDataGenerator.CreateXZGrid(worldWidth, worldDepth, 1, 1)
 			, null
-			, shaderProgram
+			, gridShader
 			, new Vector3(0.0f, -1.0f, 0.0f), 1);
+
+
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
@@ -70,9 +73,9 @@ namespace OpenTkConsole
 		public void drawScene(float cameraFrame)
 		{
 			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			uniMan.ActivateShader(shaderProgram);
-
 			megaGrid.ActivateForDrawing();
+			uniMan.ActivateShader(gridShader);
+
 			megaGrid.draw();
 
 			foreach (DrawableMesh ct in cornerTriangles)
@@ -86,11 +89,11 @@ namespace OpenTkConsole
 
 		public void updateScene(KeyboardState keyState, MouseState mouseState)
 		{
+			camera.Update(keyState, mouseState);
 			foreach (DrawableMesh ct in cornerTriangles)
 			{
 				ct.Transform.rotateAroundY(0.05f);
 			}
 		}
-
 	}
 }

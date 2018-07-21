@@ -23,26 +23,60 @@ namespace OpenTkConsole
 		public Vector3 diffuse;
 		public Vector3 specular;
 
+
 		public string getInfoString()
 		{
 			return "Name: " + materialName + " Texture: " + textureName + " GLi: " + textureGLIndex;
 		}
 	}
 
-	public class MaterialManager
+	public class MaterialManager : IShaderDataOwner
 	{
+		public void ActivateForDrawing()
+		{
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			uniMan.RegisterDataOwner(this, ShaderUniformName.AmbientStrength);
+			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseStrength);
+			uniMan.RegisterDataOwner(this, ShaderUniformName.SpecularStrength);
+			uniMan.RegisterDataOwner(this, ShaderUniformName.SpecularPower);
+		}
+		public void SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
+		{
+			switch(dataName)
+			{
+				case ShaderUniformName.DiffuseStrength:
+					shaderProgram.SetFloatUniform(location, diffuseStrength);
+					break;
+				case ShaderUniformName.SpecularStrength:
+					shaderProgram.SetFloatUniform(location, specularStrength);
+					break;
+				case ShaderUniformName.SpecularPower:
+					shaderProgram.SetFloatUniform(location, specularPower);
+					break;
+				default:
+					break;
+			}
+			Error.checkGLError("MaterialManager set uniform");
+		}
+
 		public List<Material> materials;
+
+		// Defaults for materials
+		float diffuseStrength = 0.6f;
+		float specularStrength = 0.2f;
+		float specularPower = 128;
 
 		public MaterialManager()
 		{
 			materials = new List<Material>();
 			createMaterial("white", Color.White);
 			createMaterial("green", Color.ForestGreen);
+
+			ActivateForDrawing();
 		}
 
 		public void printLoadedAssets()
 		{
-			
 				foreach (Material m in materials)
 				{
 					Logger.LogInfo("Loaded material " + m.getInfoString());

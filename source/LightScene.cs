@@ -13,71 +13,36 @@ namespace OpenTkConsole
 	public class LightScene : IScene
 	{
 		ShaderProgram shaderProgram;
-		ShaderProgram lampObjectShader;
-
 		DrawableMesh quadMesh;
-		DrawableMesh lampMesh;
-
 		CameraComponent camera;
 
-		int viewPositionLocation;
+		DirectionalLight sunLight;
 
 		public LightScene(CameraComponent mainCamera)
 		{
 			camera = mainCamera;
+			sunLight = new DirectionalLight(new Vector3(1.0f, 1.0f, 0.9f), new Vector3(-0.3f, -1.0f, -0.1f), 0.3f);
 		}
 
 		public void setCameraFrames(List<PosAndDir> frames) { }
 
 		public void loadScene(AssetManager assetManager)
 		{
-			// Load program from single file...
 			shaderProgram = assetManager.GetShaderProgram("litobjmesh");
-			lampObjectShader = assetManager.GetShaderProgram("lampmesh");
 
-			Vector3 lightPosition = new Vector3(0.0f, 0.0f, 2.0f);
-			
-			quadMesh = assetManager.GetMesh("Lit_Cube"
-			, MeshDataGenerator.CreateQuadMesh(true, false)
-			, null
+			quadMesh = assetManager.GetMesh("monu9"
+			, assetManager.getMeshData("monu9.obj")
+			, "monu9"
 			, shaderProgram
-			, new Vector3(0.0f, 0.0f, 1.0f)
-			, 1.0f);
-
-			lampMesh = assetManager.GetMesh("Lamp"
-			, MeshDataGenerator.CreateTriangleMesh()
-			, null
-			, lampObjectShader
-			, lightPosition
+			, new Vector3(4.0f, 0.0f, 0.0f)
 			, 0.2f);
 
-			Vector4 lightColor = new Vector4(1, 1, 1, 1);
-			Vector4 objectColor = new Vector4(1.0f, 0.5f, 0.31f, 1.0f);
-			float ambientStrength = 0.2f;
-			float diffuseStrength = 0.2f;
-			float specularStrength = 0.7f;
-			int specularPower = 4;
-
-			shaderProgram.Use();
-
-			// How to send light information to shader
-			/*
-			shaderProgram.SetColorUniform(shaderProgram.GetUniformLocation("lightColor"), lightColor);
-			shaderProgram.SetColorUniform(shaderProgram.GetUniformLocation("objectColor"), objectColor);
-			shaderProgram.SetFloatUniform(shaderProgram.GetUniformLocation("ambientStrength"), ambientStrength);
-			shaderProgram.SetFloatUniform(shaderProgram.GetUniformLocation("diffuseStrength"), diffuseStrength);
-			shaderProgram.SetFloatUniform(shaderProgram.GetUniformLocation("specularStrength"), specularStrength);
-			shaderProgram.SetIntUniform(shaderProgram.GetUniformLocation("specularPower"), specularPower);
-			shaderProgram.SetVec3Uniform(shaderProgram.GetUniformLocation("lightPosition"), lightPosition);
-			*/
-			//viewPositionLocation = shaderProgram.GetUniformLocation("viewPosition");
-			lampObjectShader.Use();
-			lampObjectShader.SetColorUniform(lampObjectShader.GetUniformLocation("lampColor"), lightColor);
+			// Lighting
+			sunLight.ActivateForDrawing();
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
 
-			camera.ActivateForDrawing();
 			Error.checkGLError("LightScene.loadScene");
 		}
 
@@ -85,24 +50,19 @@ namespace OpenTkConsole
 		public void drawScene(float cameraFrame) 
 		{
 			ShaderUniformManager uniformManager = ShaderUniformManager.GetSingleton();
-			uniformManager.ActivateShader(shaderProgram);
-			quadMesh.ActivateForDrawing();
-			//shaderProgram.SetVec3Uniform(viewPositionLocation, camera.Position);
-			quadMesh.draw();
 
-			lampMesh.ActivateForDrawing();
-			uniformManager.ActivateShader(lampObjectShader);
-			lampMesh.draw();
+			camera.ActivateForDrawing();
+			quadMesh.ActivateForDrawing();
+			uniformManager.ActivateShader(shaderProgram);
+			quadMesh.draw();
 
 			Error.checkGLError("LightScene.drawScene");
 		}
 
 		public void updateScene(KeyboardState keyState, MouseState mouseState) 
 		{
-			quadMesh.Transform.rotateAroundY(0.01f);
+			//quadMesh.Transform.rotateAroundY(0.01f);
 			camera.Update(keyState, mouseState);
-			shaderProgram.Use();
-			//shaderProgram.SetVec3Uniform(shaderProgram.GetUniformLocation("lightPosition"), camera.Position);
 		}
 	}
 }

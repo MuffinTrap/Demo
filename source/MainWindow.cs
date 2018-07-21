@@ -13,8 +13,6 @@ using RocketNet;
 
 namespace OpenTkConsole
 {
-	
-	
     public sealed class MainWindow : GameWindow
     {
         private bool running;
@@ -93,12 +91,13 @@ namespace OpenTkConsole
 			// Pass syncer to scenes.
 
 			CameraComponent mainCamera = new CameraComponent();
+			mainCamera.ActivateForDrawing();
 			scenes = new List<IScene>();
 			try
 			{
+				scenes.Add(new TestScene(mainCamera));
 				scenes.Add(new LightScene(mainCamera)); // This scene handles the camera update
-				scenes.Add(new TestScene());
-				scenes.Add(new Scene2D());  // This is the gui scene
+				//scenes.Add(new Scene2D());  // This is the gui scene
 				//scenes.Add(assetManager.GetScene("tia.sce"));
 
 				foreach (IScene s in scenes)
@@ -229,7 +228,7 @@ namespace OpenTkConsole
 			{
 				scenes[currentSceneIndex].updateScene(keyState, mouseState);
 			}
-			else
+			else if (!paused)
 			{
 				foreach (IScene s in scenes)
 				{
@@ -238,14 +237,6 @@ namespace OpenTkConsole
 			}
         }
 
-		private void ExitProgram()
-		{
-			running = false;
-			timer.Stop();
-			Logger.LogPhase("Exit Program");
-
-			cleanupAndExit();
-		}
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
@@ -336,6 +327,15 @@ namespace OpenTkConsole
 		void shutDownAudio()
 		{
 			audioSystem.Shutdown();
+		}
+
+		private void ExitProgram()
+		{
+			running = false;
+			timer.Stop();
+			Logger.LogPhase("Exit Program");
+
+			cleanupAndExit();
 		}
 
 		void cleanupAndExit()

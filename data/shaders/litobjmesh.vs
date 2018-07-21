@@ -2,26 +2,32 @@
 
 // OpenGL 3.0 -> GLSL 1.30
 // a projection transformation to apply to the vertex' position
-uniform mat4 projectionMatrix;
-uniform mat4 worldMatrix;
-uniform mat4 viewMatrix;
-uniform vec3 lightPosition;
+uniform mat4 uProjectionMatrix;
+uniform mat4 uWorldMatrix;
+uniform mat4 uViewMatrix;
+
+// Directional light
+uniform vec3 uLightDirection;
 
 
 // attributes of our vertex
-in vec3 vPosition;
-in vec3 vNormal;
+in vec3 aPosition;
+in vec3 aNormal;
+in vec2 aTexCoord;
 
 out vec3 fNormal;
 out vec3 fPosition;
-out vec3 fLightPosition;
+out vec2 fTexCoord;
+out vec3 fLightDirection;
 
 void main()
 {
 	// gl_Position is a special variable of OpenGL that must be set
-	 gl_Position =  projectionMatrix * viewMatrix * worldMatrix * vec4(vPosition, 1.0);
-	 fNormal = mat3(transpose(inverse(viewMatrix * worldMatrix))) * vNormal;
-	 fPosition = vec3(viewMatrix * worldMatrix * vec4(vPosition, 1.0));
-	 fLightPosition = vec3(viewMatrix * vec4(lightPosition, 1.0f));
+	 gl_Position =  uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0);
+	 fNormal = mat3(transpose(inverse(uViewMatrix * uWorldMatrix))) * aNormal;
+	 fPosition = vec3(uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0));
+	 fTexCoord = vec2(aTexCoord.x, -1 * aTexCoord.y);
+	 fLightDirection = vec3(uViewMatrix * vec4(uLightDirection, 0.0f));
+
 }
 

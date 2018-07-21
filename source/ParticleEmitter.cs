@@ -26,8 +26,6 @@ namespace OpenTkConsole
 		private double emitCounter;
 		private int maxParticles;
 
-		private int colorUniformLocation;
-
 		private Random randomGenerator;
 		
 		public float Width { get; set; }
@@ -96,17 +94,6 @@ namespace OpenTkConsole
 
 			colors = new List<Vector4>(1);
 			colors.Add(new Vector4(1, 0, 0, 1));
-
-			ParticleShader.Use();
-			colorUniformLocation = ParticleShader.GetUniformLocation("uParticleColor");
-			if (colorUniformLocation != -1)
-			{
-				ParticleShader.SetColorUniform(colorUniformLocation, colors[0]);
-			}
-			else
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Invalid uniform location");
-			}
 		}
 
 		public void update()
@@ -206,8 +193,9 @@ namespace OpenTkConsole
 		{
 			// Draw particles, but how?
 
-			ParticleShader.Use();
-			camera.setMatrices(ParticleShader);
+			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
+			camera.ActivateForDrawing();
+			uniMan.ActivateShader(ParticleShader);
 			List<Matrix4> mat = Matrices;
 			DrawableMesh particleMesh = ParticleMesh;
 			
@@ -219,9 +207,7 @@ namespace OpenTkConsole
 					particleMesh.Transform.WorldPosition = mat[particle.matrixIndex].ExtractTranslation();
 					particleMesh.Transform.SetRotationMatrix(camera.GetRotationMatrix());
 
-					
-					ParticleShader.SetColorUniform(colorUniformLocation, particle.color);
-
+					particleMesh.ActivateForDrawing();
 					particleMesh.draw();
 				}
 			}

@@ -169,7 +169,7 @@ namespace OpenTkConsole
 				{
 					Logger.LogInfo("Found shader setting: VS: " + vsName + ", FS: " + fsName);
 
-					ShaderProgram newProgram = new ShaderProgram(assetManager.GetShader(vsName), assetManager.GetShader(fsName));
+					ShaderProgram newProgram = assetManager.GetShaderProgram(vsName, fsName);
 
 					scene.MainShader = newProgram;
 

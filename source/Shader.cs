@@ -58,10 +58,10 @@ namespace OpenTkConsole
 	{
 		private readonly int handle;
 
+		public string name;
+
 		public List<ShaderAttribute> attributes;
 		public List<ShaderUniform> uniforms;
-		
-		static public int defaultPositionLocation = 0;
 		
 		public ShaderProgram(params Shader[] shaders)
 		{
@@ -82,14 +82,15 @@ namespace OpenTkConsole
 				Logger.LogError(Logger.ErrorState.Limited, "Shader link failed: " + GL.GetProgramInfoLog(handle));
             }
 
-
+			name = shaders[0].ShaderName;
+			Logger.LogInfo("Creating Shader Program " + name);
 			// Load Uniforms
 			///////////////////////////////////
 			int uniformAmount = -1;
             GL.GetProgram(handle, GetProgramParameterName.ActiveUniforms, out uniformAmount);
 			Error.checkGLError("Shader()");
 			ShaderUniformManager uniManager = ShaderUniformManager.GetSingleton();
-            Logger.LogInfo("Program linked.\n\tUniform amount " + uniformAmount);
+            Logger.LogInfo("\tProgram linked.\n\tUniform amount " + uniformAmount);
 			uniforms = new List<ShaderUniform>(uniformAmount);
 
 			int maxShaderNameSize = 100;
@@ -181,29 +182,38 @@ namespace OpenTkConsole
 		public void SetColorUniform(int uniformLocation , Vector4 color)
 		{
 			GL.Uniform4(uniformLocation, color);
+			Error.checkGLError("Shader set vec4 color");
 		}
+
 		public void SetVec3Uniform(int uniformLocation , Vector3 value)
 		{
 			GL.Uniform3(uniformLocation, value);
+			Error.checkGLError("Shader set vec3");
 
 		}
+
 		public void SetFloatUniform(int uniformLocation , float value)
 		{
 			GL.Uniform1(uniformLocation, value);
+			Error.checkGLError("Shader set float");
 		}
+
 		public void SetIntUniform(int uniformLocation , int value)
 		{
 			GL.Uniform1(uniformLocation, value);
+			Error.checkGLError("Shader set int");
 		}
 
 		public void SetMatrix4Uniform(int uniformLocation, ref Matrix4 value)
 		{
 			GL.UniformMatrix4(uniformLocation, false, ref value);
+			Error.checkGLError("Shader set matrix4");
 		}
 
 		public void SetSamplerUniform(int uniformLocation, int textureUnit)
 		{
 			GL.Uniform1(uniformLocation, textureUnit);
+			Error.checkGLError("Shader set sampler");
 		}
 
 		public int GetUniformLocation(ShaderUniformName name)

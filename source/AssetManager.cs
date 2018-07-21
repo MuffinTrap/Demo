@@ -81,12 +81,14 @@ namespace OpenTkConsole
 
 				// Scene manager depends on other managers
 				// Find scenes directory
+				/*
 				string scenesDirName = "scenes";
 				string sceneDir = FindDirectory(scenesDirName);
 				if (sceneDir != null)
 				{
 					sceneManager = new SceneManager(sceneDir);
 				}
+				*/
 			}
 			else
 			{
@@ -112,7 +114,7 @@ namespace OpenTkConsole
 			return meshManager.GetMeshData(fileName);
 		}
 
-		public Shader GetShader(string shaderName)
+		private Shader GetShader(string shaderName)
 		{
 			return shaderManager.GetShader(shaderName);
 		}
@@ -124,7 +126,7 @@ namespace OpenTkConsole
 
 		public ShaderProgram GetShaderProgram(string vertexName, string fragmentName)
 		{
-			return new ShaderProgram(GetShader(vertexName + ".vs"), GetShader(fragmentName + ".fs"));
+			return new ShaderProgram(GetShader(vertexName), GetShader(fragmentName));
 		}
 
 		public DrawableMesh GetMesh(string name

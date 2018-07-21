@@ -101,6 +101,10 @@ namespace OpenTkConsole
 				}
 			}
 
+			if (result.location == -1)
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "Did not get attribute ");
+			}
 			return result;
 		}
 
