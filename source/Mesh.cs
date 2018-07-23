@@ -116,6 +116,7 @@ namespace OpenTkConsole
 			
 			if (BoundMaterial != null)
 			{
+				GL.ActiveTexture(TextureUnit.Texture0);
 				GL.BindTexture(TextureTarget.Texture2D, 0);
 			}
 			Error.checkGLError("DrawableMesh.draw unbind " + Name);

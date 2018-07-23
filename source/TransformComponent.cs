@@ -65,6 +65,11 @@ namespace OpenTkConsole
 			worldMatrix.Matrix = S * R * T;
 		}
 
+		public void setRotationX(float rotation)
+		{
+			rotationX = MathHelper.Clamp(rotation, 0.0f, MathHelper.TwoPi);
+		}
+
 		public void rotateAroundY(float speed)
 		{
 			rotationY += speed;

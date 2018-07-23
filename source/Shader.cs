@@ -189,7 +189,12 @@ namespace OpenTkConsole
 		{
 			GL.Uniform3(uniformLocation, value);
 			Error.checkGLError("Shader set vec3");
+		}
 
+		public void SetVec2Uniform(int uniformLocation , Vector2 value)
+		{
+			GL.Uniform2(uniformLocation, value);
+			Error.checkGLError("Shader set vec2");
 		}
 
 		public void SetFloatUniform(int uniformLocation , float value)
@@ -214,6 +219,11 @@ namespace OpenTkConsole
 		{
 			GL.Uniform1(uniformLocation, textureUnit);
 			Error.checkGLError("Shader set sampler");
+		}
+
+		public int GetCustomUniformLocation(string name)
+		{
+			return GetUniformLocation(handle, name);
 		}
 
 		public int GetUniformLocation(ShaderUniformName name)

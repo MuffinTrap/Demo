@@ -63,13 +63,15 @@ namespace OpenTkConsole
 
 		// Defaults for materials
 		float diffuseStrength = 0.6f;
-		float specularStrength = 0.2f;
-		float specularPower = 128;
+		float specularStrength = 0.3f;
+		float specularPower = 64;
 
 		public MaterialManager()
 		{
 			materials = new List<Material>();
 			createMaterial("white", Color.White);
+			createMaterial("black", Color.Black);
+			createMaterial("gray", Color.Gray);
 			createMaterial("green", Color.ForestGreen);
 
 			ActivateForDrawing();

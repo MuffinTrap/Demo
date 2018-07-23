@@ -39,7 +39,9 @@ namespace OpenTkConsole
 
 		DiffuseColor,
 		ParticleColor,
+
 		DiffuseMap,
+		NormalMap,
 
 		// Lighting system
 		LightDirection,
@@ -97,6 +99,7 @@ namespace OpenTkConsole
 			AddSupportedUniform(ShaderUniformName.ViewMatrix, ShaderDataType.Mat4);
 
 			AddSupportedUniform(ShaderUniformName.DiffuseMap, ShaderDataType.Texture2D);
+			AddSupportedUniform(ShaderUniformName.NormalMap, ShaderDataType.Texture2D);
 
 			AddSupportedUniform(ShaderUniformName.LightDirection, ShaderDataType.Float3);
 			AddSupportedUniform(ShaderUniformName.LightColor, ShaderDataType.Float3);
@@ -164,6 +167,10 @@ namespace OpenTkConsole
 				if (uniformDataOwners.TryGetValue(uni.name, out owner))
 				{ 
 					owner.SetUniform(shader, uni.location, uni.name);
+					continue;
+				}
+				else if (uni.name == ShaderUniformName.CustomUniform)
+				{
 					continue;
 				}
 				else
@@ -292,6 +299,7 @@ namespace OpenTkConsole
 				case ShaderUniformName.SpecularPower: return "uSpecularPower";
 
 				case ShaderUniformName.DiffuseMap: return "uDiffuseMap";
+				case ShaderUniformName.NormalMap: return "uNormalMap";
 
 				default: return string.Empty;
 			}

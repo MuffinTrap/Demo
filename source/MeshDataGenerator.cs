@@ -277,13 +277,11 @@ namespace OpenTkConsole
 			return grid;
 		}
 
-		static public MeshData CreateTerrain(float width, float depth, float trianglesPerUnit)
+		static public MeshData CreateTerrain(float width, float depth, float trianglesPerUnit
+			, bool createNormals, float UVrepeatX, float UVrepeatZ)
 		{
 			MeshData terrain = new MeshData();
 			terrain.sourceFileName = "Terrain" + width + "x" + depth;
-			terrain.positions = new List<Vector3>();
-			terrain.texCoords = new List<Vector2>();
-			terrain.indices = new List<int>();
 
 			int quadsWidth = (int)Math.Floor(trianglesPerUnit * width);
 			int quadsDepth = (int)Math.Floor(trianglesPerUnit * depth);
@@ -291,6 +289,20 @@ namespace OpenTkConsole
 			int depthVertices = quadsDepth * 2;
 			float triangleSideWidth = width / (quadsWidth);
 			float triangleSideDepth = depth / (quadsDepth);
+
+			int vertexAmount = widthVertices * depthVertices;
+			terrain.positions = new List<Vector3>(vertexAmount);
+			terrain.texCoords = new List<Vector2>(vertexAmount);
+			if (createNormals)
+			{
+				terrain.normals = new List<Vector3>(vertexAmount);
+				Vector3 normal = new Vector3(0, 1, 0);
+				for (int i = 0; i< vertexAmount; i++)
+				{
+					terrain.normals.Add(normal);
+				}
+			}
+			terrain.indices = new List<int>();
 			
 			/* Quad rows  -> width   V depth
 			 *		0  (1 4) 5
@@ -313,35 +325,55 @@ namespace OpenTkConsole
 
 					//Logger.LogInfo("Terrain piece (" + qw + "," + qd + " at: " + xCoord + ", " + zCoord + " Size: " + triangleSideWidth + ", " + triangleSideDepth);
 
+					float divWidth = quadsWidth / UVrepeatX;
+					float divDepth = quadsDepth / UVrepeatZ;
+					float texX0 = ((float)qw / divWidth);
+					float texX1 = ((float)(qw + 1)/ divWidth);
+					float texY0 = ((float)qd / divDepth);
+					float texY1 = ((float)(qd + 1) / divDepth);
+					Vector2 tex00 = new Vector2(texX0, texY0);
+					Vector2 tex10 = new Vector2(texX1, texY0);
+					Vector2 tex01 = new Vector2(texX0, texY1);
+					Vector2 tex11 = new Vector2(texX1, texY1);
+
+					/*
+					Logger.LogInfo("Terrain piece (" + qw + "," + qd 
+					+ " at: " + xCoord + ", " + zCoord 
+					+ " TxC: " + tex00.X + ", " + tex00.Y + " - " + tex11.X + ", " + tex11.Y
+					+ " Size: " + triangleSideWidth + ", " + triangleSideDepth);
+					*/
+
+
+					// 0
 					terrain.positions.Add(new Vector3(xCoord
 											, 0.0f
 											, zCoord));
-					terrain.texCoords.Add(new Vector2(0.0f, 0.0f));
+					terrain.texCoords.Add(tex00);
 
 					// 1
 					terrain.positions.Add(new Vector3(xCoord + triangleSideWidth
 										, 0.0f
 										, zCoord));
-					terrain.texCoords.Add(new Vector2(1.0f, 0.0f));
+					terrain.texCoords.Add(tex10);
 
 					// 2
 					terrain.positions.Add(new Vector3(xCoord
 											, 0.0f
 											, zCoord + triangleSideDepth));
-					terrain.texCoords.Add(new Vector2(0.0f, 1.0f));
+					terrain.texCoords.Add(tex01);
 
 					// 3
 					terrain.positions.Add(new Vector3(xCoord + triangleSideWidth
 										, 0.0f
 										, zCoord + triangleSideDepth));
-					terrain.texCoords.Add(new Vector2(1.0f, 1.0f));
+					terrain.texCoords.Add(tex11);
 
 					terrain.indices.Add(indice);
-					terrain.indices.Add(indice + 1);
 					terrain.indices.Add(indice + 2);
+					terrain.indices.Add(indice + 1);
 					terrain.indices.Add(indice + 3);
-					terrain.indices.Add(indice + 2);
 					terrain.indices.Add(indice + 1);
+					terrain.indices.Add(indice + 2);
 					indice += 4;
 				}
 			}
@@ -349,10 +381,16 @@ namespace OpenTkConsole
 			terrain.hasPositionData = true;
 			terrain.hasIndexData = true;
 			terrain.hasTexCoordData = true;
-			terrain.VertexAmount = widthVertices * depthVertices;
+			if (createNormals)
+			{
+				terrain.hasNormalData = true;
+			}
+			terrain.VertexAmount = vertexAmount;
 			terrain.drawType = MeshData.DataDrawType.Triangles;
 
 			terrain.GenerateBufferHandles();
+
+			Logger.LogInfo("Generated terrain: Vertices: " + terrain.VertexAmount + " Indices: " + terrain.indices.Count);
 			Error.checkGLError("Terrain Mesh Data creation");
 			return terrain;
 		}
