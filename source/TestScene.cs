@@ -72,16 +72,14 @@ namespace OpenTkConsole
 
 		public void drawScene(float cameraFrame)
 		{
-			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			megaGrid.ActivateForDrawing();
-			uniMan.ActivateShader(gridShader);
-
-			megaGrid.draw();
+			Renderer rend = Renderer.GetSingleton();
+			rend.RenderWithShader(gridShader);
+			rend.RenderCamera(camera);
+			rend.RenderMesh(megaGrid);
 
 			foreach (DrawableMesh ct in cornerTriangles)
 			{
-				ct.ActivateForDrawing();
-				ct.draw();
+				rend.RenderMesh(ct);
 			}
 
 			Error.checkGLError("Scene.drawScene");

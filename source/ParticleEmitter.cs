@@ -83,7 +83,7 @@ namespace OpenTkConsole
 			EmitDirection = new Vector3(0, 1, 0);
 			ParticleSize = 1.0f;
 			Transform = new TransformComponent();
-			Transform.WorldPosition = worldPosition;
+			Transform.Position = worldPosition;
 
 			Shape = shape;
 			Width = sizes.X;
@@ -153,7 +153,7 @@ namespace OpenTkConsole
 			for (int i = 0; i < amount; i++)
 			{
 				Particle p = new Particle();
-				Matrices.Add(Matrix4.CreateTranslation(Transform.WorldPosition));
+				Matrices.Add(Matrix4.CreateTranslation(Transform.Position));
 				p.matrixIndex = Matrices.Count - 1;
 				Restart(p);
 				Particles.Add(p);
@@ -162,7 +162,7 @@ namespace OpenTkConsole
 
 		public void Restart(Particle p)
 		{
-			Vector3 pos = Transform.WorldPosition;
+			Vector3 pos = Transform.Position;
 			if (Shape == EmitterShape.Rectangle)
 			{
 				pos.X += GetRandomFromRange(Width);
@@ -194,8 +194,6 @@ namespace OpenTkConsole
 			// Draw particles, but how?
 
 			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			camera.ActivateForDrawing();
-			uniMan.ActivateShader(ParticleShader);
 			List<Matrix4> mat = Matrices;
 			DrawableMesh particleMesh = ParticleMesh;
 			
@@ -204,10 +202,9 @@ namespace OpenTkConsole
 				ParticleEmitter.Particle particle = Particles[p];
 				if (particle.isActive)
 				{
-					particleMesh.Transform.WorldPosition = mat[particle.matrixIndex].ExtractTranslation();
+					particleMesh.Transform.Position = mat[particle.matrixIndex].ExtractTranslation();
 					particleMesh.Transform.SetRotationMatrix(camera.GetRotationMatrix());
 
-					particleMesh.ActivateForDrawing();
 					particleMesh.draw();
 				}
 			}

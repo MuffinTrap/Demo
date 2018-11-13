@@ -76,14 +76,7 @@ namespace OpenTkConsole
 			Direction = Vector3.Normalize(Position - targetPosition);
 		}
 
-		public void ActivateForDrawing()
-		{
-			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			uniMan.RegisterDataOwner(this, ShaderUniformName.ViewMatrix);
-			uniMan.RegisterDataOwner(this, ShaderUniformName.ProjectionMatrix);
-		}
-
-		public void SetUniform(ShaderProgram program, int location, ShaderUniformName name)
+		public bool SetUniform(ShaderProgram program, int location, ShaderUniformName name)
 		{
 			switch(name)
 			{
@@ -95,9 +88,9 @@ namespace OpenTkConsole
 					projectionMatrix.SetToShader(program, location);
 					break;
 				default:
-					Logger.LogWarning("This Shader data owner does not have data for uniform: " + ShaderUniformManager.GetSingleton().GetUniformName(name));
-					break;
+					return false;
 			}
+			return true;
 		}
 
 		public Matrix4 GetViewMatrix()

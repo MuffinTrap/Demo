@@ -45,7 +45,7 @@ namespace OpenTkConsole
 
 			if (dataDirFound)
 			{
-				materialManager = new MaterialManager();
+				materialManager = MaterialManager.GetSingleton();
 
 				// 
 				string textureDirName = "textures";
@@ -79,16 +79,15 @@ namespace OpenTkConsole
 					Logger.LogError(Logger.ErrorState.Critical, "Shader directory not found");
 				}
 
+
 				// Scene manager depends on other managers
 				// Find scenes directory
-				/*
 				string scenesDirName = "scenes";
 				string sceneDir = FindDirectory(scenesDirName);
 				if (sceneDir != null)
 				{
 					sceneManager = new SceneManager(sceneDir);
 				}
-				*/
 			}
 			else
 			{

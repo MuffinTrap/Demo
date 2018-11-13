@@ -36,18 +36,7 @@ namespace OpenTkConsole
 			Error.checkGLError("Mesh constructor of " + name);
 		}
 
-		public void ActivateForDrawing()
-		{
-			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			uniMan.RegisterDataOwner(this, ShaderUniformName.WorldMatrix);
-
-			if (BoundMaterial != null)
-			{
-				uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseMap);
-			}
-		}
-
-		public void SetUniform(ShaderProgram program, int location, ShaderUniformName name)
+		public bool SetUniform(ShaderProgram program, int location, ShaderUniformName name)
 		{
 			switch (name)
 			{
@@ -67,21 +56,15 @@ namespace OpenTkConsole
 					}
 					break;
 				default:
-					break;
+					return false;
 			}
+			return true;
 		}
 
 
 		public void draw()
 		{
-			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			uniMan.SetData(ShaderProgram, ShaderUniformName.WorldMatrix);
-			if (BoundMaterial != null)
-			{
-				uniMan.SetData(ShaderProgram, ShaderUniformName.DiffuseMap);
-			}
 			Error.checkGLError("DrawableMesh.draw SetData " + Name);
-
 			GL.BindVertexArray(Data.VAOHandle);
 			Error.checkGLError("DrawableMesh.draw BindVertexArray " + Name);
 

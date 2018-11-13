@@ -32,15 +32,7 @@ namespace OpenTkConsole
 
 	public class MaterialManager : IShaderDataOwner
 	{
-		public void ActivateForDrawing()
-		{
-			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			uniMan.RegisterDataOwner(this, ShaderUniformName.AmbientStrength);
-			uniMan.RegisterDataOwner(this, ShaderUniformName.DiffuseStrength);
-			uniMan.RegisterDataOwner(this, ShaderUniformName.SpecularStrength);
-			uniMan.RegisterDataOwner(this, ShaderUniformName.SpecularPower);
-		}
-		public void SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
+		public bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
 		{
 			switch(dataName)
 			{
@@ -54,27 +46,35 @@ namespace OpenTkConsole
 					shaderProgram.SetFloatUniform(location, specularPower);
 					break;
 				default:
-					break;
+					return false;
 			}
-			Error.checkGLError("MaterialManager set uniform");
+			return true;
 		}
 
 		public List<Material> materials;
 
 		// Defaults for materials
-		float diffuseStrength = 0.6f;
-		float specularStrength = 0.3f;
+		float diffuseStrength = 0.8f;
+		float specularStrength = 0.2f;
 		float specularPower = 64;
 
-		public MaterialManager()
+		private MaterialManager()
 		{
 			materials = new List<Material>();
 			createMaterial("white", Color.White);
 			createMaterial("black", Color.Black);
 			createMaterial("gray", Color.Gray);
 			createMaterial("green", Color.ForestGreen);
+		}
 
-			ActivateForDrawing();
+		private static MaterialManager singleton = null;
+		public static MaterialManager GetSingleton()
+		{
+			if (singleton == null)
+			{
+				singleton = new MaterialManager();
+			}
+			return singleton;
 		}
 
 		public void printLoadedAssets()

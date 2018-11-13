@@ -44,9 +44,15 @@ namespace OpenTkConsole
 		NormalMap,
 
 		// Lighting system
+		LightsArray,
+
+		// For each light
+		LightPosition,
 		LightDirection,
 		LightColor,
 		AmbientStrength,
+		LinearAttenuation,
+		QuadraticAttenuation,
 
 		// Material
 		DiffuseStrength,
@@ -67,26 +73,72 @@ namespace OpenTkConsole
 		Mat4,
 
 		Texture2D,
+		Light,
 
 		InvalidType
 	}
 
 	// This is an interface for classes that have data for shaders
-	// They need to register to uniform manager that then 
-	// asks them to submit the data shader asks for it.
 	public interface IShaderDataOwner
 	{
-		void ActivateForDrawing();
-		void SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName);
+		bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName);
 	}
 
 	public class ShaderUniformManager
 	{
-		private Dictionary<ShaderUniformName, IShaderDataOwner> uniformDataOwners;
 		public Dictionary<string, ShaderUniform> supportedUniforms;
 		public Dictionary<string, ShaderAttribute> supportedAttributes;
-		private static ShaderUniformManager singleton = null;
 
+		private static ShaderUniformManager singleton = null;
+		public static ShaderUniformManager GetSingleton()
+		{
+			if (singleton == null)
+			{
+				singleton = new ShaderUniformManager();
+			}
+			return singleton;
+		}
+
+		public string GetAttributeName(ShaderAttributeName name)
+		{
+			switch (name)
+			{
+				case ShaderAttributeName.Position: return "aPosition";
+				case ShaderAttributeName.Normal: return "aNormal";
+				case ShaderAttributeName.TexCoord: return "aTexCoord";
+				case ShaderAttributeName.DiffuseColor: return "aDiffuseColor";
+				default: return string.Empty;
+			}
+		}
+
+		public string GetUniformName(ShaderUniformName name)
+		{
+			switch (name)
+			{
+				case ShaderUniformName.ViewMatrix: return "uViewMatrix";
+				case ShaderUniformName.ProjectionMatrix: return "uProjectionMatrix";
+				case ShaderUniformName.WorldMatrix: return "uWorldMatrix";
+
+				case ShaderUniformName.LightsArray: return "uLights";
+				case ShaderUniformName.LightPosition: return "position";
+				case ShaderUniformName.LightDirection: return "direction";
+				case ShaderUniformName.LightColor: return "color";
+				case ShaderUniformName.LinearAttenuation: return "linearAttenuation";
+				case ShaderUniformName.QuadraticAttenuation: return "quadraticAttenuation";
+
+				case ShaderUniformName.ParticleColor: return "uParticleColor";
+
+				case ShaderUniformName.AmbientStrength: return "uAmbientStrength";
+				case ShaderUniformName.DiffuseStrength: return "uDiffuseStrength";
+				case ShaderUniformName.SpecularStrength: return "uSpecularStrength";
+				case ShaderUniformName.SpecularPower: return "uSpecularPower";
+
+				case ShaderUniformName.DiffuseMap: return "uDiffuseMap";
+				case ShaderUniformName.NormalMap: return "uNormalMap";
+
+				default: return string.Empty;
+			}
+		}
 
 		private ShaderUniformManager()
 		{
@@ -101,6 +153,8 @@ namespace OpenTkConsole
 			AddSupportedUniform(ShaderUniformName.DiffuseMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.NormalMap, ShaderDataType.Texture2D);
 
+			AddSupportedUniform(ShaderUniformName.LightsArray, ShaderDataType.Light);
+			AddSupportedUniform(ShaderUniformName.LightPosition, ShaderDataType.Float3);
 			AddSupportedUniform(ShaderUniformName.LightDirection, ShaderDataType.Float3);
 			AddSupportedUniform(ShaderUniformName.LightColor, ShaderDataType.Float3);
 			AddSupportedUniform(ShaderUniformName.ParticleColor, ShaderDataType.Float3);
@@ -110,13 +164,15 @@ namespace OpenTkConsole
 			AddSupportedUniform(ShaderUniformName.SpecularStrength, ShaderDataType.Float);
 			AddSupportedUniform(ShaderUniformName.SpecularPower, ShaderDataType.Float);
 
+			AddSupportedUniform(ShaderUniformName.LinearAttenuation, ShaderDataType.Float);
+			AddSupportedUniform(ShaderUniformName.QuadraticAttenuation, ShaderDataType.Float);
+
 			// Attributes that shaders can have
 			AddSupportedAttribute(ShaderAttributeName.Position, ShaderDataType.Float3);
 			AddSupportedAttribute(ShaderAttributeName.Normal, ShaderDataType.Float3);
 			AddSupportedAttribute(ShaderAttributeName.TexCoord, ShaderDataType.Float2);
 			AddSupportedAttribute(ShaderAttributeName.DiffuseColor, ShaderDataType.Float3);
 
-			uniformDataOwners = new Dictionary<ShaderUniformName, IShaderDataOwner>();
 		}
 
 		private void AddSupportedUniform(ShaderUniformName name, ShaderDataType type)
@@ -129,75 +185,61 @@ namespace OpenTkConsole
 			supportedAttributes.Add(GetAttributeName(name), new ShaderAttribute(name, type));
 		}
 
-		public static ShaderUniformManager GetSingleton()
-		{
-			if (singleton == null)
-			{
-				singleton = new ShaderUniformManager();
-			}
-			return singleton;
-		}
 
-		public void SetData(ShaderProgram shader, ShaderUniformName dataName)
+		public void SetArrayData(ShaderProgram shader
+		, ShaderUniformName arrayName
+		, ShaderUniformName dataName
+		, IShaderDataOwner provider
+		, int index)
+		{
+			foreach (ShaderUniform uni in shader.uniforms)
+			{
+				if (uni.name == dataName && uni.arrayName == arrayName && uni.arrayIndex == index)
+				{
+					bool set = provider.SetUniform(shader, uni.location, uni.name);
+					if (!set)
+					{
+						Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetArrayData. Provider does not have "
+							+ GetUniformName(arrayName) + "." + GetUniformName(dataName));
+					}
+					return;
+				}
+			}
+			Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetArrayData. Shader " + shader.name + " does not use data: "
+			+ GetUniformName(arrayName) + "[" + index + "]." + GetUniformName(dataName));
+			foreach (ShaderUniform uni in shader.uniforms)
+			{
+				if (uni.arrayIndex != -1)
+				{
+					Logger.LogInfo(shader.name + " uses "
+					+ GetUniformName(uni.arrayName) + "[" + uni.arrayIndex + "]." + GetUniformName(uni.name));
+				}
+			}
+		}
+		public void SetData(ShaderProgram shader
+			, ShaderUniformName dataName
+			, IShaderDataOwner provider)
 		{
 			foreach (ShaderUniform uni in shader.uniforms)
 			{
 				if (uni.name == dataName)
 				{
-					IShaderDataOwner owner;
-					if (uniformDataOwners.TryGetValue(uni.name, out owner))
-					{ 
-						owner.SetUniform(shader, uni.location, uni.name);
-						return;
+					bool set = provider.SetUniform(shader, uni.location, uni.name);
+					if (!set)
+					{
+						Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetData. Provider does not have "
+						+ GetUniformName(dataName));
 					}
-					break;
-				}
-			}
-			Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetData. No registered owner for "
-			+ GetUniformName(dataName));
-		}
-
-		public void ActivateShader(ShaderProgram shader)
-		{
-			shader.Use();
-
-			foreach (ShaderUniform uni in shader.uniforms)
-			{
-				IShaderDataOwner owner;
-				if (uniformDataOwners.TryGetValue(uni.name, out owner))
-				{ 
-					owner.SetUniform(shader, uni.location, uni.name);
-					continue;
-				}
-				else if (uni.name == ShaderUniformName.CustomUniform)
-				{
-					continue;
-				}
-				else
-				{
-					Logger.LogError(Logger.ErrorState.Limited, "Shader " + shader.name + " activation was not complete. Uniform "
-					+ GetUniformName(uni.name) + " not found.");
-				}
-			}
-		}
-
-		public void RegisterDataOwner(IShaderDataOwner owner, ShaderUniformName uniform)
-		{
-			// Remove old first if exists
-			if (uniformDataOwners.ContainsKey(uniform))
-			{
-				if (uniformDataOwners[uniform] != owner)
-				{
-					uniformDataOwners.Remove(uniform);
-				}
-				else
-				{
-					// Already the owner
 					return;
 				}
 			}
-			// Register owner
-			uniformDataOwners.Add(uniform, owner);
+			Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetData. Shader " + shader.name + " does not use "
+			+ GetUniformName(dataName));
+			foreach (ShaderUniform uni in shader.uniforms)
+			{
+				Logger.LogInfo(shader.name + " uses "
+				+ GetUniformName(uni.name));
+			}
 		}
 
 		public ShaderUniform CreateShaderUniform(string nameString, ActiveUniformType type, int location)
@@ -225,6 +267,41 @@ namespace OpenTkConsole
 			{
 				// Custom attribute is ok
 				returnValue = new ShaderUniform(ShaderUniformName.CustomUniform, UniformTypeToDataType(type), location);
+			}
+			else if (nameString.Contains("."))
+			{
+				// Array attribute   Array[i].variable
+				string[] parts = nameString.Split('.');
+				string[] arrayAndIndex = parts[0].Split('[');
+				string arrayUniform = arrayAndIndex[0];
+				string index = arrayAndIndex[1].Split(']')[0];
+				string variableUniform = parts[1];
+				if (supportedUniforms.ContainsKey(arrayUniform))
+				{
+					ShaderUniform supportedArray = supportedUniforms[arrayUniform];
+					ShaderUniform supported = supportedUniforms[variableUniform];
+					ShaderDataType uniformType = UniformTypeToDataType(type);
+					if (supported.dataType == uniformType)
+					{
+						int arrayIndex = int.Parse(index);
+						Logger.LogInfo("\tCreated supported uniform in array : " + arrayUniform + "[" + arrayIndex + "]." + variableUniform + " of type " + GetDataTypeString(uniformType)
+						+ " at " + location);
+						returnValue = new ShaderUniform(supported.name, supported.dataType, location, supportedArray.name, arrayIndex);
+					}
+					else
+					{
+						Logger.LogError(Logger.ErrorState.Critical, "Shader data type mismatch with supported uniform type: "
+						+ " Expected: " + GetDataTypeString(supported.dataType)
+						+ " Got: " + GetDataTypeString(uniformType));
+						returnValue = new ShaderUniform(ShaderUniformName.InvalidUniformName, ShaderDataType.InvalidType);
+					}
+				}
+				else
+				{
+					Logger.LogError(Logger.ErrorState.Critical, "Shader uniform name contains '.' but is not supported array: "
+					+ nameString);
+					returnValue = new ShaderUniform(ShaderUniformName.InvalidUniformName, ShaderDataType.InvalidType);
+				}
 			}
 			else
 			{
@@ -270,40 +347,6 @@ namespace OpenTkConsole
 			return returnValue;
 		}
 
-		public string GetAttributeName(ShaderAttributeName name)
-		{
-			switch (name)
-			{
-				case ShaderAttributeName.Position: return "aPosition";
-				case ShaderAttributeName.Normal: return "aNormal";
-				case ShaderAttributeName.TexCoord: return "aTexCoord";
-				case ShaderAttributeName.DiffuseColor: return "aDiffuseColor";
-				default: return string.Empty;
-			}
-		}
-		public string GetUniformName(ShaderUniformName name)
-		{
-			switch (name)
-			{
-				case ShaderUniformName.ViewMatrix: return "uViewMatrix";
-				case ShaderUniformName.ProjectionMatrix: return "uProjectionMatrix";
-				case ShaderUniformName.WorldMatrix: return "uWorldMatrix";
-				
-				case ShaderUniformName.LightDirection: return "uLightDirection";
-				case ShaderUniformName.LightColor: return "uLightColor";
-				case ShaderUniformName.ParticleColor: return "uParticleColor";
-
-				case ShaderUniformName.AmbientStrength: return "uAmbientStrength";
-				case ShaderUniformName.DiffuseStrength: return "uDiffuseStrength";
-				case ShaderUniformName.SpecularStrength: return "uSpecularStrength";
-				case ShaderUniformName.SpecularPower: return "uSpecularPower";
-
-				case ShaderUniformName.DiffuseMap: return "uDiffuseMap";
-				case ShaderUniformName.NormalMap: return "uNormalMap";
-
-				default: return string.Empty;
-			}
-		}
 
 
 		public ShaderDataType UniformTypeToDataType(ActiveUniformType type)

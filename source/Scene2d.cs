@@ -12,9 +12,9 @@ namespace OpenTkConsole
 {
 	public class Scene2D : IScene 
 	{
-		ShaderProgram guiShader;
+		// ShaderProgram guiShader;
 
-		DrawableMesh quadMesh;
+		// DrawableMesh quadMesh;
 
 		CameraComponent cameraOrthogonal;
 

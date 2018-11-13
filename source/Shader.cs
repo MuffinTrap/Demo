@@ -109,6 +109,7 @@ namespace OpenTkConsole
 				ShaderUniform uniform = uniManager.CreateShaderUniform(uniformName, type, GetUniformLocation(this.handle, uniformName));
 				if (uniform.IsValid())
 				{
+					Logger.LogInfo("\tUniform: " + i + " name :" + uniformName + "added to shaders's uniforms.");
 					uniforms.Add(uniform);
 				}
 			}

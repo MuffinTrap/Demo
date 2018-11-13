@@ -6,11 +6,7 @@ uniform mat4 uProjectionMatrix;
 uniform mat4 uWorldMatrix;
 uniform mat4 uViewMatrix;
 
-// Directional light
-uniform vec3 uLightDirection;
-
-
-// attributes of our vertex
+// attributes of vertex
 in vec3 aPosition;
 in vec3 aNormal;
 in vec2 aTexCoord;
@@ -18,16 +14,13 @@ in vec2 aTexCoord;
 out vec3 fNormal;
 out vec3 fPosition;
 out vec2 fTexCoord;
-out vec3 fLightDirection;
 
 void main()
 {
 	// gl_Position is a special variable of OpenGL that must be set
-	 gl_Position =  uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0);
-	 fNormal = mat3(transpose(inverse(uViewMatrix * uWorldMatrix))) * aNormal;
-	 fPosition = vec3(uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0));
-	 fTexCoord = vec2(aTexCoord.x, -1 * aTexCoord.y);
-	 fLightDirection = vec3(uViewMatrix * vec4(uLightDirection, 0.0f));
-
+	gl_Position =  uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0);
+	fNormal = mat3(transpose(inverse(uViewMatrix * uWorldMatrix))) * aNormal;
+	fPosition = vec3(uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0));
+	fTexCoord = vec2(aTexCoord.x, -1 * aTexCoord.y);
 }
 

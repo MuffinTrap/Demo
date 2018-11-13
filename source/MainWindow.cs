@@ -79,6 +79,8 @@ namespace OpenTkConsole
 			rowsPerBeat = 4;
 			songLength = 5.0f; // seconds
 
+			MenuSystem.SetSingleton(syncDevice);
+
 			string dataFolder = "data";
 			AssetManager.WorkingDir = dataFolder;
 			AssetManager assetManager = AssetManager.GetAssetManagerSingleton();
@@ -87,11 +89,11 @@ namespace OpenTkConsole
 			assetManager.LoadAll();
 			assetManager.printLoadedAssets();
 
+			MenuSystem.GetSingleton().ReadFromFile(dataFolder + "/tunables.json");
+
 			// Materials and scenes
-			// Pass syncer to scenes.
 
 			CameraComponent mainCamera = new CameraComponent();
-			mainCamera.ActivateForDrawing();
 			scenes = new List<IScene>();
 			try
 			{
@@ -107,7 +109,7 @@ namespace OpenTkConsole
 			}
 			catch (Exception exception)
 			{
-				Logger.LogError(Logger.ErrorState.Critical, "Caugh exception when loading scene " + exception.Message);
+				Logger.LogError(Logger.ErrorState.Critical, "Caught exception when loading scene " + exception.Message);
 			}
 
 			Logger.LogPhase("Scenes have been loaded");
@@ -282,7 +284,7 @@ namespace OpenTkConsole
 		
 		void loadSyncer()
 		{
-			syncDevice = new Device("test", false);
+			syncDevice = new Device("Demo", false);
 			sceneNumber = syncDevice.GetTrack("Scene");
 			cameraFrame = syncDevice.GetTrack("CameraFrame");
 			

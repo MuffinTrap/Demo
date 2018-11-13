@@ -75,25 +75,21 @@ namespace OpenTkConsole
 
 		}
 
-		public void ActivateForDrawing()
-		{
-			ShaderUniformManager.GetSingleton().RegisterDataOwner(this, ShaderUniformName.NormalMap);
-			seaTerrain.ActivateForDrawing();
-
-		}
-		public void SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
+		
+		public bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
 		{
 			if (dataName == ShaderUniformName.NormalMap)
 			{
 				GL.ActiveTexture(TextureUnit.Texture1);
 				GL.BindTexture(TextureTarget.Texture2D, normalMapMaterial.textureGLIndex);
 				shaderProgram.SetSamplerUniform(location, 1);
+				return true;
 			}
+			return false;
 		}
 
 		public void draw()
 		{
-			ShaderUniformManager.GetSingleton().SetData(seaTerrain.ShaderProgram, ShaderUniformName.NormalMap);
 			seaShader.SetVec2Uniform(offset1Location, offset1);
 			seaShader.SetVec2Uniform(offset2Location, offset2);
 			seaTerrain.draw();
@@ -109,12 +105,18 @@ namespace OpenTkConsole
 		SeaMesh sea;
 		CameraComponent camera;
 
-		DirectionalLight sunLight;
+		Light sunLight;
+		Light lampLight;
+		Light lampLight2;
 
 		public LightScene(CameraComponent mainCamera)
 		{
 			camera = mainCamera;
-			sunLight = new DirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), new Vector3(0.3f, -1.0f, -0.3f), 0.3f);
+			// sunLight = Light.createDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.3f, new Vector3(0.3f, -1.0f, -0.3f));
+			lampLight = Light.createPointLight(new Vector3(1.0f, 0.5f, 0.5f), 0.0f, 64.0f
+			, new Vector3(2.0f, 3.0f, -2.0f));
+			lampLight2 = Light.createPointLight(new Vector3(0.8f, 1.0f, 0.8f), 0.0f, 92.0f
+			, new Vector3(2.0f, 6.0f, -4.0f));
 		}
 
 		public void setCameraFrames(List<PosAndDir> frames) { }
@@ -144,7 +146,6 @@ namespace OpenTkConsole
 			sea.GetCustomLocations();
 
 			// Lighting
-			sunLight.ActivateForDrawing();
 
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
@@ -158,16 +159,20 @@ namespace OpenTkConsole
 		public void drawScene(float cameraFrame) 
 		{
 			ShaderUniformManager uniformManager = ShaderUniformManager.GetSingleton();
+			Renderer renderer = Renderer.GetSingleton();
 
-			camera.ActivateForDrawing();
+			renderer.RenderWithShader(shaderProgram);
+			renderer.RenderCamera(camera);
+			renderer.RenderLight(lampLight, 0);
+			renderer.RenderLight(lampLight2, 1);
+			renderer.RenderMesh(quadMesh);
 
-			quadMesh.ActivateForDrawing();
-			uniformManager.ActivateShader(shaderProgram);
 			quadMesh.draw();
 
-			sea.ActivateForDrawing();
-			uniformManager.ActivateShader(sea.seaShader);
+			/*
+			renderer.RenderWithShader(sea.seaShader);
 			sea.draw();
+			*/
 
 			Error.checkGLError("LightScene.drawScene");
 		}

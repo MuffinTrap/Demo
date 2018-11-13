@@ -52,14 +52,13 @@ namespace OpenTkConsole
 		public void drawScene(float cameraFrame)
 		{
 			camera.setFrame(cameraFrame, cameraFrames);
-			camera.ActivateForDrawing();
-			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			uniMan.ActivateShader(MainShader);
+			Renderer rend = Renderer.GetSingleton();
+			rend.RenderWithShader(MainShader);
+			rend.RenderCamera(camera);
 			
 			foreach(DrawableMesh m in allModels)
 			{
-				m.ActivateForDrawing();
-				m.draw();
+				rend.RenderMesh(m);
 			}
 
 			Error.checkGLError("Scene.drawScene");

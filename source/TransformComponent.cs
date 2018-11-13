@@ -13,7 +13,22 @@ namespace OpenTkConsole
 	public class TransformComponent
 	{
 		public Matrix4Uniform worldMatrix;
-
+		public Vector3 Position { get; set; }
+		private Vector3 direction;
+		public Vector3 Direction
+		{
+			get
+			{
+				Vector4 defaultRot = new Vector4(1.0f, 0.0f, 0.0f, 0.0f);
+				Vector4 applied = rotationMatrix * defaultRot;
+				return new Vector3(applied.X, applied.Y, applied.Z);
+			}
+			set
+			{
+				direction = value.Normalized(); 
+			}
+		}
+		public float Scale { get; set; }
 
 		private float rotationX;
 		private float rotationY;
@@ -21,7 +36,6 @@ namespace OpenTkConsole
 
 		private Matrix4 rotationMatrix;
 
-		public float Scale { get; set; }
 
 		public TransformComponent()
 		{
@@ -37,19 +51,15 @@ namespace OpenTkConsole
 
 		public TransformComponent(Vector3 position) : this()
 		{
-			WorldPosition = position;
+			Position = position;
 		}
 
 		public TransformComponent(Vector3 position, float scale) : this()
 		{
-			WorldPosition = position;
+			Position = position;
 			Scale = scale;
 		}
 
-		public Vector3 WorldPosition
-		{
-			get; set;
-		}
 
 		private Matrix4 CreateRotationMatrixFromAxisAngle()
 		{
@@ -59,7 +69,7 @@ namespace OpenTkConsole
 
 		public void UpdateWorldMatrix()
 		{
-			Matrix4 T = Matrix4.CreateTranslation(WorldPosition);
+			Matrix4 T = Matrix4.CreateTranslation(Position);
 			Matrix4 R = CreateRotationMatrixFromAxisAngle();
 			Matrix4 S = Matrix4.CreateScale(Scale);
 			worldMatrix.Matrix = S * R * T;
@@ -67,7 +77,8 @@ namespace OpenTkConsole
 
 		public void setRotationX(float rotation)
 		{
-			rotationX = MathHelper.Clamp(rotation, 0.0f, MathHelper.TwoPi);
+			rotationX = rotation;
+			rotationMatrix = CreateRotationMatrixFromAxisAngle();
 		}
 
 		public void rotateAroundY(float speed)
@@ -81,7 +92,7 @@ namespace OpenTkConsole
 
 		public void setLocationAndScale(Vector3 position, float scale)
 		{
-			WorldPosition = position;
+			Position = position;
 			Scale = scale;
 		}
 

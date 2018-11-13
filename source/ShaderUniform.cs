@@ -42,17 +42,16 @@ namespace OpenTkConsole
 
 	public struct ShaderUniform
 	{
-		public ShaderUniform(ShaderUniformName nameParam, ShaderDataType dataTypeParam)
-		{
-			name = nameParam;
-			dataType = dataTypeParam;
-			location = -1;
-		}
-		public ShaderUniform(ShaderUniformName nameParam, ShaderDataType dataTypeParam, int locationParam)
+		public ShaderUniform(ShaderUniformName nameParam, ShaderDataType dataTypeParam
+		, int locationParam = -1
+		, ShaderUniformName arrayNameParam = ShaderUniformName.InvalidUniformName
+		, int arrayIndexParam = -1)
 		{
 			name = nameParam;
 			dataType = dataTypeParam;
 			location = locationParam;
+			arrayName = arrayNameParam;
+			arrayIndex = arrayIndexParam;
 		}
 
 		public bool IsValid()
@@ -60,8 +59,10 @@ namespace OpenTkConsole
 			return name != ShaderUniformName.InvalidUniformName;
 		}
 		public ShaderUniformName name;
+		public ShaderUniformName arrayName;
 		public ShaderDataType dataType;
 		public int location;
+		public int arrayIndex;
 	}
 
 }
