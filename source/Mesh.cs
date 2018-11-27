@@ -48,11 +48,10 @@ namespace OpenTkConsole
 					}
 					break;
 				case ShaderUniformName.DiffuseMap:
+				// If there is no material, but it is wanted, ask MaterialManager for
+				// the default
 					if (BoundMaterial != null)
 					{
-						GL.ActiveTexture(TextureUnit.Texture0);
-						GL.BindTexture(TextureTarget.Texture2D, BoundMaterial.textureGLIndex);
-						program.SetSamplerUniform(location, 0);
 					}
 					break;
 				default:
@@ -97,11 +96,6 @@ namespace OpenTkConsole
 			
 			GL.BindVertexArray(0);
 			
-			if (BoundMaterial != null)
-			{
-				GL.ActiveTexture(TextureUnit.Texture0);
-				GL.BindTexture(TextureTarget.Texture2D, 0);
-			}
 			Error.checkGLError("DrawableMesh.draw unbind " + Name);
 
 		}

@@ -42,6 +42,7 @@ namespace OpenTkConsole
 
 		DiffuseMap,
 		NormalMap,
+		IlluminationMap, // Self-illumination
 
 		// Lighting system
 		LightsArray,
@@ -135,6 +136,7 @@ namespace OpenTkConsole
 
 				case ShaderUniformName.DiffuseMap: return "uDiffuseMap";
 				case ShaderUniformName.NormalMap: return "uNormalMap";
+				case ShaderUniformName.IlluminationMap: return "uIlluminationMap";
 
 				default: return string.Empty;
 			}
@@ -152,6 +154,7 @@ namespace OpenTkConsole
 
 			AddSupportedUniform(ShaderUniformName.DiffuseMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.NormalMap, ShaderDataType.Texture2D);
+			AddSupportedUniform(ShaderUniformName.IlluminationMap, ShaderDataType.Texture2D);
 
 			AddSupportedUniform(ShaderUniformName.LightsArray, ShaderDataType.Light);
 			AddSupportedUniform(ShaderUniformName.LightPosition, ShaderDataType.Float3);
@@ -185,6 +188,17 @@ namespace OpenTkConsole
 			supportedAttributes.Add(GetAttributeName(name), new ShaderAttribute(name, type));
 		}
 
+		public bool DoesShaderSupportUniform(ShaderProgram program, ShaderUniformName uniform)
+		{
+			foreach (ShaderUniform uni in program.uniforms)
+			{
+				if (uni.name == uniform)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
 
 		public void SetArrayData(ShaderProgram shader
 		, ShaderUniformName arrayName
@@ -240,6 +254,24 @@ namespace OpenTkConsole
 				Logger.LogInfo(shader.name + " uses "
 				+ GetUniformName(uni.name));
 			}
+		}
+		
+		public int GetDataLocation(ShaderProgram shader
+			, ShaderUniformName dataName)
+		{
+			foreach (ShaderUniform uni in shader.uniforms)
+			{
+				if (uni.name == dataName)
+				{
+					return uni.location;
+				}
+			}
+			return GetInvalidDataLocation();
+		}
+		
+		public static int GetInvalidDataLocation()
+		{
+			return -1;
 		}
 
 		public ShaderUniform CreateShaderUniform(string nameString, ActiveUniformType type, int location)

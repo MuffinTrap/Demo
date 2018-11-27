@@ -17,7 +17,7 @@ namespace OpenTkConsole
 			return singleton;
 		}
 
-		int lightAmount = 2;
+		// int lightAmount = 2;
 		ShaderProgram activeProgram = null;
 
 		public void RenderWithShader(ShaderProgram shader)
@@ -62,14 +62,9 @@ namespace OpenTkConsole
 			}
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
 			man.SetData(activeProgram, ShaderUniformName.WorldMatrix, mesh);
-			if (mesh.BoundMaterial != null)
-			{
-				man.SetData(activeProgram, ShaderUniformName.DiffuseMap, mesh);
-				MaterialManager matMan = MaterialManager.GetSingleton();
-				man.SetData(activeProgram, ShaderUniformName.DiffuseStrength, matMan);
-				man.SetData(activeProgram, ShaderUniformName.SpecularStrength, matMan);
-				man.SetData(activeProgram, ShaderUniformName.SpecularPower, matMan);
-			}
+			MaterialManager matMan = MaterialManager.GetSingleton();
+			matMan.SetMaterialToShader(mesh.BoundMaterial, activeProgram);
+
 			mesh.draw();
 		}
 	}

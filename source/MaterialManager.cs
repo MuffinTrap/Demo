@@ -12,59 +12,150 @@ using OpenTK.Graphics.OpenGL;
 
 namespace OpenTkConsole
 {
-	// Material
-	public class Material
+	public class TextureMap
 	{
-		public string materialName;
-		public string textureName;
-		public int textureGLIndex;
-		public float illumination;
-		public Vector3 alpha;
-		public Vector3 diffuse;
-		public Vector3 specular;
-
+		public string textureName = "";
+		public int textureGLIndex = -1;
 
 		public string getInfoString()
 		{
-			return "Name: " + materialName + " Texture: " + textureName + " GLi: " + textureGLIndex;
+			return " Texture: " + textureName + " GLi: " + textureGLIndex;
+		}
+		
+		public TextureMap(string nameParam, int GLIndexParam)
+		{
+			textureName = nameParam;
+			textureGLIndex = GLIndexParam;
 		}
 	}
 
-	public class MaterialManager : IShaderDataOwner
+	public class Material
 	{
-		public bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
+		public string materialName = "";
+		public Dictionary<ShaderUniformName, TextureMap> textureMaps;
+
+		public Material(string nameParam)
 		{
-			switch(dataName)
+			materialName = nameParam;
+			textureMaps = new Dictionary<ShaderUniformName, TextureMap>();
+		}
+		public TextureMap GetMap(ShaderUniformName uniformName)
+		{
+			if (textureMaps.ContainsKey(uniformName))
 			{
-				case ShaderUniformName.DiffuseStrength:
-					shaderProgram.SetFloatUniform(location, diffuseStrength);
-					break;
-				case ShaderUniformName.SpecularStrength:
-					shaderProgram.SetFloatUniform(location, specularStrength);
-					break;
-				case ShaderUniformName.SpecularPower:
-					shaderProgram.SetFloatUniform(location, specularPower);
-					break;
-				default:
-					return false;
+				return textureMaps[uniformName];
 			}
-			return true;
+			else
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "Material " + materialName + " does not have a map for " + ShaderUniformManager.GetSingleton().GetUniformName(uniformName) + "");
+				return MaterialManager.GetSingleton().GetDefaultMap(uniformName);
+			}
+		}
+		public string getInfoString()
+		{
+			return " Material: " + materialName + ", " + textureMaps.Count + " defined maps";
+		}
+	}
+
+	public class MaterialManager
+	{
+
+		// Sets all materials that apply
+		public void SetMaterialToShader(Material meshMaterial, ShaderProgram program)
+		{
+			if (program == null)
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "MaterialManager> No program given, cannot set material");
+				return;
+			}
+			if (meshMaterial == null)
+			{
+				SetMaterialToShader(defaultMaterial, program);
+				return;
+			}
+			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
+
+			// Must try each supported texture uniform
+			foreach (KeyValuePair<ShaderUniformName, TextureMap> entry in defaultMaterial.textureMaps)
+			{
+				ShaderUniformName uniform = entry.Key;
+				if (!man.DoesShaderSupportUniform(program, uniform))
+				{
+					continue;
+				}
+				int location = man.GetDataLocation(program, uniform);
+				if (location == ShaderUniformManager.GetInvalidDataLocation())
+				{
+					Logger.LogError(Logger.ErrorState.Limited, "MaterialManager: Shader says to support texture map " + man.GetUniformName(uniform) + " but there is no location for it");
+					continue;
+				}
+					
+
+				// IMPORTANT PART !
+				if (meshMaterial.textureMaps.ContainsKey(uniform))
+				{
+					SetTextureUniform(program, location, uniform, meshMaterial.textureMaps[uniform]);
+				}
+
+				else
+				{
+					if (defaultMaterial.textureMaps.ContainsKey(uniform))
+					{
+						SetTextureUniform(program, location, uniform, defaultMaterial.textureMaps[uniform]);
+					}
+					else 
+					{
+						Logger.LogError(Logger.ErrorState.Limited, "MaterialManager: Shader wants a texture map " + man.GetUniformName(uniform) + " that is not in default material");
+					}
+				}
+			}
+		}
+
+		public void SetTextureUniform(ShaderProgram shaderProgram, int location, ShaderUniformName uniform, TextureMap map)
+		{
+			int textureUnit = -1;
+			if (uniform == ShaderUniformName.DiffuseMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture0);
+				textureUnit = 0;
+			}
+			else if (uniform == ShaderUniformName.IlluminationMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture1);
+				textureUnit = 1;
+			}
+			else if (uniform == ShaderUniformName.NormalMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture2);
+				textureUnit = 2;
+			}
+			if (textureUnit == -1)
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "No defined texture unit for uniform " + ShaderUniformManager.GetSingleton().GetUniformName(uniform) + ", cannot bind");
+			}
+			GL.BindTexture(TextureTarget.Texture2D, map.textureGLIndex);
+			shaderProgram.SetSamplerUniform(location, textureUnit);
 		}
 
 		public List<Material> materials;
-
-		// Defaults for materials
-		float diffuseStrength = 0.8f;
-		float specularStrength = 0.2f;
-		float specularPower = 64;
+		private List<TextureMap> colorMaps;
+		private Material defaultMaterial;
 
 		private MaterialManager()
 		{
 			materials = new List<Material>();
-			createMaterial("white", Color.White);
-			createMaterial("black", Color.Black);
-			createMaterial("gray", Color.Gray);
-			createMaterial("green", Color.ForestGreen);
+			colorMaps = new List<TextureMap>();
+			colorMaps.Add(new TextureMap("white", createTexture(Color.White)));
+			colorMaps.Add(new TextureMap("black", createTexture(Color.Black)));
+			Color normalMapColor = Color.FromArgb(128, 128, 255);
+			colorMaps.Add(new TextureMap("normalMap", createTexture(normalMapColor)));
+
+			defaultMaterial = new Material("default");
+			defaultMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, GetColorTextureByName("white"));
+			defaultMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, GetColorTextureByName("black"));
+			defaultMaterial.textureMaps.Add(ShaderUniformName.NormalMap, GetColorTextureByName("normalMap"));
+
+			materials.Add(defaultMaterial);
 		}
 
 		private static MaterialManager singleton = null;
@@ -79,10 +170,10 @@ namespace OpenTkConsole
 
 		public void printLoadedAssets()
 		{
-				foreach (Material m in materials)
-				{
-					Logger.LogInfo("Loaded material " + m.getInfoString());
-				}
+			foreach (Material m in materials)
+			{
+				Logger.LogInfo("Loaded material " + m.getInfoString());
+			}
 		}
 
 		public Material GetMaterialByName(string materialName)
@@ -96,6 +187,32 @@ namespace OpenTkConsole
 			}
 			Logger.LogError(Logger.ErrorState.Limited, "No material with name " + materialName + " exists in MaterialManager");
 			return null;
+		}
+
+		public TextureMap GetColorTextureByName(string textureName)
+		{
+			foreach (TextureMap m in colorMaps)
+			{
+				if (m.textureName == textureName)
+				{
+					return m;
+				}
+			}
+			Logger.LogError(Logger.ErrorState.Limited, "No Color Texture with name " + textureName + " exists in MaterialManager");
+			return null;
+		}
+
+		public TextureMap GetDefaultMap(ShaderUniformName uniformName)
+		{
+			if (defaultMaterial.textureMaps.ContainsKey(uniformName))
+			{
+				return defaultMaterial.textureMaps[uniformName];
+			}
+			else
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "MaterialManager's default material does not have map for " + ShaderUniformManager.GetSingleton().GetUniformName(uniformName));
+				return null;
+			}
 		}
 
 		private bool doesMaterialExist(string materialName)
@@ -174,8 +291,7 @@ namespace OpenTkConsole
 			}
 			else
 			{
-				newMaterial = new Material();
-				newMaterial.materialName = materialName;
+				newMaterial = new Material(materialName);
 			}
 
 			// Read rest of the file
@@ -198,60 +314,38 @@ namespace OpenTkConsole
 				else if (line.Contains("map_Kd"))
 				{
 					// map_Kd filename.png
-					newMaterial.textureName = line.Split(space)[1];
-					newMaterial.textureGLIndex = loadTexture(newMaterial.textureName);
+					string textureName = line.Split(space)[1];
+					int textureGLIndex = loadTexture(textureName);
+					TextureMap diffuse = new TextureMap(textureName, textureGLIndex);
+					newMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, diffuse);
 				}
-				else if (line.Contains("illum"))
+				else if (line.Contains("map_Ki"))
 				{
-					newMaterial.illumination = Single.Parse(line.Split(space)[1], nfi);
+					// Illumination map
+					// map_Ki filename.png
+					string textureName = line.Split(space)[1];
+					int textureGLIndex = loadTexture(textureName);
+					TextureMap illumination = new TextureMap(textureName, textureGLIndex);
+					newMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, illumination);
 				}
-				else if (line.Contains("Ka"))
+				else if (line.Contains("map_Kn"))
 				{
-					newMaterial.alpha = OBJFileReader.readVector3(line);
+					// Normal map
+					// map_Kn filename.png
+					string textureName = line.Split(space)[1];
+					int textureGLIndex = loadTexture(textureName);
+					TextureMap normal = new TextureMap(textureName, textureGLIndex);
+					newMaterial.textureMaps.Add(ShaderUniformName.NormalMap, normal);
 				}
-				else if (line.Contains("Kd"))
-				{
-					newMaterial.diffuse = OBJFileReader.readVector3(line);
-				}
-				else if (line.Contains("Ks"))
-				{
-					newMaterial.specular = OBJFileReader.readVector3(line);
-				}
-				
-
 			} while (line != null);
 
-
 			sourceFile.Close();
-
 			materials.Add(newMaterial);
-
 			Logger.LogInfo("Loaded material from file " + materialFileName);
 
 			return newMaterial;
 		}
 
-		void createMaterial(string materialName, Color materialColor)
-		{
-			if (doesMaterialExist(materialName))
-			{
-				return;
-			}
-
-			Material newMaterial = new Material();
-			newMaterial.materialName = materialName;
-			newMaterial.diffuse = new Vector3(1,1,1);
-			newMaterial.alpha = new Vector3(0,0,0);
-			newMaterial.specular = new Vector3(0,0,0);
-			newMaterial.textureName = "";
-			
-			newMaterial.textureGLIndex = createTexture(materialColor);
-			
-			materials.Add(newMaterial);
-
-			Logger.LogInfo("Created material with name " + materialName);
-		}
-		
 		int createTexture(System.Drawing.Color textureColor)
 		{
 			int size = 4;

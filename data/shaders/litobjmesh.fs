@@ -37,14 +37,9 @@ uniform mat4 uViewMatrix;
 #define LIGHT_AMOUNT 2
 uniform Light uLights[LIGHT_AMOUNT];
 
-// Material properties
-uniform float uAmbientStrength;
-uniform float uDiffuseStrength;
-uniform float uSpecularStrength;
-uniform float uSpecularPower;
-
 // Textures
 uniform sampler2D uDiffuseMap;
+uniform sampler2D uIlluminationMap;
 
 in vec3 fNormal;
 in vec3 fPosition;
@@ -55,14 +50,20 @@ out vec4 fragColor;
 void main()
 {
 	Material mat;
-	mat.diffuseStrength = uDiffuseStrength;
-	mat.specularPower = uSpecularPower;
-	mat.specularStrength = uSpecularStrength;
-	mat.ambientStrength = uAmbientStrength;
+	mat.diffuseStrength = 0.7f;
+	mat.specularPower = 64;
+	mat.specularStrength = 0.2f;
+	mat.ambientStrength = 0.1f;
 	
+	vec4 illuminationValue = texture(uIlluminationMap, fTexCoord);
+	float illuminationPercentage = illuminationValue.x;
 	vec4 textureColor = texture(uDiffuseMap, fTexCoord);
-    fragColor = getPointLight(fPosition, fNormal, uLights[0], mat) * textureColor;
-	fragColor += getPointLight(fPosition, fNormal, uLights[1], mat) * textureColor;
+	vec4 lightColor = vec4(0,0,0,0);
+	for (int i = 0; i < LIGHT_AMOUNT; i++)
+	{
+		lightColor += textureColor * getPointLight(fPosition, fNormal, uLights[i], mat);
+	}
+    fragColor = ((1.0f - illuminationPercentage) * lightColor) + ((illuminationPercentage) * textureColor);
 }
 
 vec4 getPointLight(

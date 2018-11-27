@@ -15,7 +15,7 @@ namespace OpenTkConsole
 		public DrawableMesh seaTerrain;
 		public ShaderProgram seaShader;
 
-		public Material normalMapMaterial;
+		public Material seaMaterial;
 		Random randomGenerator = new Random();
 
 		// Texcoord offsets
@@ -81,7 +81,7 @@ namespace OpenTkConsole
 			if (dataName == ShaderUniformName.NormalMap)
 			{
 				GL.ActiveTexture(TextureUnit.Texture1);
-				GL.BindTexture(TextureTarget.Texture2D, normalMapMaterial.textureGLIndex);
+				GL.BindTexture(TextureTarget.Texture2D, seaMaterial.GetMap(dataName).textureGLIndex);
 				shaderProgram.SetSamplerUniform(location, 1);
 				return true;
 			}
@@ -102,10 +102,14 @@ namespace OpenTkConsole
 	{
 		ShaderProgram shaderProgram;
 		DrawableMesh quadMesh;
+		DrawableMesh lampMesh1;
+		DrawableMesh lampMesh2;
 		SeaMesh sea;
 		CameraComponent camera;
 
-		Light sunLight;
+		Vector3 lampPos1;
+		Vector3 lampPos2;
+
 		Light lampLight;
 		Light lampLight2;
 
@@ -113,10 +117,11 @@ namespace OpenTkConsole
 		{
 			camera = mainCamera;
 			// sunLight = Light.createDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.3f, new Vector3(0.3f, -1.0f, -0.3f));
-			lampLight = Light.createPointLight(new Vector3(1.0f, 0.5f, 0.5f), 0.0f, 64.0f
-			, new Vector3(2.0f, 3.0f, -2.0f));
+			lampPos1 = new Vector3(2.0f, 3.0f, -2.0f);
+			lampPos2 = new Vector3(2.0f, 6.0f, -4.0f);
+			lampLight = Light.createPointLight(new Vector3(1.0f, 0.5f, 0.5f), 0.0f, 64.0f, lampPos1);
 			lampLight2 = Light.createPointLight(new Vector3(0.8f, 1.0f, 0.8f), 0.0f, 92.0f
-			, new Vector3(2.0f, 6.0f, -4.0f));
+			, lampPos2);
 		}
 
 		public void setCameraFrames(List<PosAndDir> frames) { }
@@ -132,6 +137,20 @@ namespace OpenTkConsole
 			, new Vector3(4.0f, 0.0f, 0.0f)
 			, 0.2f);
 
+			lampMesh1 = assetManager.GetMesh("lamp1"
+				, MeshDataGenerator.CreatePyramidMesh(0.1f, 0.1f, true, true)
+				, "default"
+				, shaderProgram
+				, lampPos1
+				, 1.0f);
+
+			lampMesh2 = assetManager.GetMesh("lamp2"
+				, MeshDataGenerator.CreatePyramidMesh(0.1f, 0.1f, true, true)
+				, "default"
+				, shaderProgram
+				, lampPos2
+				, 1.0f);
+
 			sea = new SeaMesh();
 			sea.seaShader = assetManager.GetShaderProgram("heightMapTerrain");
 			sea.seaTerrain = assetManager.GetMesh("sea"
@@ -142,7 +161,8 @@ namespace OpenTkConsole
 			, 1.0f);
 
 			//sea.seaTerrain.Transform.setRotationX(MathHelper.Pi / 2.0f);
-			sea.normalMapMaterial = assetManager.GetMaterial("sea_height");
+			sea.seaMaterial = assetManager.GetMaterial("sea_height");
+			 
 			sea.GetCustomLocations();
 
 			// Lighting
@@ -168,6 +188,8 @@ namespace OpenTkConsole
 			renderer.RenderMesh(quadMesh);
 
 			quadMesh.draw();
+			lampMesh1.draw();
+			lampMesh2.draw();
 
 			/*
 			renderer.RenderWithShader(sea.seaShader);
