@@ -47,13 +47,6 @@ namespace OpenTkConsole
 						Transform.worldMatrix.SetToShader(program, location);
 					}
 					break;
-				case ShaderUniformName.DiffuseMap:
-				// If there is no material, but it is wanted, ask MaterialManager for
-				// the default
-					if (BoundMaterial != null)
-					{
-					}
-					break;
 				default:
 					return false;
 			}
@@ -79,7 +72,7 @@ namespace OpenTkConsole
 					break;
 				case MeshData.DataDrawType.Points:
 					beginType = PrimitiveType.Points;
-					GL.PointSize(5.0f);
+					GL.PointSize(1.0f);
 					break;
 			}
 

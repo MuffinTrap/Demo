@@ -43,7 +43,7 @@ namespace OpenTkConsole
 		Audio testSong;
 
         public MainWindow()
-            : base(800, 460, 
+            : base(1024, 720, 
                   GraphicsMode.Default,
                   "OpenTK party",
                   GameWindowFlags.Default,
@@ -97,7 +97,7 @@ namespace OpenTkConsole
 			scenes = new List<IScene>();
 			try
 			{
-				scenes.Add(new TestScene(mainCamera));
+				// scenes.Add(new TestScene(mainCamera));
 				scenes.Add(new LightScene(mainCamera)); // This scene handles the camera update
 				//scenes.Add(new Scene2D());  // This is the gui scene
 				//scenes.Add(assetManager.GetScene("tia.sce"));
@@ -252,8 +252,8 @@ namespace OpenTkConsole
 
             Color4 backColor;
             backColor.A = 1.0f;
-			backColor.R = 0.1f;
-			backColor.G = 0.1f;
+			backColor.R = 0.0f;
+			backColor.G = 0.001f;
             backColor.B = 0.1f;
             GL.ClearColor(backColor);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);

@@ -43,6 +43,7 @@ namespace OpenTkConsole
 		DiffuseMap,
 		NormalMap,
 		IlluminationMap, // Self-illumination
+		RoughnessMap,
 
 		// Lighting system
 		LightsArray,
@@ -137,6 +138,7 @@ namespace OpenTkConsole
 				case ShaderUniformName.DiffuseMap: return "uDiffuseMap";
 				case ShaderUniformName.NormalMap: return "uNormalMap";
 				case ShaderUniformName.IlluminationMap: return "uIlluminationMap";
+				case ShaderUniformName.RoughnessMap: return "uRoughnessMap";
 
 				default: return string.Empty;
 			}
@@ -155,6 +157,7 @@ namespace OpenTkConsole
 			AddSupportedUniform(ShaderUniformName.DiffuseMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.NormalMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.IlluminationMap, ShaderDataType.Texture2D);
+			AddSupportedUniform(ShaderUniformName.RoughnessMap, ShaderDataType.Texture2D);
 
 			AddSupportedUniform(ShaderUniformName.LightsArray, ShaderDataType.Light);
 			AddSupportedUniform(ShaderUniformName.LightPosition, ShaderDataType.Float3);

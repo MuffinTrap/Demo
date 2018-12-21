@@ -22,6 +22,11 @@ namespace OpenTkConsole
 
 		public void RenderWithShader(ShaderProgram shader)
 		{
+			if (shader == null)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "RenderWithShader, no shader given");
+				return;
+			}
 			activeProgram = shader;
 			activeProgram.Use();
 		}
@@ -37,17 +42,37 @@ namespace OpenTkConsole
 			man.SetData(activeProgram, ShaderUniformName.ViewMatrix, camera);
 			man.SetData(activeProgram, ShaderUniformName.ProjectionMatrix, camera);
 		}
-		
-		public void RenderLight(IShaderDataOwner light, int lightIndex)
+
+		public void RenderDirectionalLight(IShaderDataOwner light, int lightIndex)
 		{
 			if (activeProgram == null)
 			{
 				Logger.LogError(Logger.ErrorState.Critical, "RenderLight, no active shader");
 				return;
 			}
+			if (lightIndex != 0)
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "RenderLight, directional lights must have index 0");
+			}
+			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
+			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightDirection, light, lightIndex);
+			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightColor, light, lightIndex);
+			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.QuadraticAttenuation, light, lightIndex);
+		}
+		
+		public void RenderPointLight(IShaderDataOwner light, int lightIndex)
+		{
+			if (activeProgram == null)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "RenderLight, no active shader");
+				return;
+			}
+			if (lightIndex == 0)
+			{
+				Logger.LogError(Logger.ErrorState.Limited, "RenderLight, point lights must have index greater than 0");
+			}
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightPosition, light, lightIndex);
-			//man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightDirection, light, lightIndex);
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightColor, light, lightIndex);
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LinearAttenuation, light, lightIndex);
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.QuadraticAttenuation, light, lightIndex);
@@ -58,6 +83,11 @@ namespace OpenTkConsole
 			if (activeProgram == null)
 			{
 				Logger.LogError(Logger.ErrorState.Critical, "RenderMesh, no active shader");
+				return;
+			}
+			if (mesh == null)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "RenderMesh, no mesh given");
 				return;
 			}
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();

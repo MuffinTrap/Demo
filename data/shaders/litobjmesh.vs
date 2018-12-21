@@ -21,6 +21,6 @@ void main()
 	gl_Position =  uProjectionMatrix * uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0);
 	fNormal = mat3(transpose(inverse(uViewMatrix * uWorldMatrix))) * aNormal;
 	fPosition = vec3(uViewMatrix * uWorldMatrix * vec4(aPosition, 1.0));
-	fTexCoord = vec2(aTexCoord.x, -1 * aTexCoord.y);
+	fTexCoord = vec2(aTexCoord.x, 1 - aTexCoord.y);
 }
 

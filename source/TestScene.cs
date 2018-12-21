@@ -32,7 +32,6 @@ namespace OpenTkConsole
 
 		public void loadScene(AssetManager assetManager)
 		{
-			// Load program from single file...
 			gridShader = assetManager.GetShaderProgram("gridmesh");
 
 			Error.checkGLError("Scene.loadScene");

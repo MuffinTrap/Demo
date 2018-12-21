@@ -129,6 +129,11 @@ namespace OpenTkConsole
 				GL.ActiveTexture(TextureUnit.Texture2);
 				textureUnit = 2;
 			}
+			else if (uniform == ShaderUniformName.RoughnessMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture3);
+				textureUnit = 3;
+			}
 			if (textureUnit == -1)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "No defined texture unit for uniform " + ShaderUniformManager.GetSingleton().GetUniformName(uniform) + ", cannot bind");
@@ -147,15 +152,23 @@ namespace OpenTkConsole
 			colorMaps = new List<TextureMap>();
 			colorMaps.Add(new TextureMap("white", createTexture(Color.White)));
 			colorMaps.Add(new TextureMap("black", createTexture(Color.Black)));
-			Color normalMapColor = Color.FromArgb(128, 128, 255);
+			Color normalMapColor = Color.FromArgb(127, 127, 255);
 			colorMaps.Add(new TextureMap("normalMap", createTexture(normalMapColor)));
+			Color roughnessMapColor = Color.FromArgb(127, 127, 127);
+			colorMaps.Add(new TextureMap("roughnessMap", createTexture(roughnessMapColor)));
 
 			defaultMaterial = new Material("default");
 			defaultMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, GetColorTextureByName("white"));
 			defaultMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, GetColorTextureByName("black"));
 			defaultMaterial.textureMaps.Add(ShaderUniformName.NormalMap, GetColorTextureByName("normalMap"));
+			defaultMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, GetColorTextureByName("roughnessMap"));
 
 			materials.Add(defaultMaterial);
+
+			Material lampMat = new Material("lamp");
+			lampMat.textureMaps.Add(ShaderUniformName.DiffuseMap, GetColorTextureByName("white"));
+			lampMat.textureMaps.Add(ShaderUniformName.IlluminationMap, GetColorTextureByName("white"));
+			materials.Add(lampMat);
 		}
 
 		private static MaterialManager singleton = null;
@@ -322,7 +335,7 @@ namespace OpenTkConsole
 				else if (line.Contains("map_Ki"))
 				{
 					// Illumination map
-					// map_Ki filename.png
+					// map_Ki filename_i.png
 					string textureName = line.Split(space)[1];
 					int textureGLIndex = loadTexture(textureName);
 					TextureMap illumination = new TextureMap(textureName, textureGLIndex);
@@ -331,11 +344,20 @@ namespace OpenTkConsole
 				else if (line.Contains("map_Kn"))
 				{
 					// Normal map
-					// map_Kn filename.png
+					// map_Kn filename_n.png
 					string textureName = line.Split(space)[1];
 					int textureGLIndex = loadTexture(textureName);
 					TextureMap normal = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.NormalMap, normal);
+				}
+				else if (line.Contains("map_Kr"))
+				{
+					// Roughness map
+					// map_Kr filename_r.png
+					string textureName = line.Split(space)[1];
+					int textureGLIndex = loadTexture(textureName);
+					TextureMap roughness = new TextureMap(textureName, textureGLIndex);
+					newMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, roughness);
 				}
 			} while (line != null);
 
@@ -392,7 +414,7 @@ namespace OpenTkConsole
 			GL.ActiveTexture(TextureUnit.Texture0);
 			GL.BindTexture(TextureTarget.Texture2D, texID);
 			BitmapData data = map.LockBits(new System.Drawing.Rectangle(0, 0, map.Width, map.Height),
-		ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+				ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
 			GL.TexImage2D(target: TextureTarget.Texture2D
 				, level: 0
@@ -411,6 +433,16 @@ namespace OpenTkConsole
 			// Don't use mipmaps
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
+
+			// Don't loop
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+
+			// Don't interpolate
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+
+			GL.BindTexture(TextureTarget.Texture2D, 0);
 
 			Error.checkGLError("MaterialManager.loadTextureFromBitmap");
 

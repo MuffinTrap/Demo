@@ -45,8 +45,6 @@ namespace OpenTkConsole
 		private float yaw = 0.0f;
 		private float pitch = 0.0f;
 
-		private float orbitAngle = 0.0f;
-
 		private Matrix4Uniform viewMatrix;
 		private Matrix4Uniform projectionMatrix;
 
@@ -278,18 +276,6 @@ namespace OpenTkConsole
 			}
 		}
 
-		public void Orbit(float speed, float height, float distance, Vector3 targetPoint)
-		{
-			orbitAngle += speed;
-			const float fullCircle = (float)(Math.PI * 2.0f);
-			if (orbitAngle > fullCircle)
-			{
-				orbitAngle -= fullCircle;
-			}
-			Matrix4 rot = Matrix4.CreateRotationY(orbitAngle);
-			Position = targetPoint + Vector3.TransformVector(new Vector3(0, height, distance), rot);
-			SetTarget(targetPoint);
-		}
 	}
 
 }

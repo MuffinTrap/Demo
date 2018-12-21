@@ -101,26 +101,37 @@ namespace OpenTkConsole
 	public class LightScene : IScene
 	{
 		ShaderProgram shaderProgram;
+		ShaderProgram skyboxProgram;
+		ShaderProgram debugShader;
+
 		DrawableMesh quadMesh;
 		DrawableMesh lampMesh1;
 		DrawableMesh lampMesh2;
+		DrawableMesh starSphere;
+
+		DrawableMesh pyramidMesh;
+
+		DrawableMesh mountainMesh;
+		DrawableMesh mountainNormals;
+
 		SeaMesh sea;
 		CameraComponent camera;
 
 		Vector3 lampPos1;
 		Vector3 lampPos2;
 
+		Light sunLight;
 		Light lampLight;
 		Light lampLight2;
 
 		public LightScene(CameraComponent mainCamera)
 		{
 			camera = mainCamera;
-			// sunLight = Light.createDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.3f, new Vector3(0.3f, -1.0f, -0.3f));
+			sunLight = Light.createDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.0f, new Vector3(0.0f, 0.0f, 0.0f));
 			lampPos1 = new Vector3(2.0f, 3.0f, -2.0f);
-			lampPos2 = new Vector3(2.0f, 6.0f, -4.0f);
-			lampLight = Light.createPointLight(new Vector3(1.0f, 0.5f, 0.5f), 0.0f, 64.0f, lampPos1);
-			lampLight2 = Light.createPointLight(new Vector3(0.8f, 1.0f, 0.8f), 0.0f, 92.0f
+			lampPos2 = new Vector3(2.0f, 15.0f, -4.0f);
+			lampLight = Light.createPointLight(new Vector3(1.0f, 0.8f, 0.8f), 0.0f, 84.0f, lampPos1);
+			lampLight2 = Light.createPointLight(new Vector3(0.8f, 1.0f, 0.8f), 0.0f, 52.0f
 			, lampPos2);
 		}
 
@@ -129,6 +140,8 @@ namespace OpenTkConsole
 		public void loadScene(AssetManager assetManager)
 		{
 			shaderProgram = assetManager.GetShaderProgram("litobjmesh");
+			skyboxProgram = assetManager.GetShaderProgram("sky");
+			debugShader = assetManager.GetShaderProgram("gridmesh");
 
 			quadMesh = assetManager.GetMesh("monu9"
 			, assetManager.getMeshData("monu9.obj")
@@ -138,18 +151,47 @@ namespace OpenTkConsole
 			, 0.2f);
 
 			lampMesh1 = assetManager.GetMesh("lamp1"
-				, MeshDataGenerator.CreatePyramidMesh(0.1f, 0.1f, true, true)
-				, "default"
+				, MeshDataGenerator.CreatePyramidMesh(1.0f, 1.0f, false, true)
+				, "lamp"
 				, shaderProgram
 				, lampPos1
 				, 1.0f);
 
 			lampMesh2 = assetManager.GetMesh("lamp2"
-				, MeshDataGenerator.CreatePyramidMesh(0.1f, 0.1f, true, true)
-				, "default"
+				, MeshDataGenerator.CreatePyramidMesh(1.0f, 1.0f, false, true)
+				, "lamp"
 				, shaderProgram
 				, lampPos2
 				, 1.0f);
+
+			starSphere = assetManager.GetMesh("starSphere"
+				, MeshDataGenerator.CreateStarSphere(10.0f, 910)
+				, "star_palette"
+				, skyboxProgram
+				, new Vector3(0, 0, 0)
+				, 1.0f);
+
+			mountainMesh = assetManager.GetMesh("mountains"
+			, MeshDataGenerator.CreateMountains(160, 1, true, 1.0f, 1.0f, 6, 0.5f)
+			, "mountain_palette"
+			, shaderProgram
+			, new Vector3(0, 4, 0)
+			, 0.5f);
+
+			// DEBUG 
+			mountainNormals = assetManager.GetMesh("mountain_normals"
+			, MeshDataGenerator.CreateNormalDebug(mountainMesh.Data.positions, mountainMesh.Data.normals)
+			, "default"
+			, debugShader
+			, mountainMesh.Transform.Position
+			, 0.5f);
+
+			pyramidMesh = assetManager.GetMesh("Pyramido"
+			, MeshDataGenerator.CreatePyramidMesh(3.0f, 3.0f, true, true)
+			, "konata"
+			, shaderProgram
+			, new Vector3(0, 0, 0)
+			, 2.0f);
 
 			sea = new SeaMesh();
 			sea.seaShader = assetManager.GetShaderProgram("heightMapTerrain");
@@ -177,19 +219,37 @@ namespace OpenTkConsole
 
 
 		public void drawScene(float cameraFrame) 
-		{
+		{ 
 			ShaderUniformManager uniformManager = ShaderUniformManager.GetSingleton();
 			Renderer renderer = Renderer.GetSingleton();
 
+			GL.DepthFunc(DepthFunction.Less);
+
 			renderer.RenderWithShader(shaderProgram);
 			renderer.RenderCamera(camera);
-			renderer.RenderLight(lampLight, 0);
-			renderer.RenderLight(lampLight2, 1);
-			renderer.RenderMesh(quadMesh);
+			renderer.RenderDirectionalLight(sunLight, 0);
+			//renderer.RenderPointLight(lampLight, 1);
+			//renderer.RenderPointLight(lampLight2, 2);
+			// renderer.RenderMesh(quadMesh);
+			// renderer.RenderMesh(pyramidMesh);
+			//renderer.RenderMesh(lampMesh1);
+			//renderer.RenderMesh(lampMesh2);
+			
+			
+			
+			renderer.RenderMesh(mountainMesh);
 
-			quadMesh.draw();
-			lampMesh1.draw();
-			lampMesh2.draw();
+			/*
+			renderer.RenderWithShader(debugShader);
+			renderer.RenderCamera(camera);
+			renderer.RenderMesh(mountainNormals);
+			*/
+
+			GL.DepthFunc(DepthFunction.Lequal);
+			renderer.RenderWithShader(skyboxProgram);
+			renderer.RenderCamera(camera);
+			starSphere.Transform.Position = camera.Position;
+			renderer.RenderMesh(starSphere);
 
 			/*
 			renderer.RenderWithShader(sea.seaShader);
@@ -202,6 +262,10 @@ namespace OpenTkConsole
 		public void updateScene(KeyboardState keyState, MouseState mouseState) 
 		{
 			//quadMesh.Transform.rotateAroundY(0.01f);
+			lampMesh1.Transform.Orbit(0.03f, 5.0f, 5.0f, new Vector3(0.0f, 5.0f, 0.0f));
+			lampLight.transform.Position = lampMesh1.Transform.Position;
+			lampMesh2.Transform.Orbit(-0.01f, 1.0f, 16.0f, new Vector3(0.0f, 1.0f, 0.0f));
+			lampLight2.transform.Position = lampMesh2.Transform.Position;
 			camera.Update(keyState, mouseState);
 			sea.Update();
 		}

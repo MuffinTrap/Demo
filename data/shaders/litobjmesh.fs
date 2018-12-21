@@ -19,6 +19,12 @@ struct Material
 
 float getAttenuation(float distanceToLight, float linear, float quadratic);
 
+vec4 getIlluminationColor(
+	vec3 fragmentPosition
+	, vec3 fragmentNormal
+	, Material mat
+	, vec4 textureColor);
+
 vec4 getPointLight(
 	  vec3 fragmentPosition
 	, vec3 fragmentNormal
@@ -34,12 +40,15 @@ vec4 getDirectionalLight(
 uniform mat4 uViewMatrix;
 	
 // Light properties
-#define LIGHT_AMOUNT 2
+#define LIGHT_AMOUNT 3
 uniform Light uLights[LIGHT_AMOUNT];
+
+#define MAX_SPECULAR_POW 128
 
 // Textures
 uniform sampler2D uDiffuseMap;
 uniform sampler2D uIlluminationMap;
+uniform sampler2D uRoughnessMap;
 
 in vec3 fNormal;
 in vec3 fPosition;
@@ -48,22 +57,39 @@ in vec2 fTexCoord;
 out vec4 fragColor;
 
 void main()
-{
+{	
+	vec4 roughnessValue = texture(uRoughnessMap, fTexCoord);
+	
 	Material mat;
-	mat.diffuseStrength = 0.7f;
-	mat.specularPower = 64;
-	mat.specularStrength = 0.2f;
-	mat.ambientStrength = 0.1f;
+	mat.diffuseStrength = 0.8f;
+	mat.specularPower = 2 + roughnessValue.x * MAX_SPECULAR_POW;
+	mat.specularStrength = 0.19f;
+	mat.ambientStrength = 0.01f;
 	
 	vec4 illuminationValue = texture(uIlluminationMap, fTexCoord);
-	float illuminationPercentage = illuminationValue.x;
+	float illuminationStrength = illuminationValue.x;
 	vec4 textureColor = texture(uDiffuseMap, fTexCoord);
 	vec4 lightColor = vec4(0,0,0,0);
-	for (int i = 0; i < LIGHT_AMOUNT; i++)
+	
+	// Light 0 is directional
+	lightColor += textureColor * getDirectionalLight(fPosition, fNormal, uLights[0], mat);
+	
+	for (int i = 1; i < LIGHT_AMOUNT; i++)
 	{
 		lightColor += textureColor * getPointLight(fPosition, fNormal, uLights[i], mat);
 	}
-    fragColor = ((1.0f - illuminationPercentage) * lightColor) + ((illuminationPercentage) * textureColor);
+	
+	vec4 innerLightColor = vec4(1,1,1,0);
+	vec4 illuminationColor = getIlluminationColor(fPosition, fNormal, mat, innerLightColor);
+    fragColor = lightColor + (illuminationStrength * illuminationColor) + (illuminationStrength * textureColor);
+}
+
+vec4 getIlluminationColor(vec3 fragmentPosition, vec3 fragmentNormal, Material mat, vec4 innerLightColor)
+{
+	vec3 viewDir = normalize(-fragmentPosition);
+	vec3 norm = normalize(fragmentNormal);
+	float specular = pow(max(dot(viewDir, norm), 0.0), mat.specularPower);
+	return specular * innerLightColor;
 }
 
 vec4 getPointLight(
@@ -107,7 +133,9 @@ vec4 getDirectionalLight(
 	, Light l
 	, Material m)
 {
-	vec3 direction = vec3(uViewMatrix * vec4(l.direction, 1.0f));
+	// On direction vector the w component must be 0.0f
+	vec3 direction = vec3(uViewMatrix * vec4(0.7f, -0.5f, -0.4f, 0.0f));
+	direction = normalize(direction);
 	
 	float attenuation = 1.0f;
 	vec3 toFragment = direction;

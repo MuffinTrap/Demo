@@ -80,7 +80,7 @@ namespace OpenTkConsole
 		private Light(Vector3 colorParam, float ambientParam, float distanceParam, Vector3 positionParam, Vector3 directionParam)
 		{
 			transform = new TransformComponent(positionParam);
-			transform.Direction = directionParam;
+			transform.Direction = directionParam.Normalized();
 			color = colorParam;
 			ambientStrength = ambientParam;
 			AttenuationArray.AttenuationRecord r = AttenuationArray.getAttenuationForDistance(distanceParam);

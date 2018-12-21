@@ -34,6 +34,8 @@ namespace OpenTkConsole
 		private float rotationY;
 		private float rotationZ;
 
+		private float orbitAngle = 0.0f;
+
 		private Matrix4 rotationMatrix;
 
 
@@ -88,6 +90,22 @@ namespace OpenTkConsole
 			{
 				rotationY = 0.0f;
 			}
+		}
+
+		public void Orbit(float speed, float height, float distance, Vector3 targetPoint)
+		{
+			orbitAngle += speed;
+			const float fullCircle = (float)(Math.PI * 2.0f);
+			if (orbitAngle > fullCircle)
+			{
+				orbitAngle -= fullCircle;
+			}
+			if (orbitAngle < 0)
+			{
+				orbitAngle += fullCircle;
+			}
+			Matrix4 rot = Matrix4.CreateRotationY(orbitAngle);
+			Position = targetPoint + Vector3.TransformVector(new Vector3(0, height, distance), rot);
 		}
 
 		public void setLocationAndScale(Vector3 position, float scale)
