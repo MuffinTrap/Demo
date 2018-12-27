@@ -8,7 +8,7 @@ using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class TransformComponent
 	{

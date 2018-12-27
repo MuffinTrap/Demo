@@ -3,7 +3,7 @@ using OpenTK.Input;
 using System.Collections.Generic;
 using System;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public struct PosAndDir
 	{
@@ -127,7 +127,7 @@ namespace OpenTkConsole
 			return LookAtDirection(Position, Direction, Up);
 		}
 
-		public void Update(KeyboardState keyState, MouseState mouseState)
+		public void UpdateInput(KeyboardState keyState, MouseState mouseState)
 		{
 			Vector3 rightX = Vector3.Normalize(Vector3.Cross(Up, Direction));
 
@@ -247,7 +247,7 @@ namespace OpenTkConsole
 		}
 
 		// Changing frame
-		public void setFrame(float cameraFrame, List<PosAndDir> cameraFrames)
+		public void SetFrame(float cameraFrame, List<PosAndDir> cameraFrames)
 		{
 			int firstFrame = (int)Math.Floor(cameraFrame);
 			int secondFrame = firstFrame + 1;

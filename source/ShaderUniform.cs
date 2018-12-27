@@ -1,5 +1,5 @@
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public struct ShaderSizeInfo
 	{

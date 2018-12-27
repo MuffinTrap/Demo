@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using OpenTK;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class AssetManager
 	{
@@ -160,7 +160,7 @@ namespace OpenTkConsole
 			return new DrawableMesh(name, data, ShaderManager.getAttributes(attr, shader), t, m, shader);
 		}
 
-		public SceneFromFile GetScene(string sceneFileName)
+		public Scene GetScene(string sceneFileName)
 		{
 			return sceneManager.GetScene(sceneFileName);
 		}

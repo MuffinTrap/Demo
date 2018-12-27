@@ -9,7 +9,7 @@ using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class DrawableMesh : IShaderDataOwner
 	{

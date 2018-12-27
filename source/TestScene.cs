@@ -8,22 +8,19 @@ using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
-	public class TestScene : IScene
+	public class TestScene
 	{
 		ShaderProgram gridShader;
 		List<DrawableMesh> cornerTriangles;
 		DrawableMesh megaGrid;
 
-		CameraComponent camera;
-
 		float worldWidth;
 		float worldDepth;
 
-		public TestScene(CameraComponent mainCamera)
+		public TestScene()
 		{
-			camera = mainCamera;
 			cornerTriangles = new List<DrawableMesh>(4);
 
 			worldWidth = 30;
@@ -63,17 +60,13 @@ namespace OpenTkConsole
 			, gridShader
 			, new Vector3(0.0f, -1.0f, 0.0f), 1);
 
-
-
-			GL.Enable(EnableCap.DepthTest);
-			GL.DepthFunc(DepthFunction.Less);
 		}
 
 		public void drawScene(float cameraFrame)
 		{
 			Renderer rend = Renderer.GetSingleton();
+			rend.RenderCamera();
 			rend.RenderWithShader(gridShader);
-			rend.RenderCamera(camera);
 			rend.RenderMesh(megaGrid);
 
 			foreach (DrawableMesh ct in cornerTriangles)
@@ -86,7 +79,6 @@ namespace OpenTkConsole
 
 		public void updateScene(KeyboardState keyState, MouseState mouseState)
 		{
-			camera.Update(keyState, mouseState);
 			foreach (DrawableMesh ct in cornerTriangles)
 			{
 				ct.Transform.rotateAroundY(0.05f);

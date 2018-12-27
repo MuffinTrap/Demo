@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using OpenTK;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class ParticleEmitter
 	{

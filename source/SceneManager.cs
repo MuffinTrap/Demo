@@ -2,15 +2,15 @@ using System.IO;
 using System.Collections.Generic;
 using OpenTK;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class SceneManager
 	{
-		private List<SceneFromFile> allScenes;
+		private List<Scene> allScenes;
 
 		public SceneManager(string sceneDir)
 		{
-			allScenes = new List<SceneFromFile>();
+			allScenes = new List<Scene>();
 			// Load all meshes and their materials
 
 			string topDir = Directory.GetCurrentDirectory();
@@ -24,7 +24,8 @@ namespace OpenTkConsole
 				{
 					if (fileEntry.EndsWith(".sce"))
 					{
-						SceneFromFile newScene = new SceneFromFile(fileEntry.Substring(fileEntry.LastIndexOf('\\') + 1));
+						string fileName = fileEntry.Substring(fileEntry.LastIndexOf('\\') + 1);
+						Scene newScene = new Scene();
 						if (loadSceneByFile(fileEntry, ref newScene))
 						{
 							allScenes.Add(newScene);
@@ -37,11 +38,11 @@ namespace OpenTkConsole
 
 		}
 
-		public SceneFromFile GetScene(string sceneFileName)
+		public Scene GetScene(string sceneFileName)
 		{
-			foreach (SceneFromFile s in allScenes)
+			foreach (Scene s in allScenes)
 			{
-				if (s.ConfigFile == sceneFileName)
+				if (s.name == sceneFileName)
 				{
 					return s;
 				}
@@ -51,11 +52,11 @@ namespace OpenTkConsole
 			return null;
 		}
 
-		private bool loadSceneByFile(string sceneFile, ref SceneFromFile scene)
+		private bool loadSceneByFile(string sceneFile, ref Scene scene)
 		{
 			StreamReader sourceFile = new StreamReader(sceneFile);
 			AssetManager assetManager = AssetManager.GetAssetManagerSingleton();
-			scene.allModels = new List<DrawableMesh>();
+			ShaderProgram modelShader = assetManager.GetShaderProgram("litobjmesh");
 
 			bool nameFound = false;
 			bool positionFound = false;
@@ -67,7 +68,6 @@ namespace OpenTkConsole
 			bool vsFound = false;
 			bool fsFound = false;
 
-			bool framesFound = true;
 			List<PosAndDir> cameraFrames = new List<PosAndDir>();
 
 			string vsName = null;
@@ -156,7 +156,7 @@ namespace OpenTkConsole
 					int nameLength = modelName.Length - (modelName.Length - fileTypeStart);
 					string modelNameNoOBJ = modelName.Substring(0, nameLength);
 
-					scene.allModels.Add(assetManager.GetMesh(modelNameNoOBJ, modelName, assetManager.GetMaterial(modelNameNoOBJ).materialName, scene.MainShader, position, scale));
+					scene.AddDrawable(assetManager.GetMesh(modelNameNoOBJ, modelName, assetManager.GetMaterial(modelNameNoOBJ).materialName, modelShader, position, scale));
 
 					Logger.LogInfo("Model: " + modelName + " added to scene ");
 
@@ -171,8 +171,6 @@ namespace OpenTkConsole
 
 					ShaderProgram newProgram = assetManager.GetShaderProgram(vsName, fsName);
 
-					scene.MainShader = newProgram;
-
 					Logger.LogInfo("Shader: " + vsName + " added to scene ");
 
 					vsFound = false;
@@ -181,11 +179,6 @@ namespace OpenTkConsole
 
 
 			} while (line != null);
-
-			if (framesFound)
-			{
-				scene.setCameraFrames(cameraFrames);
-			}
 
 			sourceFile.Close();
 

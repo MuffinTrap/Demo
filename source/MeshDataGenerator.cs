@@ -9,7 +9,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 using System.Linq;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	class MeshDataGenerator
 	{

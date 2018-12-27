@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 
 	// Inside the renderer, the uniforms are handles using the enum names.
@@ -201,6 +201,16 @@ namespace OpenTkConsole
 				}
 			}
 			return false;
+		}
+
+		public bool DoesShaderUseCamera(ShaderProgram program)
+		{
+			return DoesShaderSupportUniform(program, ShaderUniformName.ViewMatrix);
+		}
+
+		public bool DoesShaderUseLights(ShaderProgram program)
+		{
+			return DoesShaderSupportUniform(program, ShaderUniformName.LightsArray);
 		}
 
 		public void SetArrayData(ShaderProgram shader

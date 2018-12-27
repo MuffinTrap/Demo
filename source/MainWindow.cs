@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Diagnostics;
 
 using OpenTK;
 using OpenTK.Graphics;
@@ -9,38 +8,17 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
 
 
-using RocketNet;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
     public sealed class MainWindow : GameWindow
     {
         private bool running;
 
-        // Syncing
-        public Device syncDevice;
-
-		Track sceneNumber;
-		Track cameraFrame;
-
-		private int currentSceneIndex = 0;
-		private float currentCameraFrame = 0.0f;
-
-        private int bpm;
-        private int rowsPerBeat;
-
-        private float songLength;
-        private int syncRow;
-
-        bool paused;
-		bool spaceDown;
-		
-		List<IScene> scenes;
-        Stopwatch timer;
-
-		// Audio
+		SyncSystem syncSystem;
+		Renderer renderer;
+		DemoWrapper demoWrapper;
 		IAudioSystem audioSystem;
-		Audio testSong;
 
         public MainWindow()
             : base(1024, 720, 
@@ -48,8 +26,8 @@ namespace OpenTkConsole
                   "OpenTK party",
                   GameWindowFlags.Default,
                   DisplayDevice.Default,
-                  3, 
-                  0,
+                  3,	// OpenGL Major Version minimum
+                  0,	// OpenGL Minor Version minimum
                   GraphicsContextFlags.ForwardCompatible)
         {
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
@@ -63,23 +41,21 @@ namespace OpenTkConsole
 
         protected override void OnResize(EventArgs e)
         {
-            GL.Viewport(0, 0, Width, Height);
+			renderer.ResizeScreen(Width, Height);
         }
 
         protected override void OnLoad(EventArgs e)
         {
             CursorVisible = true;
             running = true;
-			paused = true;
-			spaceDown = false;
+
+
+			demoWrapper = new DemoWrapper();
 
 			// SYNC
-			loadSyncer();
-			bpm = 120;
-			rowsPerBeat = 4;
-			songLength = 5.0f; // seconds
+			syncSystem = SyncSystem.GetSingleton();
 
-			MenuSystem.SetSingleton(syncDevice);
+			renderer = Renderer.GetSingleton();
 
 			string dataFolder = "data";
 			AssetManager.WorkingDir = dataFolder;
@@ -88,98 +64,44 @@ namespace OpenTkConsole
 			Logger.LogPhase("Asset manager is created");
 			assetManager.LoadAll();
 			assetManager.printLoadedAssets();
+			Logger.LogPhase("Assets have been loaded");
 
 			MenuSystem.GetSingleton().ReadFromFile(dataFolder + "/tunables.json");
 
-			// Materials and scenes
-
-			CameraComponent mainCamera = new CameraComponent();
-			scenes = new List<IScene>();
-			try
-			{
-				// scenes.Add(new TestScene(mainCamera));
-				scenes.Add(new LightScene(mainCamera)); // This scene handles the camera update
-				//scenes.Add(new Scene2D());  // This is the gui scene
-				//scenes.Add(assetManager.GetScene("tia.sce"));
-
-				foreach (IScene s in scenes)
-				{
-					s.loadScene(assetManager);
-				}
-			}
-			catch (Exception exception)
-			{
-				Logger.LogError(Logger.ErrorState.Critical, "Caught exception when loading scene " + exception.Message);
-			}
-
-			Logger.LogPhase("Scenes have been loaded");
 			
-
 			// Audio
 			if (DemoSettings.GetDefaults().AudioEnabled)
 			{
+				Logger.LogPhase("Initializing audio system");
 				audioSystem = new OpenALAudio();
-				initAudio();
+				bool audioInitOk = audioSystem.Initialize();
+				if (!audioInitOk)
+				{
+					Logger.LogError(Logger.ErrorState.Critical, "Audio system failed to initialize.");
+					return;
+				}
+				Logger.LogPhase("Audio has been initialized");
 			}
 			
+			if (DemoSettings.GetDefaults().SyncEnabled)
+			{
+				syncSystem.Start();
+			}
 
-			// Timing
-			timer = new Stopwatch();
-            timer.Start();
+			try
+			{
+				demoWrapper.Create();
+				demoWrapper.Demo.Load(audioSystem, assetManager);
+			}
+			catch (Exception exception)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "Caught exception when creating Demo instance " + exception.Message);
+				return;
+			}
 
 			Logger.LogPhase("OnLoad complete");
-        }
 
-        public bool demoPlaying()
-        {
-            return running;
-        }
-
-        public void SetRowFromEditor(int row)
-        {
-            syncRow = row;
-        }
-
-        public void PauseFromEditor(bool pause)
-        {
-            paused = pause;
-        }
-
-        void Sync()
-        {
-            float secondsElapsed = 0.0f;
-            // update sync values only when playing
-            if (!paused)
-            {
-                // Calculate sync row.
-                long elapsedMS = timer.ElapsedMilliseconds;
-                secondsElapsed = (float)(elapsedMS / (float)1000);
-                float minutesElapsed = secondsElapsed / 60.0f;
-
-                if (secondsElapsed > songLength)
-                {
-                    // loop around;
-                    timer.Restart();
-                }
-
-                float beatsElapsed = (float)bpm * minutesElapsed;
-                float rowsElapsed = rowsPerBeat * beatsElapsed;
-                float floatRow = rowsElapsed;
-                int currentRow = (int)Math.Floor(floatRow);
-
-                syncRow = currentRow;
-            }
-
-            bool updateOk = syncDevice.Update(syncRow);
-            if (!updateOk)
-            {
-                connectSyncer();
-            }
-
-			currentSceneIndex = (int)Math.Floor(sceneNumber.GetValue(syncRow));
-			currentCameraFrame = cameraFrame.GetValue(syncRow);
-
-			Title = $"Seconds: {secondsElapsed:0} Row: {syncRow}";
+			demoWrapper.Demo.Start();
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -191,52 +113,43 @@ namespace OpenTkConsole
 				{
 					Logger.LogPhase("Error detected, program has stopped. ESC to Exit");
 					running = false;
+
+					if (DemoSettings.GetDefaults().SyncEnabled)
+					{
+						syncSystem.Stop();
+					}
 				}
 			}
 
-			HandleKeyboardAndUpdateScene();
+
 			if (DemoSettings.GetDefaults().SyncEnabled)
 			{
-				Sync();
+				syncSystem.Sync();
+				Title = $"Seconds: {syncSystem.GetSecondsElapsed():0} Row: {syncSystem.GetSyncRow()}";
 			}
+
+			HandleKeyboardAndUpdateDemo();
         }
 
-        private void HandleKeyboardAndUpdateScene()
+        private void HandleKeyboardAndUpdateDemo()
         {
-            var keyState = Keyboard.GetState();
+            KeyboardState keyState = Keyboard.GetState();
+			MouseState mouseState = Mouse.GetState();
 
-			if (keyState.IsKeyDown(Key.Space))
-			{
-				spaceDown = true;
-			}
-			
-			if (spaceDown && keyState.IsKeyUp(Key.Space))
-			{
-				spaceDown = false;
-				paused = !paused;
-			}
+			syncSystem.UpdateInput(keyState);
+			renderer.UpdateInput(keyState, mouseState);
 			
             if (keyState.IsKeyDown(Key.Escape))
             {
 				ExitProgram();
-               
             }
 
-			// Pass input to scene
-
-			var mouseState = Mouse.GetState();
-
-			if (DemoSettings.GetDefaults().SyncEnabled)
+			if (DemoSettings.GetDefaults().SyncEnabled && syncSystem.IsPaused())
 			{
-				scenes[currentSceneIndex].updateScene(keyState, mouseState);
+				return;
 			}
-			else if (!paused)
-			{
-				foreach (IScene s in scenes)
-				{
-					s.updateScene(keyState, mouseState);
-				}
-			}
+
+			demoWrapper.Demo.Sync();
         }
 
 
@@ -247,32 +160,7 @@ namespace OpenTkConsole
                 return;
             }
 
-			// Take scene number from track.
-			// Draw that scene
-
-            Color4 backColor;
-            backColor.A = 1.0f;
-			backColor.R = 0.0f;
-			backColor.G = 0.001f;
-            backColor.B = 0.1f;
-            GL.ClearColor(backColor);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-			// Draw models
-
-			if (DemoSettings.GetDefaults().SyncEnabled)
-			{
-				scenes[currentSceneIndex].drawScene(currentCameraFrame);
-			}
-			else
-			{
-				foreach (IScene s in scenes)
-				{
-					s.drawScene(0);
-				}
-			}
-
-			// Scene drawing ends
+			demoWrapper.Demo.Draw();
 			
             if (Error.checkGLError("OnRenderFrame"))
             {
@@ -282,74 +170,25 @@ namespace OpenTkConsole
             SwapBuffers();
         }
 		
-		void loadSyncer()
-		{
-			syncDevice = new Device("Demo", false);
-			sceneNumber = syncDevice.GetTrack("Scene");
-			cameraFrame = syncDevice.GetTrack("CameraFrame");
-			
-			if (DemoSettings.GetDefaults().SyncEnabled)
-			{
-				connectSyncer();
-				
-				syncDevice.IsPlaying = demoPlaying;
-				syncDevice.Pause = PauseFromEditor;
-				syncDevice.SetRow = SetRowFromEditor;
-			}
-		}
-		
-		void connectSyncer()
-		{
-			try
-			{
-				syncDevice.Connect();
-
-			} catch(System.Net.Sockets.SocketException socketE)
-			{
-
-				Logger.LogError(Logger.ErrorState.Critical, "Socket exception: " + socketE.Message);
-				running = false;
-			}
-		}
-
-		void initAudio()
-		{
-			string audioFileName = "../data/music/bosca.wav";
-			if (audioSystem.Initialize())
-			{
-				testSong = audioSystem.LoadAudioFile(audioFileName);
-			}
-		}
-
-		void startAudio()
-		{
-			audioSystem.PlayAudioFile(testSong);
-		}
-
-		void shutDownAudio()
-		{
-			audioSystem.Shutdown();
-		}
-
 		private void ExitProgram()
 		{
 			running = false;
-			timer.Stop();
 			Logger.LogPhase("Exit Program");
 
-			cleanupAndExit();
+			CleanupAndExit();
 		}
 
-		void cleanupAndExit()
+		void CleanupAndExit()
 		{
-			syncDevice.Dispose();
+			syncSystem.Stop();
+			syncSystem.CleanAndExit();
+
 			if (DemoSettings.GetDefaults().AudioEnabled)
 			{
-				shutDownAudio();
+				audioSystem.CleanAndExit();
 			}
 			Logger.ResetColors();
 			Exit();
 		}
     }
-
 }

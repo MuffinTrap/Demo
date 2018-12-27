@@ -7,7 +7,7 @@ using OpenTK;
 using OpenTK.Audio.OpenAL;
 using System.Runtime.InteropServices;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	class OpenALAudio : IAudioSystem
 	{
@@ -111,7 +111,7 @@ namespace OpenTkConsole
 			AL.SourcePlay(audioFile.id);
 		}
 
-		public void Shutdown()
+		public void CleanAndExit()
 		{
 			ContextHandle alContext = Alc.GetCurrentContext();
 			IntPtr alDevice = Alc.GetContextsDevice(alContext);

@@ -1,6 +1,6 @@
 
 using OpenTK;
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class Light : IShaderDataOwner
 	{

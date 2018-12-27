@@ -8,7 +8,7 @@ using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using System.Collections.Generic;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 
 	public class Shader

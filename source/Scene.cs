@@ -6,23 +6,35 @@ using System.Diagnostics;
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
-using OpenTK.Input;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
-	public interface IScene
+	public class Scene
 	{
-		void loadScene(AssetManager materialManager);
-		void drawScene(float cameraFrame);
-		void updateScene(KeyboardState keyState, MouseState mouseState);
-	}
+		public string name;
+		List<DrawableMesh> drawables;
+		List<Light> lights;
 
-	class EmptyScene : IScene
-	{
-		public void loadScene(AssetManager assetManager) {}
+		public Scene()
+		{
+			drawables = new List<DrawableMesh>();
+			lights = new List<Light>();
+		}
 
-		public void drawScene(float cameraFrame) {}
+		public void AddDrawable(DrawableMesh drawableItem)
+		{
+			if (!drawables.Contains(drawableItem))
+			{
+				drawables.Add(drawableItem);
+			}
+		}
 
-		public void updateScene(KeyboardState keyState, MouseState mouseState) {}
+		public void AddLight(Light light)
+		{
+			if (!lights.Contains(light))
+			{
+				lights.Add(light);
+			}
+		}
 	}
 }

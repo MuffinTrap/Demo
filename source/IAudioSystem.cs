@@ -1,5 +1,5 @@
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public struct Audio
 	{
@@ -7,11 +7,11 @@ namespace OpenTkConsole
 		public int id;
 	}
 
-	interface IAudioSystem
+	public interface IAudioSystem
 	{
 		bool Initialize();
 		Audio LoadAudioFile(string filenameAndPath);
 		void PlayAudioFile(Audio audioFile);
-		void Shutdown();
+		void CleanAndExit();
 	}
 }

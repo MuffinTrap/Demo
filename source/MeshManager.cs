@@ -1,7 +1,7 @@
 using System.IO;
 using System.Collections.Generic;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	public class MeshManager
 	{

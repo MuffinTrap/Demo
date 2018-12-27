@@ -6,7 +6,7 @@ using OpenTK.Graphics.OpenGL;
 
 using OpenTK.Audio.OpenAL;
 
-namespace OpenTkConsole
+namespace MuffinSpace
 {
 	static class Logger
 	{
