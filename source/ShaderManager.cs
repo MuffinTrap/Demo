@@ -62,7 +62,16 @@ namespace MuffinSpace
 				newShader.ShaderName = fileName;
 				allShaders.Add(newShader);
 
-				Logger.LogInfo("Loaded shader from " + fileName);
+				if (sType == OpenTK.Graphics.OpenGL.ShaderType.FragmentShader)
+				{
+					Logger.LogInfoLinePart("Fragment shader ", System.ConsoleColor.Gray);
+				}
+				else if (sType == OpenTK.Graphics.OpenGL.ShaderType.VertexShader)
+				{
+					Logger.LogInfoLinePart("Vertex shader ", System.ConsoleColor.Gray);
+				}
+				Logger.LogInfoLinePart(fileName, System.ConsoleColor.Cyan);
+				Logger.LogInfoLineEnd();
 			}
 
 		}

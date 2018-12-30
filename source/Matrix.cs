@@ -6,7 +6,6 @@ using OpenTK.Graphics.OpenGL;
 
 namespace MuffinSpace
 {
-
 	public class Matrix4Uniform
 	{
 		private readonly ShaderUniformName name;
@@ -16,7 +15,6 @@ namespace MuffinSpace
 		{ 
 			get { return this.matrix; } set { this.matrix = value; }
 		}
-			
 		
 		public Matrix4Uniform(ShaderUniformName nameParam)
 		{
@@ -29,6 +27,5 @@ namespace MuffinSpace
 			program.SetMatrix4Uniform(location, ref matrix);
 			Error.checkGLError("Matrix4Uniform.SetToShader " + program.name + " Matrix: "+ name + " to " + location);
 		}
-		
 	}
 }

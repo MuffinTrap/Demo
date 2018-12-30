@@ -1,12 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Diagnostics;
 
 using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Input;
 
 namespace MuffinSpace
 {
@@ -38,7 +32,6 @@ namespace MuffinSpace
 
 		private Matrix4 rotationMatrix;
 
-
 		public TransformComponent()
 		{
 			worldMatrix = new Matrix4Uniform(ShaderUniformName.WorldMatrix);
@@ -62,12 +55,10 @@ namespace MuffinSpace
 			Scale = scale;
 		}
 
-
 		private Matrix4 CreateRotationMatrixFromAxisAngle()
 		{
 			return Matrix4.CreateRotationX(rotationX) * Matrix4.CreateRotationY(rotationY) * Matrix4.CreateRotationZ(rotationZ);
 		}
-
 
 		public void UpdateWorldMatrix()
 		{
@@ -118,6 +109,5 @@ namespace MuffinSpace
 		{
 			rotationMatrix = rotation;
 		}
-
 	}
 }

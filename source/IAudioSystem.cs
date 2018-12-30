@@ -11,7 +11,13 @@ namespace MuffinSpace
 	{
 		bool Initialize();
 		Audio LoadAudioFile(string filenameAndPath);
-		void PlayAudioFile(Audio audioFile);
+
+		void SetAudio(Audio audioFile);
+		void PlayAudio(Audio audioFile);
+		void PauseAudio(Audio audioFile);
+		void StopAudio(Audio audioFile);
+		void SetAudioProgress(Audio audioFile, float progress);
+
 		void CleanAndExit();
 	}
 }

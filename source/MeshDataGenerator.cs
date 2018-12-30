@@ -111,7 +111,7 @@ namespace MuffinSpace
 
 			triMesh.hasPositionData = true;
 
-			triMesh.indices = new List<int> { 0, 1, 2 };
+			triMesh.indices = new List<int> { 0, 2, 1 };
 			triMesh.hasIndexData = true;
 
 			triMesh.VertexAmount = 3;
@@ -139,15 +139,15 @@ namespace MuffinSpace
 
 			List<Vector3> positions = new List<Vector3>();
 
-			positions.Add(new Vector3(-1.0f, -1.0f, 0.0f)); // 0
-			positions.Add(new Vector3(-1.0f, 1.0f, 0.0f));  // 1
+			positions.Add(new Vector3(0.0f, 0.0f, 0.0f)); // 0
+			positions.Add(new Vector3(0.0f, 1.0f, 0.0f));  // 1
 			positions.Add(new Vector3(1.0f, 1.0f, 0.0f));   // 2
-			positions.Add(new Vector3(1.0f, -1.0f, 0.0f));  // 3
+			positions.Add(new Vector3(1.0f, 0.0f, 0.0f));  // 3
 
 			quadMesh.positions = positions;
 			quadMesh.hasPositionData = true;
 
-			quadMesh.indices = new List<int> { 0, 1, 2, 2, 3, 0 };
+			quadMesh.indices = new List<int> { 0, 3, 2, 0, 2, 1 };
 			quadMesh.hasIndexData = true;
 
 			if (createTexCoords)
@@ -222,8 +222,8 @@ namespace MuffinSpace
 			Vector3 peak = new Vector3(0.0f, height, 0.0f);
 
 			Vector2 top = new Vector2(0.5f, 1.0f);
-			Vector2 left = new Vector2(1.0f, 0.0f);
-			Vector2 right = new Vector2(0.0f, 0.0f);
+			Vector2 left = new Vector2(0.0f, 0.0f);
+			Vector2 right = new Vector2(1.0f, 0.0f);
 
 			if (createNormals)
 			{
@@ -247,8 +247,8 @@ namespace MuffinSpace
 
 				int ibase = 0;
 				pyraMesh.indices.Add(ibase + 0);
-				pyraMesh.indices.Add(ibase + 1);
 				pyraMesh.indices.Add(ibase + 2);
+				pyraMesh.indices.Add(ibase + 1);
 				ibase += 3;
 				
 
@@ -261,8 +261,8 @@ namespace MuffinSpace
 				positions.Add(mXmZ);
 
 				pyraMesh.indices.Add(ibase + 0);
-				pyraMesh.indices.Add(ibase + 1);
 				pyraMesh.indices.Add(ibase + 2);
+				pyraMesh.indices.Add(ibase + 1);
 				ibase += 3;
 
 				// Side to positive X
@@ -274,8 +274,8 @@ namespace MuffinSpace
 				positions.Add(pXmZ);
 
 				pyraMesh.indices.Add(ibase + 0);
-				pyraMesh.indices.Add(ibase + 1);
 				pyraMesh.indices.Add(ibase + 2);
+				pyraMesh.indices.Add(ibase + 1);
 				ibase += 3;
 
 				// Side to negative X
@@ -287,8 +287,8 @@ namespace MuffinSpace
 				positions.Add(mXpZ);
 
 				pyraMesh.indices.Add(ibase + 0);
-				pyraMesh.indices.Add(ibase + 1);
 				pyraMesh.indices.Add(ibase + 2);
+				pyraMesh.indices.Add(ibase + 1);
 				ibase += 3;
 
 				// Bottom
@@ -298,12 +298,12 @@ namespace MuffinSpace
 				positions.Add(mXpZ);
 
 				pyraMesh.indices.Add(ibase + 0);
-				pyraMesh.indices.Add(ibase + 1);
 				pyraMesh.indices.Add(ibase + 2);
+				pyraMesh.indices.Add(ibase + 1);
 
 				pyraMesh.indices.Add(ibase + 1);
-				pyraMesh.indices.Add(ibase + 3);
 				pyraMesh.indices.Add(ibase + 2);
+				pyraMesh.indices.Add(ibase + 3);
 
 				Vector3 normalDown = new Vector3(0.0f, -1.0f, 0.0f);
 				pyraMesh.normals.Add(normalDown);
@@ -430,23 +430,33 @@ namespace MuffinSpace
 			return grid;
 		}
 
-		static public MeshData CreateStarSphere(float radius, int starsAmount)
+		static public MeshData CreateStarSphere(float radius, int starsAmount, float sizeDegrees)
 		{
 			Random randomizer = new Random(0);
 			MeshData stars = new MeshData();
 			stars.sourceFileName = "Stars_r:_" + radius + "_amount:_" + stars;
 			stars.hasPositionData = true;
 			stars.hasTexCoordData = true;
+			// stars.hasIndexData = true;
 			stars.positions = new List<Vector3>();
 			stars.texCoords = new List<Vector2>();
+			// stars.indices = new List<int>();
+
+			float circle = MathHelper.DegreesToRadians(360);
+			float size = MathHelper.DegreesToRadians(sizeDegrees);
+			Vector3 right = new Vector3(1.0f, 0.0f, 0.0f);
 			for (int i = 0; i < starsAmount; i++)
 			{
-				Vector3 pos = new Vector3(1.0f - (float)randomizer.NextDouble() * 2.0f
-				, 1.0f - (float)randomizer.NextDouble() * 2.0f
-				, 1.0f - (float)randomizer.NextDouble() * 2.0f);
-				pos.Normalize();
-				pos *= radius;
-				stars.positions.Add(pos);
+				float yAngle = (float)randomizer.NextDouble() * circle;
+				float zAngle = (float)randomizer.NextDouble() * circle;
+
+				Matrix3 rot = Matrix3.CreateRotationZ(zAngle) * Matrix3.CreateRotationY(yAngle);
+				Vector3 center = rot * right;
+
+
+				center.Normalize();
+				center *= radius;
+				stars.positions.Add(center);
 				Vector2 tex = new Vector2((float)randomizer.NextDouble(), 0.5f);
 				stars.texCoords.Add(tex);
 				// Logger.LogInfo("Star at: " + pos.X + ", " + pos.Y + ", " + pos.Z + ".U: " + tex.X + " V: " + tex.Y );
@@ -564,9 +574,10 @@ namespace MuffinSpace
 				Vector3 right = new Vector3(1.0f, 0.0f, 0.0f);
 				Vector3 backward = new Vector3(0.0f, 0.0f, -1.0f);
 				Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
+				Vector3 unset = new Vector3(-1.0f, -1.0f, -1.0f);
 				for (int ni = 0; ni < mountains.positions.Count; ni++)
 				{
-					mountains.normals.Add(up);
+					mountains.normals.Add(unset);
 				}
 				// Along x axis
 				for (int posZ = 0; posZ <= dim; posZ++)
@@ -619,13 +630,27 @@ namespace MuffinSpace
 						Vector3 next = mountains.positions[nextI];
 
 						Vector3 normal = CalculateMountainNormal(prev, next, current, backward);
-						mountains.normals[currentI] += normal;
+						if (mountains.normals[currentI] == unset)
+						{
+							mountains.normals[currentI] = normal;
+						}
+						else
+						{
+							mountains.normals[currentI] += normal;
+						}
 					}
 				}
 
-				foreach(Vector3 n in mountains.normals)
+				for(int normalI = 0; normalI < mountains.normals.Count; normalI++)
 				{
-					n.Normalize();
+					if (mountains.normals[normalI] == unset)
+					{
+						mountains.normals[normalI] = up;
+					}
+					else
+					{
+						mountains.normals[normalI].Normalize();
+					}
 				}
 			}
 
@@ -641,12 +666,12 @@ namespace MuffinSpace
 					int across = (indiceY + 1) * (dim + 1) + indiceX + 1;
 
 					mountains.indices.Add(corner);
-					mountains.indices.Add(nextX);
 					mountains.indices.Add(across);
+					mountains.indices.Add(nextX);
 
 					mountains.indices.Add(corner);
-					mountains.indices.Add(across);
 					mountains.indices.Add(below);
+					mountains.indices.Add(across);
 				}
 			}
 			
@@ -662,36 +687,6 @@ namespace MuffinSpace
 				Vector2 tex = new Vector2(tec, 0.5f);
 				mountains.texCoords.Add(tex);
 			}
-
-			/*
-			for(int pi = 0; pi <  mountains.positions.Count; pi++)
-			{
-				Vector3 p = mountains.positions[pi];
-				Vector3 n = mountains.normals[pi];
-				Logger.LogInfo("H: " + p.Y + " N: " + n.X + ", " + n.Y + ", " + n.Z);
-			}
-			*/
-
-			/*
-
-			foreach (int i in mountains.indices)
-			{
-				Logger.LogInfo("I: " + i);
-			}
-
-			int counter = 0;
-			foreach (int i in mountains.indices)
-			{
-				if (counter == 0)
-				{
-					Logger.LogInfo("Triangle");
-					counter = 3;
-				}
-				Logger.LogInfo("V: " + mountains.positions[i]);
-				counter -= 1;
-			}
-			*/
-
 
 			mountains.drawType = MeshData.DataDrawType.Lines;
 
@@ -817,11 +812,11 @@ namespace MuffinSpace
 					terrain.texCoords.Add(tex11);
 
 					terrain.indices.Add(indice);
-					terrain.indices.Add(indice + 2);
 					terrain.indices.Add(indice + 1);
+					terrain.indices.Add(indice + 2);
 					terrain.indices.Add(indice + 3);
-					terrain.indices.Add(indice + 1);
 					terrain.indices.Add(indice + 2);
+					terrain.indices.Add(indice + 1);
 					indice += 4;
 				}
 			}

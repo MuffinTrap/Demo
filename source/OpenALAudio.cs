@@ -98,17 +98,33 @@ namespace MuffinSpace
 			return loadedAudio;
 		}
 
-		public void PlayAudioFile(Audio audioFile)
+		public void SetAudio(Audio audioFile)
 		{
-
 			// Set listener and source to same place
 			Vector3 listenerPos = new Vector3(0, 0, 0);
 			Vector3 sourcePos = new Vector3(0, 0, 0);
 			AL.Listener(ALListener3f.Position, ref listenerPos);
 			AL.Source(audioFile.id, ALSource3f.Position, ref sourcePos);
+		}
 
-			// Play buffer
+		public void PlayAudio(Audio audioFile)
+		{
 			AL.SourcePlay(audioFile.id);
+		}
+
+		public void PauseAudio(Audio audioFile)
+		{
+			AL.SourcePause(audioFile.id);
+		}
+		
+		public void StopAudio(Audio audioFile)
+		{
+			AL.SourceStop(audioFile.id);
+		}
+
+		public void SetAudioProgress(Audio audioFile, float progress)
+		{
+			ALSourceState state = AL.GetSourceState(audioFile.id);
 		}
 
 		public void CleanAndExit()
@@ -120,6 +136,5 @@ namespace MuffinSpace
 			Alc.DestroyContext(alContext);
 			Alc.CloseDevice(alDevice);
 		}
-
 	}
 }

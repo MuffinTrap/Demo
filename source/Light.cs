@@ -19,7 +19,6 @@ namespace MuffinSpace
 		public float linearAttenuation;
 		public float quadraticAttenuation;
 
-
 		private static class AttenuationArray
 		{
 			public class AttenuationRecord
@@ -74,7 +73,6 @@ namespace MuffinSpace
 				}
 				return new AttenuationRecord(distance, 0.0f, 0.0f);
 			}
-
 		}
 
 		private Light(Vector3 colorParam, float ambientParam, float distanceParam, Vector3 positionParam, Vector3 directionParam)

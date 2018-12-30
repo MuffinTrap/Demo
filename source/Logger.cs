@@ -37,6 +37,18 @@ namespace MuffinSpace
 			Console.WriteLine(message);
 		}
 
+		static public void LogInfoLinePart(string message, ConsoleColor color)
+		{
+			Console.ForegroundColor = color;
+			Console.Write(message);
+		}
+		
+		static public void LogInfoLineEnd()
+		{
+			ResetColors();
+			Console.WriteLine("");
+		}
+
 		static public void LogPhase(string message)
 		{
 			PrintLogType(LogType.Phase);
@@ -79,7 +91,7 @@ namespace MuffinSpace
 					Console.Write("Info: ");
 					break;
 			}
-			Console.ForegroundColor = ConsoleColor.Gray;
+			ResetColors();
 		}
 
 		static private void PrintElapsedTime()
@@ -100,14 +112,13 @@ namespace MuffinSpace
 
 		static public void ResetColors()
 		{
-			Console.ForegroundColor = ConsoleColor.White;
+			Console.ForegroundColor = ConsoleColor.Gray;
 		}
 	}
 
 
 	static class Error
 	{
-
 		static public bool checkGLError(string place)
 		{
 			bool errorFound = false;

@@ -8,5 +8,10 @@ namespace MuffinSpace
 		{
 			Demo = new BunnyDemo();
 		}
+
+		public DemoSettings GetDemoSettings()
+		{
+			return Demo.GetDemoSettings();
+		}
 	}
 }

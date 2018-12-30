@@ -72,7 +72,7 @@ namespace MuffinSpace
 					break;
 				case MeshData.DataDrawType.Points:
 					beginType = PrimitiveType.Points;
-					GL.PointSize(1.0f);
+					GL.PointSize(5.0f);
 					break;
 			}
 
@@ -90,7 +90,6 @@ namespace MuffinSpace
 			GL.BindVertexArray(0);
 			
 			Error.checkGLError("DrawableMesh.draw unbind " + Name);
-
 		}
 	}
 }

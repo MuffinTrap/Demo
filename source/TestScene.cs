@@ -21,52 +21,51 @@ namespace MuffinSpace
 
 		public TestScene()
 		{
-			cornerTriangles = new List<DrawableMesh>(4);
+			cornerTriangles = new List<DrawableMesh>(3);
 
-			worldWidth = 30;
-			worldDepth = 30;
+			worldWidth = 10;
+			worldDepth = 10;
 		}
 
-		public void loadScene(AssetManager assetManager)
+		public void Load(AssetManager assetManager)
 		{
 			gridShader = assetManager.GetShaderProgram("gridmesh");
 
-			Error.checkGLError("Scene.loadScene");
-
-			gridShader.Use();
-
-			for (float cx = -1; cx <= 1; cx++)
-			{
-				for (float cz = -1; cz <= 1; cz++)
-				{
-					if (cz == 0 || cx == 0)
-					{
-						continue;
-					}
-					DrawableMesh t = assetManager.GetMesh("Triangle(" + cx + ",0," + cz + ")"
-					, MeshDataGenerator.CreateTriangleMesh()
-					, null
-					, gridShader
-					, new Vector3(cx * (worldWidth / 2), 0, cz * (worldDepth / 2)), 1);
-
-					cornerTriangles.Add(t);
-				}
-				
-			}
-
-			megaGrid = assetManager.GetMesh("Megagrid"
-			, MeshDataGenerator.CreateXZGrid(worldWidth, worldDepth, 1, 1)
+			DrawableMesh xt = assetManager.GetMesh("Triangle X"
+			, MeshDataGenerator.CreateTriangleMesh()
 			, null
 			, gridShader
-			, new Vector3(0.0f, -1.0f, 0.0f), 1);
+			, new Vector3(worldWidth, 0.0f, 0.0f), 1.0f);
 
+			DrawableMesh zt = assetManager.GetMesh("Triangle Z"
+			, MeshDataGenerator.CreateTriangleMesh()
+			, null
+			, gridShader
+			, new Vector3(0.0f, 0.0f, worldDepth), 1.0f);
+
+			DrawableMesh ot = assetManager.GetMesh("Triangle O"
+			, MeshDataGenerator.CreateTriangleMesh()
+			, null
+			, gridShader
+			, new Vector3(0.0f, 0.0f, 0.0f), 1.0f);
+
+			cornerTriangles.Add(xt);
+			cornerTriangles.Add(zt);
+			cornerTriangles.Add(ot);
+				
+			megaGrid = assetManager.GetMesh("Megagrid"
+			, MeshDataGenerator.CreateXZGrid(worldWidth * 2.0f, worldDepth * 2.0f, 1, 1)
+			, null
+			, gridShader
+			, new Vector3(0.0f, 0.0f, 0.0f), 1);
+
+			Error.checkGLError("TestScene.loadScene");
 		}
 
-		public void drawScene(float cameraFrame)
+		public void Draw()
 		{
 			Renderer rend = Renderer.GetSingleton();
-			rend.RenderCamera();
-			rend.RenderWithShader(gridShader);
+			rend.ClearScreen(Color4.AliceBlue);
 			rend.RenderMesh(megaGrid);
 
 			foreach (DrawableMesh ct in cornerTriangles)
@@ -77,7 +76,7 @@ namespace MuffinSpace
 			Error.checkGLError("Scene.drawScene");
 		}
 
-		public void updateScene(KeyboardState keyState, MouseState mouseState)
+		public void Update()
 		{
 			foreach (DrawableMesh ct in cornerTriangles)
 			{

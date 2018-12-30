@@ -16,17 +16,17 @@ namespace MuffinSpace
 		private readonly int handle;
 		public string ShaderName { get; set; }
 		
-		public int Handle { get { return this.handle; } }
+		public int Handle { get { return handle; } }
 		
 		public Shader(ShaderType type, string code)
 		{
-			this.handle = GL.CreateShader(type);
+			handle = GL.CreateShader(type);
 			
-			GL.ShaderSource(this.handle, code);
-			GL.CompileShader(this.handle);
+			GL.ShaderSource(handle, code);
+			GL.CompileShader(handle);
 
             // Check if compile worked
-            int successValue;
+            int successValue = 0;
             GL.GetShader(handle, ShaderParameter.CompileStatus, out successValue);
             if (successValue == 0)
             {
@@ -65,17 +65,17 @@ namespace MuffinSpace
 		
 		public ShaderProgram(params Shader[] shaders)
 		{
-			this.handle = GL.CreateProgram();
+			handle = GL.CreateProgram();
 			
 			foreach (var shader in shaders)
 			{
-				GL.AttachShader(this.handle, shader.Handle);
+				GL.AttachShader(handle, shader.Handle);
 			}
 			
-			GL.LinkProgram(this.handle);
+			GL.LinkProgram(handle);
 
-            // Check link errors
-            int successValue;
+			// Check link errors
+			int successValue = 0;
             GL.GetProgram(handle, GetProgramParameterName.LinkStatus, out successValue);
             if (successValue == 0)
             {
@@ -83,14 +83,19 @@ namespace MuffinSpace
             }
 
 			name = shaders[0].ShaderName;
-			Logger.LogInfo("Creating Shader Program " + name);
+			Logger.LogInfoLinePart("Creating Shader Program: ", ConsoleColor.Gray);
+			Logger.LogInfoLinePart(name, ConsoleColor.Cyan);
+			Logger.LogInfoLineEnd();
+
 			// Load Uniforms
 			///////////////////////////////////
 			int uniformAmount = -1;
             GL.GetProgram(handle, GetProgramParameterName.ActiveUniforms, out uniformAmount);
 			Error.checkGLError("Shader()");
 			ShaderUniformManager uniManager = ShaderUniformManager.GetSingleton();
-            Logger.LogInfo("\tProgram linked.\n\tUniform amount " + uniformAmount);
+
+			Logger.LogInfo("Program linked.");
+
 			uniforms = new List<ShaderUniform>(uniformAmount);
 
 			int maxShaderNameSize = 100;
@@ -98,20 +103,28 @@ namespace MuffinSpace
             int writtenLength;
             int uniformSize;
             ActiveUniformType type;
+
+			Logger.LogInfo("Uniforms (" + uniformAmount + ") >>>");
 			for (int i = 0; i < uniformAmount; i++)
 			{
                 GL.GetActiveUniform(this.handle, i, maxShaderNameSize, out writtenLength, out uniformSize, out type, shaderName);
 
 				string uniformName = shaderName.ToString();
 				ShaderSizeInfo info = uniManager.GetTypeSizeInfo(type);
-				Logger.LogInfo("\tUniform: " + i + " name :" + uniformName + " Size: " + info.sizeElements + " Type: " + uniManager.GetDataTypeString(uniManager.UniformTypeToDataType(type)));
 
 				ShaderUniform uniform = uniManager.CreateShaderUniform(uniformName, type, GetUniformLocation(this.handle, uniformName));
+
+				Logger.LogInfoLinePart(" " + i, ConsoleColor.White);
+				Logger.LogInfoLinePart("\t" + uniManager.GetDataTypeString(uniManager.UniformTypeToDataType(type)), ConsoleColor.Cyan);
+				Logger.LogInfoLinePart("\t" + uniformName + " (" + info.sizeElements + ")", ConsoleColor.White);
 				if (uniform.IsValid())
 				{
-					Logger.LogInfo("\tUniform: " + i + " name :" + uniformName + "added to shaders's uniforms.");
+					Logger.LogInfoLinePart("\t\t [", ConsoleColor.Gray);
+					Logger.LogInfoLinePart("OK", ConsoleColor.Green);
+					Logger.LogInfoLinePart("]", ConsoleColor.Gray);
 					uniforms.Add(uniform);
 				}
+				Logger.LogInfoLineEnd();
 			}
 
 			int attributeAmount = -1;
@@ -119,7 +132,7 @@ namespace MuffinSpace
 			ActiveAttribType attribType;
 			int attrSize = -1;
 
-			Logger.LogInfo("\tAttribute amount " + attributeAmount);
+			Logger.LogInfo("Attributes (" + attributeAmount + ") >>>");
 
 			attributes = new List<ShaderAttribute>(attributeAmount);
 
@@ -130,13 +143,20 @@ namespace MuffinSpace
 				string attribName = shaderName.ToString();
 				int location = GetAttributeLocation(handle, attribName);
 				ShaderSizeInfo info = uniManager.GetTypeSizeInfo(attribType);
-				Logger.LogInfo("\tAttribute " + i + ": Name :" + attribName + " Size: " + info.sizeElements + " Location: " + location + " Type: " + uniManager.GetDataTypeString(uniManager.AttribTypeToDataType(attribType)));
-
 				ShaderAttribute attribute = uniManager.CreateShaderAttribute(attribName, attribType, GetAttributeLocation(this.handle, attribName), info.sizeElements);
+
+				Logger.LogInfoLinePart(" " + i, ConsoleColor.White);
+				Logger.LogInfoLinePart("\t" + uniManager.GetDataTypeString(uniManager.AttribTypeToDataType(attribType)), ConsoleColor.Cyan);
+				Logger.LogInfoLinePart("\t" + attribName + " (" + info.sizeElements + ")", ConsoleColor.White);
+				Logger.LogInfoLinePart("\t " + location, ConsoleColor.Red);
 				if (attribute.IsValid())
 				{
+					Logger.LogInfoLinePart("\t\t [", ConsoleColor.Gray);
+					Logger.LogInfoLinePart("OK", ConsoleColor.Green);
+					Logger.LogInfoLinePart("]", ConsoleColor.Gray);
 					attributes.Add(attribute);
-				}	
+				}
+				Logger.LogInfoLineEnd();
 			}
 			
             foreach (var shader in shaders)

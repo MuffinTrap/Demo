@@ -12,7 +12,6 @@ public sealed class DemoSettings
 		AudioSetting = AudioMode.OpenAL;
 		Resolution = new Vector2(800, 600);
 		UpdatesPerSecond = 120.0;
-
 	}
 
 	public static DemoSettings GetDefaults()
@@ -24,7 +23,6 @@ public sealed class DemoSettings
 	{ 
 		Free,
 		Frames,
-		Orbit
 	};
 
 	public enum AudioMode

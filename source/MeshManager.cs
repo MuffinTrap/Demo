@@ -31,7 +31,6 @@ namespace MuffinSpace
 			}
 
 			Directory.SetCurrentDirectory(topDir);
-
 		}
 
 		public MeshData GetMeshData(string sourceFileName)
@@ -52,9 +51,11 @@ namespace MuffinSpace
 		{
 			foreach (MeshData m in allMeshes)
 			{
-				Logger.LogInfo("Loaded mesh " + m.getInfoString());
+				Logger.LogInfoLinePart("Loaded mesh ", System.ConsoleColor.Gray);
+				Logger.LogInfoLinePart(m.sourceFileName, System.ConsoleColor.Cyan);
+				Logger.LogInfoLinePart(" (" + m.VertexAmount + "v)", System.ConsoleColor.Gray);
+				Logger.LogInfoLineEnd();
 			}
-
 		}
 	}
 	

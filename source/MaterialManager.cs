@@ -4,10 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Text;
 
-using OpenTK;
-using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 
 namespace MuffinSpace
@@ -53,13 +50,12 @@ namespace MuffinSpace
 		}
 		public string getInfoString()
 		{
-			return " Material: " + materialName + ", " + textureMaps.Count + " defined maps";
+			return materialName + ", " + textureMaps.Count + " defined maps";
 		}
 	}
 
 	public class MaterialManager
 	{
-
 		// Sets all materials that apply
 		public void SetMaterialToShader(Material meshMaterial, ShaderProgram program)
 		{
@@ -185,7 +181,10 @@ namespace MuffinSpace
 		{
 			foreach (Material m in materials)
 			{
-				Logger.LogInfo("Loaded material " + m.getInfoString());
+				Logger.LogInfoLinePart("Loaded material " + m.materialName + " (", ConsoleColor.Gray);
+				Logger.LogInfoLinePart("" + m.textureMaps.Count, ConsoleColor.Red);
+				Logger.LogInfoLinePart(") maps", ConsoleColor.Gray);
+				Logger.LogInfoLineEnd();
 			}
 		}
 
@@ -213,6 +212,16 @@ namespace MuffinSpace
 			}
 			Logger.LogError(Logger.ErrorState.Limited, "No Color Texture with name " + textureName + " exists in MaterialManager");
 			return null;
+		}
+
+		public bool AddNewMaterial(Material material)
+		{
+			if (doesMaterialExist(material.materialName))
+			{
+				return false;
+			}
+			materials.Add(material);
+			return true;
 		}
 
 		public TextureMap GetDefaultMap(ShaderUniformName uniformName)
@@ -275,6 +284,10 @@ namespace MuffinSpace
 				return null;
 			}
 
+			Logger.LogInfoLinePart("Loading material from file ", ConsoleColor.Gray);
+			Logger.LogInfoLinePart(materialFileName, ConsoleColor.Cyan);
+			Logger.LogInfoLineEnd();
+
 			string line = null;
 			string materialName = null;
 			Material newMaterial = null;
@@ -326,11 +339,16 @@ namespace MuffinSpace
 				}
 				else if (line.Contains("map_Kd"))
 				{
+					// Diffuse map
 					// map_Kd filename.png
 					string textureName = line.Split(space)[1];
 					int textureGLIndex = loadTexture(textureName);
 					TextureMap diffuse = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, diffuse);
+
+					Logger.LogInfoLinePart("  Diffuse map :", ConsoleColor.Gray);
+					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+					Logger.LogInfoLineEnd();
 				}
 				else if (line.Contains("map_Ki"))
 				{
@@ -340,6 +358,10 @@ namespace MuffinSpace
 					int textureGLIndex = loadTexture(textureName);
 					TextureMap illumination = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, illumination);
+
+					Logger.LogInfoLinePart("  Illumination map :", ConsoleColor.Gray);
+					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+					Logger.LogInfoLineEnd();
 				}
 				else if (line.Contains("map_Kn"))
 				{
@@ -349,6 +371,10 @@ namespace MuffinSpace
 					int textureGLIndex = loadTexture(textureName);
 					TextureMap normal = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.NormalMap, normal);
+
+					Logger.LogInfoLinePart("  Normal map :", ConsoleColor.Gray);
+					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+					Logger.LogInfoLineEnd();
 				}
 				else if (line.Contains("map_Kr"))
 				{
@@ -358,12 +384,15 @@ namespace MuffinSpace
 					int textureGLIndex = loadTexture(textureName);
 					TextureMap roughness = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, roughness);
+
+					Logger.LogInfoLinePart("  Roughness map :", ConsoleColor.Gray);
+					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+					Logger.LogInfoLineEnd();
 				}
 			} while (line != null);
 
 			sourceFile.Close();
 			materials.Add(newMaterial);
-			Logger.LogInfo("Loaded material from file " + materialFileName);
 
 			return newMaterial;
 		}
@@ -385,8 +414,6 @@ namespace MuffinSpace
 
 		int loadTexture(string textureFileName)
 		{
-            Logger.LogInfo("loadTexture " + textureFileName);
-
 			int textureId = -1;
 			
 			try
@@ -403,7 +430,6 @@ namespace MuffinSpace
 				Logger.LogError(Logger.ErrorState.Limited, "Load texture did not find file:" + e.Message);
 			}
 
-			Logger.LogInfo("Loaded texture from file " + textureFileName);
 
 			return textureId;
 		}

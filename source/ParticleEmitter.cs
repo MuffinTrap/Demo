@@ -64,7 +64,7 @@ namespace MuffinSpace
 		{
 			maxParticles = particleAmount;
 			// Load quad mesh
-			AssetManager ass = AssetManager.GetAssetManagerSingleton();
+			AssetManager ass = AssetManager.GetSingleton();
 
 			ParticleShader = ass.GetShaderProgram("particle");
 

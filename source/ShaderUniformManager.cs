@@ -205,7 +205,8 @@ namespace MuffinSpace
 
 		public bool DoesShaderUseCamera(ShaderProgram program)
 		{
-			return DoesShaderSupportUniform(program, ShaderUniformName.ViewMatrix);
+			return DoesShaderSupportUniform(program, ShaderUniformName.ViewMatrix)
+				|| DoesShaderSupportUniform(program, ShaderUniformName.ProjectionMatrix);
 		}
 
 		public bool DoesShaderUseLights(ShaderProgram program)
@@ -243,29 +244,37 @@ namespace MuffinSpace
 				}
 			}
 		}
-		public void SetData(ShaderProgram shader
+
+		public bool TrySetData(ShaderProgram shader
 			, ShaderUniformName dataName
 			, IShaderDataOwner provider)
 		{
+			bool set = false;
 			foreach (ShaderUniform uni in shader.uniforms)
 			{
 				if (uni.name == dataName)
 				{
-					bool set = provider.SetUniform(shader, uni.location, uni.name);
+					set = provider.SetUniform(shader, uni.location, uni.name);
 					if (!set)
 					{
 						Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetData. Provider does not have "
 						+ GetUniformName(dataName));
 					}
-					return;
+					break;
 				}
 			}
-			Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetData. Shader " + shader.name + " does not use "
-			+ GetUniformName(dataName));
-			foreach (ShaderUniform uni in shader.uniforms)
+			return set;
+		}
+
+		public void SetData(ShaderProgram shader
+			, ShaderUniformName dataName
+			, IShaderDataOwner provider)
+		{
+			bool set = TrySetData(shader, dataName, provider);
+			if (!set)
 			{
-				Logger.LogInfo(shader.name + " uses "
-				+ GetUniformName(uni.name));
+				Logger.LogError(Logger.ErrorState.Unoptimal, "ShaderUniformManager.SetData. Shader " + shader.name + " does not use "
+				+ GetUniformName(dataName));
 			}
 		}
 		
@@ -296,8 +305,15 @@ namespace MuffinSpace
 				ShaderDataType uniformType = UniformTypeToDataType(type);
 				if (supported.dataType == uniformType) 
 				{
-					Logger.LogInfo("\tCreated supported uniform : " + nameString + " of type " + GetDataTypeString(uniformType)
-					+ " at " + location);
+					/*
+					Logger.LogInfoLinePart("Created supported uniform :", System.ConsoleColor.Gray);
+					Logger.LogInfoLinePart(" (", System.ConsoleColor.Gray);
+					Logger.LogInfoLinePart("" + location, System.ConsoleColor.Red);
+					Logger.LogInfoLinePart(")", System.ConsoleColor.Gray);
+					Logger.LogInfoLinePart(" " + GetDataTypeString(uniformType), System.ConsoleColor.Cyan);
+					Logger.LogInfoLinePart(" " + nameString, System.ConsoleColor.Gray);
+					Logger.LogInfoLineEnd();
+					*/
 					returnValue = new ShaderUniform(supported.name, supported.dataType, location);
 				}
 				else
@@ -329,8 +345,20 @@ namespace MuffinSpace
 					if (supported.dataType == uniformType)
 					{
 						int arrayIndex = int.Parse(index);
-						Logger.LogInfo("\tCreated supported uniform in array : " + arrayUniform + "[" + arrayIndex + "]." + variableUniform + " of type " + GetDataTypeString(uniformType)
-						+ " at " + location);
+
+						/*
+						Logger.LogInfoLinePart("Created supported array uniform :", System.ConsoleColor.Gray);
+						Logger.LogInfoLinePart(" (", System.ConsoleColor.Gray);
+						Logger.LogInfoLinePart("" + location, System.ConsoleColor.Red);
+						Logger.LogInfoLinePart(")", System.ConsoleColor.Gray);
+						Logger.LogInfoLinePart(" " + GetDataTypeString(uniformType), System.ConsoleColor.Cyan);
+						Logger.LogInfoLinePart(" " + arrayUniform + "[", System.ConsoleColor.Gray);
+						Logger.LogInfoLinePart(" " + arrayIndex , System.ConsoleColor.Red);
+						Logger.LogInfoLinePart("].", System.ConsoleColor.Gray);
+						Logger.LogInfoLinePart(variableUniform, System.ConsoleColor.Gray);
+						Logger.LogInfoLineEnd();
+						*/
+
 						returnValue = new ShaderUniform(supported.name, supported.dataType, location, supportedArray.name, arrayIndex);
 					}
 					else
@@ -366,8 +394,15 @@ namespace MuffinSpace
 				ShaderDataType attribType = AttribTypeToDataType(type);
 				if (supported.dataType == attribType)
 				{
-					Logger.LogInfo("\tCreated supported attribute : " + nameString + " of type " + GetDataTypeString(attribType)
-					+ " at " + location);
+					/*
+					Logger.LogInfoLinePart("Created attribute", System.ConsoleColor.Gray);
+					Logger.LogInfoLinePart(" (", System.ConsoleColor.Gray);
+					Logger.LogInfoLinePart("" + location, System.ConsoleColor.Red);
+					Logger.LogInfoLinePart(") ", System.ConsoleColor.Gray);
+					Logger.LogInfoLinePart(GetDataTypeString(attribType), System.ConsoleColor.Cyan);
+					Logger.LogInfoLinePart(" " + nameString, System.ConsoleColor.Gray);
+					Logger.LogInfoLineEnd();
+					*/
 					returnValue = new ShaderAttribute(supported.name, supported.dataType, location, sizeElements);
 				}
 				else

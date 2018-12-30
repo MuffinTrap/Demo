@@ -19,8 +19,6 @@ namespace MuffinSpace
 		CameraComponent camera;
 		List<PosAndDir> cameraFrames;
 
-
-
 		// Light amount is set when shaders are loaded
 		int maxPointLightIndex = 2;
 		List<Light> activeLights;
@@ -34,11 +32,16 @@ namespace MuffinSpace
 			activeLights = new List<Light>();
 
 			// Default state
+			GL.FrontFace(FrontFaceDirection.Ccw); // This is the default of OpenGL
+
 			GL.Enable(EnableCap.DepthTest);
 			GL.DepthFunc(DepthFunction.Less);
 
 			GL.Enable(EnableCap.CullFace);
 			GL.CullFace(CullFaceMode.Back);
+
+			GL.Enable(EnableCap.Blend);
+			GL.BlendFunc(BlendingFactorSrc.SrcAlpha, BlendingFactorDest.OneMinusSrcAlpha);
 		}
 
 		private static Renderer singleton = null;
@@ -65,6 +68,11 @@ namespace MuffinSpace
 				GL.ClearColor(color);
 			}
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+		}
+
+		public void EndFrame()
+		{
+			activeProgram = null;
 		}
 
 		public void ResizeScreen(int widthParam, int heightParam)
@@ -99,6 +107,11 @@ namespace MuffinSpace
 			}
 		}
 
+		public int GetMaxLights()
+		{
+			return maxPointLightIndex + 1;
+		}
+
 		public CameraComponent GetCamera()
 		{
 			return camera;
@@ -123,8 +136,8 @@ namespace MuffinSpace
 			}
 
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
-			man.SetData(activeProgram, ShaderUniformName.ViewMatrix, camera);
-			man.SetData(activeProgram, ShaderUniformName.ProjectionMatrix, camera);
+			man.TrySetData(activeProgram, ShaderUniformName.ViewMatrix, camera);
+			man.TrySetData(activeProgram, ShaderUniformName.ProjectionMatrix, camera);
 		}
 
 		public void ActivateLight(Light light)
@@ -232,6 +245,12 @@ namespace MuffinSpace
 		{
 			GL.DepthFunc(DepthFunction.Lequal);
 
+			RenderMesh(mesh);
+		}
+
+		public void RenderGui(DrawableMesh mesh)
+		{
+			GL.DepthFunc(DepthFunction.Always);
 			RenderMesh(mesh);
 		}
 	}

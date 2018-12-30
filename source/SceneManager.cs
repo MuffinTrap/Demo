@@ -55,8 +55,7 @@ namespace MuffinSpace
 		private bool loadSceneByFile(string sceneFile, ref Scene scene)
 		{
 			StreamReader sourceFile = new StreamReader(sceneFile);
-			AssetManager assetManager = AssetManager.GetAssetManagerSingleton();
-			ShaderProgram modelShader = assetManager.GetShaderProgram("litobjmesh");
+			AssetManager assetManager = AssetManager.GetSingleton();
 
 			bool nameFound = false;
 			bool positionFound = false;
@@ -67,6 +66,7 @@ namespace MuffinSpace
 
 			bool vsFound = false;
 			bool fsFound = false;
+			ShaderProgram modelShader = null;
 
 			List<PosAndDir> cameraFrames = new List<PosAndDir>();
 
@@ -127,26 +127,6 @@ namespace MuffinSpace
 					fsFound = true;
 					fsName = tokens[1];
 				}
-
-				if (line.Contains("frames"))
-				{
-					// Start reading camera frames
-					framesFound = true;
-				}
-
-				if (line.StartsWith("f "))
-				{
-					// f 1,1,1 1,1,1
-					string[] tokens = line.Split(space);
-					if (tokens.Length == 3)
-					{
-						PosAndDir p = new PosAndDir();
-						p.position = OBJFileReader.readVector3(tokens[1]);
-						p.direction = OBJFileReader.readVector3(tokens[2]);
-						cameraFrames.Add(p);
-					}
-				}
-
 
 				if (nameFound && positionFound && scaleFound)
 				{

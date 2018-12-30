@@ -20,25 +20,29 @@ namespace MuffinSpace
 	public class CameraComponent : IShaderDataOwner
 	{
 		// Camera
-		public Vector3 Position {
+		public Vector3 Position 
+		{
 			get;
 			set;
 			}
 
-		public Vector3 Direction{
+		public Vector3 Direction
+		{
 			get;
 			set;
 		}
+
 		public Vector3 Up
 		{
-		get;
-		set;
+			get;
+			set;
 		}
 
 		private int lastMouseX = 0;
 		private int lastMouseY = 0;
 
 		private int cameraDebug = 0;
+		private bool printPosDirDown = false;
 
 		public float speed;
 
@@ -47,6 +51,8 @@ namespace MuffinSpace
 
 		private Matrix4Uniform viewMatrix;
 		private Matrix4Uniform projectionMatrix;
+		private Matrix4Uniform perspectiveMatrix;
+		private Matrix4Uniform orthogonalMatrix;
 
 		public CameraComponent()
 		{
@@ -61,8 +67,14 @@ namespace MuffinSpace
 
 			viewMatrix = new Matrix4Uniform(ShaderUniformName.ViewMatrix);
 			projectionMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
+			orthogonalMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
+			perspectiveMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
 
-			projectionMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, 16.0f / 9.0f, 0.1f, 100f);
+			float aspectRatio = 16.0f / 9.0f;
+			perspectiveMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, aspectRatio, 0.1f, 100f);
+			orthogonalMatrix.Matrix = Matrix4.CreateOrthographic(aspectRatio, 1.0f, 0.0f, 10.0f);
+
+			EnablePerspective();
 
 			viewMatrix.Matrix = GetViewMatrix();
 
@@ -89,6 +101,16 @@ namespace MuffinSpace
 					return false;
 			}
 			return true;
+		}
+
+		public void EnablePerspective()
+		{
+			projectionMatrix = perspectiveMatrix;
+		}
+
+		public void EnableOrthogonal()
+		{
+			projectionMatrix = orthogonalMatrix;
 		}
 
 		public Matrix4 GetViewMatrix()
@@ -129,6 +151,19 @@ namespace MuffinSpace
 
 		public void UpdateInput(KeyboardState keyState, MouseState mouseState)
 		{
+			// Print pos and dir
+			if (keyState.IsKeyDown(Key.F1))
+			{
+				printPosDirDown = true;
+			}
+			if (printPosDirDown && keyState.IsKeyUp(Key.F1))
+			{
+
+				Logger.LogInfo("Camera Print: Pos: (" + Position.X + ", " + Position.Y + ", " + Position.Z + ")");
+				Logger.LogInfo("Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
+				printPosDirDown = false;
+			}
+
 			Vector3 rightX = Vector3.Normalize(Vector3.Cross(Up, Direction));
 
 			// Position 
@@ -191,8 +226,6 @@ namespace MuffinSpace
 				pitch -= pitchSpeedDegrees;
 			}
 
-
-
 			// Mouse state
 
 			int mouseMoveX = mouseState.X - lastMouseX;
@@ -208,8 +241,6 @@ namespace MuffinSpace
 			yaw += mouseMoveFX;
 			pitch += mouseMoveFY;
 
-
-
 			pitch = MathHelper.Clamp(pitch, -89, 89);
 
 			Direction = CalculateEulerDirection(pitch, yaw);
@@ -217,10 +248,9 @@ namespace MuffinSpace
 			cameraDebug++;
 			if (cameraDebug > 120)
 			{
-				//Logger.LogInfo("Camera Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
+				// Logger.LogInfo("Camera Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
 				cameraDebug = 0;
 			}
-			
 		}
 
 		// Looking around
@@ -240,7 +270,6 @@ namespace MuffinSpace
 			double directionX = px * yx;
 			double directionY = py;
 			double directionZ = pz * yz;
-
 
 			Vector3 lookDir =  new Vector3(Convert.ToSingle(directionX), Convert.ToSingle(directionY), Convert.ToSingle(directionZ));
 			return Vector3.Normalize(lookDir);
@@ -275,7 +304,5 @@ namespace MuffinSpace
 				// nop
 			}
 		}
-
 	}
-
 }

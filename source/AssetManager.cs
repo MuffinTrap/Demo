@@ -9,14 +9,13 @@ namespace MuffinSpace
 		private MaterialManager materialManager;
 		private MeshManager meshManager;
 		private ShaderManager shaderManager;
-		private SceneManager sceneManager;
 
 		private static AssetManager singleton;
 		private static string dataDirectory;
 
 		public static string WorkingDir { get; set; }
 
-		public static AssetManager GetAssetManagerSingleton()
+		public static AssetManager GetSingleton()
 		{
 			if (singleton == null)
 			{
@@ -78,23 +77,12 @@ namespace MuffinSpace
 				{
 					Logger.LogError(Logger.ErrorState.Critical, "Shader directory not found");
 				}
-
-
-				// Scene manager depends on other managers
-				// Find scenes directory
-				string scenesDirName = "scenes";
-				string sceneDir = FindDirectory(scenesDirName);
-				if (sceneDir != null)
-				{
-					sceneManager = new SceneManager(sceneDir);
-				}
 			}
 			else
 			{
 				Logger.LogError(Logger.ErrorState.Critical, "Data directory not found");
 			}
 		}
-
 
 
 		public void printLoadedAssets()
@@ -108,7 +96,7 @@ namespace MuffinSpace
 			return materialManager.GetMaterialByName(materialName);
 		}
 
-		public MeshData getMeshData(string fileName)
+		public MeshData GetMeshData(string fileName)
 		{
 			return meshManager.GetMeshData(fileName);
 		}
@@ -135,7 +123,7 @@ namespace MuffinSpace
 			, Vector3 position
 			, float scale)
 		{
-			MeshData data = getMeshData(modelFile);
+			MeshData data = GetMeshData(modelFile);
 			return GetMesh(name, data, material, shader, position, scale);
 			
 		}
@@ -158,11 +146,6 @@ namespace MuffinSpace
 			}
 
 			return new DrawableMesh(name, data, ShaderManager.getAttributes(attr, shader), t, m, shader);
-		}
-
-		public Scene GetScene(string sceneFileName)
-		{
-			return sceneManager.GetScene(sceneFileName);
 		}
 
 		private string FindDirectory(string directoryName)

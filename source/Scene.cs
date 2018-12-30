@@ -15,6 +15,8 @@ namespace MuffinSpace
 		List<DrawableMesh> drawables;
 		List<Light> lights;
 
+		public TransformComponent Transform { get; set; }
+
 		public Scene()
 		{
 			drawables = new List<DrawableMesh>();

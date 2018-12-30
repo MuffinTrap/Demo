@@ -26,9 +26,13 @@ namespace MuffinSpace
 
 		Track sceneNumber;
 		Track cameraFrame;
+		Track audioTrack;
 
-		private int currentSceneIndex = 0;
-		private float currentCameraFrame = 0.0f;
+		public int Scene { get; private set; }
+		public int Frame { get; private set; }
+		public float FrameProgress { get; private set; }
+		public float SceneProgress { get; private set; }
+		public float AudioTrack { get; private set; }
 
         private int bpm;
         private int rowsPerBeat;
@@ -56,11 +60,7 @@ namespace MuffinSpace
 			syncDevice = new Device("Demo", false);
 			sceneNumber = syncDevice.GetTrack("Scene");
 			cameraFrame = syncDevice.GetTrack("CameraFrame");
-			
-			if (DemoSettings.GetDefaults().SyncEnabled)
-			{
-				Connect();
-			}
+			audioTrack = syncDevice.GetTrack("Audio");
 		}
 
 		private void Connect()
@@ -98,6 +98,7 @@ namespace MuffinSpace
 		public void Start()
 		{
 			// Timing
+			Connect();
 			timer.Start();
 			running = true;
 		}
@@ -132,8 +133,16 @@ namespace MuffinSpace
 				Connect();
             }
 
-			currentSceneIndex = (int)Math.Floor(sceneNumber.GetValue(syncRow));
-			currentCameraFrame = cameraFrame.GetValue(syncRow);
+			float sceneValue = sceneNumber.GetValue(syncRow); ;
+			float sceneFloor = (float)Math.Floor(sceneValue);
+			Scene = (int)sceneFloor;
+			SceneProgress = sceneValue - sceneFloor;
+			float frameValue = cameraFrame.GetValue(syncRow);
+			float frameFloor = (float)Math.Floor(frameValue);
+			Frame = (int)frameFloor;
+			FrameProgress = frameValue - frameFloor;
+
+			AudioTrack = (float)Math.Floor(audioTrack.GetValue(syncRow));
 
         }
 

@@ -1,12 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Diagnostics;
 
 using OpenTK;
-using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
-using OpenTK.Input;
 
 namespace MuffinSpace
 {
@@ -66,10 +61,6 @@ namespace MuffinSpace
 
 		public string sourceFileName = "NO SOURCE";
 
-		public string getInfoString()
-		{
-			return "Mesh " + sourceFileName + " Vertices :" + VertexAmount;
-		}
 
 		// Vertices
 		public int VertexAmount { get; set; }
