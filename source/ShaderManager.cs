@@ -4,23 +4,23 @@ using System.Collections.Generic;
 namespace MuffinSpace
 {
 
-	
+
 	public class ShaderManager
 	{
 		public static List<ShaderAttribute> getAttributes(List<ShaderAttributeName> names, ShaderProgram program)
 		{
 			List<ShaderAttribute> list = new List<ShaderAttribute>(names.Count);
-			foreach(ShaderAttributeName n in names)
+			foreach (ShaderAttributeName n in names)
 			{
 				list.Add(getAttribute(n, program));
 			}
 
 			return list;
 		}
-		
+
 		public static ShaderAttribute getAttribute(ShaderAttributeName name, ShaderProgram shaderProgram)
 		{
-			foreach( ShaderAttribute attr in shaderProgram.attributes)
+			foreach (ShaderAttribute attr in shaderProgram.attributes)
 			{
 				if (attr.name == name)
 				{
@@ -57,7 +57,12 @@ namespace MuffinSpace
 					sType = OpenTK.Graphics.OpenGL.ShaderType.FragmentShader;
 				}
 
-				string fileName = shaderFile.Substring(shaderFile.LastIndexOf('\\') + 1);
+                // TODO IF LINUX or WINDOWS
+				// char pathSeparator = '\\';
+				char pathSeparator = '/';
+
+				Logger.LogInfo("Path separator is " + pathSeparator);
+				string fileName = shaderFile.Substring(shaderFile.LastIndexOf(pathSeparator) + 1);
 				Shader newShader = Shader.CreateFromFile(sType, shaderFile);
 				newShader.ShaderName = fileName;
 				allShaders.Add(newShader);

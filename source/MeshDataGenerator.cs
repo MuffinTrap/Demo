@@ -123,7 +123,33 @@ namespace MuffinSpace
 
 			return triMesh;
 		}
+		static public MeshData CreateTextMesh()
+		{
+			MeshData textMesh = new MeshData();
+			textMesh.sourceFileName = "text_mesh";
+			textMesh.positions = new List<Vector3>();
+			textMesh.texCoords = new List<Vector2>();
+			textMesh.indices = new List<int>();
 
+			int letters = 100 * 4;
+			float xstart = 0.0f;
+			float step = 0.01f;
+			for (int i = 0; i < letters; i++)
+			{
+				textMesh.positions.Add(new Vector3(xstart + 0.0f, 0.0f, 0.0f)); // 0
+				textMesh.positions.Add(new Vector3(.0f, 1.0f, 0.0f));  // 1
+				textMesh.positions.Add(new Vector3(1.0f, 1.0f, 0.0f));   // 2
+				textMesh.positions.Add(new Vector3(1.0f, 0.0f, 0.0f));  // 3
+				textMesh.texCoords.Add(new Vector2(0, 0));
+			}
+
+			textMesh.hasPositionData = true;
+			textMesh.hasTexCoordData = true;
+
+			textMesh.GenerateBufferHandles();
+
+			return textMesh();
+		}
 		static public MeshData CreateQuadMesh(bool createNormals, bool createTexCoords)
 		{
 			MeshData quadMesh = new MeshData();
@@ -666,12 +692,12 @@ namespace MuffinSpace
 					int across = (indiceY + 1) * (dim + 1) + indiceX + 1;
 
 					mountains.indices.Add(corner);
-					mountains.indices.Add(across);
 					mountains.indices.Add(nextX);
+					mountains.indices.Add(across);
 
 					mountains.indices.Add(corner);
-					mountains.indices.Add(below);
 					mountains.indices.Add(across);
+					mountains.indices.Add(below);
 				}
 			}
 			
@@ -684,11 +710,12 @@ namespace MuffinSpace
 			{
 				float h = mountains.positions[i].Y;
 				float tec = h / maxLevel;
+            
 				Vector2 tex = new Vector2(tec, 0.5f);
 				mountains.texCoords.Add(tex);
 			}
 
-			mountains.drawType = MeshData.DataDrawType.Lines;
+			mountains.drawType = MeshData.DataDrawType.Triangles;
 
 			mountains.GenerateBufferHandles();
 
