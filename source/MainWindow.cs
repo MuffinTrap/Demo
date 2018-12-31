@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 
 using OpenTK;
@@ -11,7 +10,7 @@ using OpenTK.Input;
 
 namespace MuffinSpace
 {
-    public sealed class MainWindow : GameWindow
+	public sealed class MainWindow : GameWindow
     {
         private bool running;
 
@@ -23,13 +22,13 @@ namespace MuffinSpace
 		TestScene testScene;
 
         public MainWindow()
-            : base(1240, 720, 
+            : base(800, 600, 
                   GraphicsMode.Default,
                   "OpenTK party",
                   GameWindowFlags.Default,
                   DisplayDevice.Default,
                   3,	// OpenGL Major Version minimum
-                  0,	// OpenGL Minor Version minimum
+                  3,	// OpenGL Minor Version minimum
                   GraphicsContextFlags.ForwardCompatible)
         {
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
@@ -104,9 +103,6 @@ namespace MuffinSpace
 			}
 
 			Logger.LogPhase("OnLoad complete");
-
-
-			demoWrapper.Demo.Start();
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -157,7 +153,7 @@ namespace MuffinSpace
 				return;
 			}
 
-			demoWrapper.Demo.Sync(syncSystem);
+			//demoWrapper.Demo.Sync(syncSystem);
         }
 
 

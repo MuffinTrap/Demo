@@ -16,17 +16,53 @@ namespace MuffinSpace
 		}
 		private static TextGenerator singleton = null;
 
-		static Dictionary<char, Vector2> uvCoords;
+      private TextGenerator()
+      {
+          fonts = new List<PixelFont>();
+          fonts.Add(new PixelFont("commodore", 1024f, 1024f, 90f));
+      }
 
-		private static int column = 0;
-		private static int row = 0;
+      private List<PixelFont> fonts;
 
-		private TextGenerator()
-		{
-			column = 0;
-			row = 0;
-			GenerateUVs();
-		}
+      public PixelFont GetFont(string fontName)
+      {
+          foreach (PixelFont f in fonts)
+          {
+              if (f.name == fontName)
+              {
+                  return f;
+              }
+          }
+			Logger.LogError(Logger.ErrorState.Critical, "No font found with name " + fontName);
+          return null;
+      }
+
+  }
+
+    public class PixelFont
+    {
+		public string name;
+        private Dictionary<char, Vector2> uvCoords;
+
+        private static int column = 0;
+        private static int row = 0;
+        float imageWidth = 1024;
+        float imageHeight = 1024;
+        float letterSize = 90;
+
+        private float letterUVWidth;
+
+        public PixelFont(string nameParam, float textureWidth, float textureHeight, float letterSizeParam)
+        {
+            name = nameParam;
+            imageWidth = textureWidth;
+            imageHeight = textureHeight;
+            letterSize = letterSizeParam;
+
+            letterUVWidth = letterSize / imageWidth;
+            GenerateUVs();
+        }
+
 
 		public List<Vector2> GetUVsOfString(string message)
 		{
@@ -38,7 +74,12 @@ namespace MuffinSpace
 			return uvs;
 		}
 
-		public static void GenerateUVs()
+        public Vector2 GetLetterUVSize()
+        {
+			return new Vector2(letterUVWidth, letterUVWidth);
+        }
+
+		public void GenerateUVs()
 		{
 			uvCoords = new Dictionary<char, Vector2>();
 			Add('!');
@@ -177,19 +218,14 @@ namespace MuffinSpace
 			uvCoords.Add('\f', emptyUV);
 			uvCoords.Add('\r', emptyUV);
 		}
-		private static void Add(char cha)
-		{
-			
-			float imageWidth = 1024;
-			float imageHeigth = 1024;
-			float letterSize = 90;
+      private void Add(char cha)
+      {
+        Vector2 uv = new Vector2((column * letterSize) / imageWidth
+        , 1.0f - row / imageHeight);
 
-			Vector2 uv = new Vector2((column * letterSize) / imageWidth
-			, 1.0f - row / imageHeigth);
+        column++;
 
-			column++;
-
-			uvCoords.Add(cha, uv);
-		}
-	}
+        uvCoords.Add(cha, uv);
+      }
+    }
 }

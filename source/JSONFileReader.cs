@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 
-namespace MegaCars
+namespace MuffinSpace
 {
 	class Setting
 	{
@@ -41,7 +41,7 @@ namespace MegaCars
 	
     class FileReader
     {
-        public void ReadSettings(ref CarSettings settings)
+        public void ReadSettings(ref SettingCollection settings)
 		{
 			StreamReader fileReader;
 			fileReader = new StreamReader("settings.txt");
@@ -79,9 +79,6 @@ namespace MegaCars
 				
 			//
 			fileReader.Close();
-			
-			
-			
 		}
     }
 }
