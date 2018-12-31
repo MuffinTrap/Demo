@@ -8,43 +8,120 @@ namespace MuffinSpace
 	{
 		List<Scene> scenes;
 		Audio music;
+		DemoSettings settings;
 
 		// From MainWindow
-		IAudioSystem audioSystem;
+		IAudioSystem audioSystem = null;
+
+		// Fadeout scene
+		ShaderProgram guiShader;
+		int fadeAlphaLocation = 0;
+		float fadeAlpha;
+		DrawableMesh fadeoutQuad;
+
+		MountainScene mountains;
+
+		public class MountainScene : IDemo
+		{
+			// DrawableMesh mountains;
+			// DrawableMesh starSphere;
+
+			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager)
+			{
+				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
+				ShaderProgram skyboxProgram = assetManager.GetShaderProgram("sky");
+
+			}
+			public void Sync(SyncSystem syncer)
+			{
+				// Rotate star sphere world matrix
+
+			}
+			public void Draw(SyncSystem syncer, Renderer renderer)
+			{
+				// Draw mountains
+				// Draw stars
+			}
+		}
+
+		public BunnyDemo()
+		{
+			settings = DemoSettings.GetDefaults();
+		}
 
 		public void Load(IAudioSystem audioSystemParam, AssetManager assetManager)
 		{
-			audioSystem = audioSystemParam;
+			if (settings.AudioEnabled)
+			{
+				audioSystem = audioSystemParam;
+				string audioFileName = "../data/music/bosca.wav";
+				music = audioSystem.LoadAudioFile(audioFileName);
+			}
+
 			scenes = new List<Scene>();
 
+			mountains = new MountainScene();
 
-			ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
-			ShaderProgram skyboxProgram = assetManager.GetShaderProgram("sky");
-			ShaderProgram debugShader = assetManager.GetShaderProgram("gridmesh");
-			
 
-			string audioFileName = "../data/music/bosca.wav";
-			music = audioSystem.LoadAudioFile(audioFileName);
+			// Fade scene
+			guiShader = assetManager.GetShaderProgram("gui");
+			fadeAlphaLocation = guiShader.GetCustomUniformLocation("uCustomAlpha");
+
+			Material fadeoutMaterial = new Material("blackfadeout");
+			fadeoutMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, MaterialManager.GetSingleton().GetColorTextureByName("black"));
+			MaterialManager.GetSingleton().AddNewMaterial(fadeoutMaterial);
+
+			fadeoutQuad = assetManager.GetMesh("black_overlay"
+				, MeshDataGenerator.CreateQuadMesh(false, true)
+				, fadeoutMaterial.materialName
+				, guiShader
+				, new Vector3(-2.0f, -0.5f, 0.0f)
+				, 3.0f);
 		}
 
 		public void Start()
 		{
-			audioSystem.PlayAudioFile(music);
+			if (settings.AudioEnabled)
+			{
+				audioSystem.SetAudio(music);
+				audioSystem.PlayAudio(music);
+			}
 		}
 
-		public void Sync()
+		public void Sync(SyncSystem syncer)
 		{
-
+			// Get scene combination by Scene value
+			if (syncer.Scene == 0)
+			{
+				UpdateFadeout(syncer.SceneProgress);
+			}
 		}
 
-		public void Draw()
+		private void UpdateFadeout(float progress)
 		{
-
+			fadeAlpha = progress;
 		}
 
-		public void CleanAndExit()
+		public void Draw(SyncSystem syncer, Renderer renderer)
 		{
+			if (syncer.Scene == 0)
+			{
+				DrawFadeout(renderer, fadeAlpha);
+			}
+		}
 
+		private void DrawFadeout(Renderer renderer, float progress)
+		{
+			renderer.GetCamera().EnableOrthogonal();
+			renderer.SetActiveShader(guiShader);
+			guiShader.SetFloatUniform(fadeAlphaLocation, progress);
+			renderer.RenderGui(fadeoutQuad);
+			renderer.GetCamera().EnablePerspective();
+		}
+
+		public DemoSettings GetDemoSettings()
+		{
+			return settings;
 		}
 	}
 
