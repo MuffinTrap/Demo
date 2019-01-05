@@ -14,10 +14,9 @@ namespace MuffinSpace
 		public TransformComponent transform;
 		public LightType type;
 		public Vector3 color;
-		public float ambientStrength;
 
-		public float linearAttenuation;
-		public float quadraticAttenuation;
+		public float linearAttenuation; // Ambient for directional
+		public float quadraticAttenuation; // Intensity for directional
 
 		private static class AttenuationArray
 		{
@@ -75,44 +74,87 @@ namespace MuffinSpace
 			}
 		}
 
-		private Light(Vector3 colorParam, float ambientParam, float distanceParam, Vector3 positionParam, Vector3 directionParam)
+		public Vector3 GetPosDir()
 		{
-			transform = new TransformComponent(positionParam);
-			transform.Direction = directionParam.Normalized();
-			color = colorParam;
-			ambientStrength = ambientParam;
-			AttenuationArray.AttenuationRecord r = AttenuationArray.getAttenuationForDistance(distanceParam);
-			linearAttenuation = r.linear;
-			quadraticAttenuation = r.quadratic;
+			if (type == LightType.Directional)
+			{
+				return transform.Direction;
+			}
+			else
+			{
+				return transform.Position;
+			}
 		}
 
-		public static Light createDirectionalLight(Vector3 colorParam, float ambientParam, Vector3 directionParam)
+		public string GetInfoString()
 		{
-			Light dirLight = new Light(colorParam, ambientParam, 0.0f, new Vector3(0,0,0), directionParam);
-			dirLight.type = LightType.Directional;
+			return "Color: " + Logger.PrintVec3(color) + " PosDir: " + Logger.PrintVec3(GetPosDir()) + " Attenuation: " + linearAttenuation+ ", " + quadraticAttenuation;
+		}
+
+		private Light(LightType typeParam, Vector3 colorParam, Vector3 positionParam, Vector3 directionParam)
+		{
+			type = typeParam;
+			color = colorParam;
+
+			transform = new TransformComponent(positionParam);
+			transform.Direction = directionParam.Normalized();
+		}
+
+
+
+		public static Light CreatePointLight(Vector3 colorParam, float distanceParam, Vector3 positionParam)
+		{
+			Light pointLight = new Light(LightType.Point, colorParam, positionParam, new Vector3(-1,0,0));
+
+			AttenuationArray.AttenuationRecord r = AttenuationArray.getAttenuationForDistance(distanceParam);
+			pointLight.linearAttenuation = r.linear;
+			pointLight.quadraticAttenuation = r.quadratic;
+
+			return pointLight;
+		}
+
+		public static Light CreateDirectionalLight(Vector3 colorParam, float ambientParam, float intensityParam, Vector3 directionParam)
+		{
+			Light dirLight = new Light(LightType.Directional, colorParam, new Vector3(-1, 0, 0), directionParam);
+			dirLight.linearAttenuation = ambientParam;
+			dirLight.quadraticAttenuation = intensityParam;
 
 			return dirLight;
 		}
 
-		public static Light createPointLight(Vector3 colorParam, float ambientParam, float distanceParam, Vector3 positionParam)
+		public static Light CreateBlackLight(LightType type)
 		{
-			Light pointLight = new Light(colorParam, ambientParam, distanceParam, positionParam, new Vector3(0,0,0));
-			pointLight.type = LightType.Point;
-
-			return pointLight;
+			Light black = new Light(type, new Vector3(0, 0, 0), new Vector3(-1, 0, 0), new Vector3(-1, 0, 0));
+			black.type = type;
+			black.linearAttenuation = 0.0f;
+			black.quadraticAttenuation = 0.0f;
+			return black;
 		}
+		
+		public void SetToBlack()
+		{
+			color = new Vector3(0, 0, 0);
+			linearAttenuation = 0.0f;
+			quadraticAttenuation = 0.0f;
+		}
+
+		public void SetTo(Light other)
+		{
+			color = other.color;
+			linearAttenuation = other.linearAttenuation;
+			quadraticAttenuation = other.quadraticAttenuation;
+			transform.Position = other.transform.Position;
+			transform.Direction = other.transform.Direction;
+		}
+
 		public bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
 		{
 			switch(dataName)
 			{
+				case ShaderUniformName.LightPositionOrDirection:
+					shaderProgram.SetVec3Uniform(location, GetPosDir());
+					break;
 				case ShaderUniformName.LightColor: shaderProgram.SetVec3Uniform(location, color);
-					break;
-				case ShaderUniformName.LightDirection: shaderProgram.SetVec3Uniform(location, transform.Direction);
-					break;
-				case ShaderUniformName.LightPosition: shaderProgram.SetVec3Uniform(location, transform.Position);
-					break;
-				case ShaderUniformName.AmbientStrength:
-					shaderProgram.SetFloatUniform(location, ambientStrength);
 					break;
 				case ShaderUniformName.LinearAttenuation:
 					shaderProgram.SetFloatUniform(location, linearAttenuation);

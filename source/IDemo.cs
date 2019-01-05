@@ -4,9 +4,9 @@ namespace MuffinSpace
 	// Demo interface
 	interface IDemo
 	{
-		void Load(IAudioSystem audioSystem, AssetManager assetManager);
+		void Load(IAudioSystem audioSystem, AssetManager assetManager, SyncSystem syncSystem);
 		void Sync(SyncSystem syncer);
-		void Draw(SyncSystem syncer, Renderer renderer);
+		void Draw(Renderer renderer);
 	}
 
 }

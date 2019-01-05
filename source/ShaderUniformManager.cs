@@ -33,35 +33,33 @@ namespace MuffinSpace
 
 	public enum ShaderUniformName
 	{
+		// Matrices
 		WorldMatrix,
 		ProjectionMatrix,
 		ViewMatrix,
 
+		// Model properties
 		DiffuseColor,
-		ParticleColor,
+		Alpha,
 
+		// Textures
 		DiffuseMap,
 		NormalMap,
 		IlluminationMap, // Self-illumination
 		RoughnessMap,
+		HeightMap,
+		MetallicMap,
 
 		// Lighting system
 		LightsArray,
 
 		// For each light
-		LightPosition,
-		LightDirection,
+		LightPositionOrDirection,
 		LightColor,
-		AmbientStrength,
 		LinearAttenuation,
 		QuadraticAttenuation,
 
-		// Material
-		DiffuseStrength,
-		SpecularStrength,
-		SpecularPower,
-
-		CustomUniform, // For custom uniforms starting with uCustom
+		CustomUniform, // For custom uniforms starting with uc;
 		InvalidUniformName
 	}
 
@@ -122,23 +120,20 @@ namespace MuffinSpace
 				case ShaderUniformName.WorldMatrix: return "uWorldMatrix";
 
 				case ShaderUniformName.LightsArray: return "uLights";
-				case ShaderUniformName.LightPosition: return "position";
-				case ShaderUniformName.LightDirection: return "direction";
+				case ShaderUniformName.LightPositionOrDirection: return "positionDirection";
 				case ShaderUniformName.LightColor: return "color";
 				case ShaderUniformName.LinearAttenuation: return "linearAttenuation";
 				case ShaderUniformName.QuadraticAttenuation: return "quadraticAttenuation";
 
-				case ShaderUniformName.ParticleColor: return "uParticleColor";
-
-				case ShaderUniformName.AmbientStrength: return "uAmbientStrength";
-				case ShaderUniformName.DiffuseStrength: return "uDiffuseStrength";
-				case ShaderUniformName.SpecularStrength: return "uSpecularStrength";
-				case ShaderUniformName.SpecularPower: return "uSpecularPower";
+				case ShaderUniformName.Alpha: return "uAlpha";
+				case ShaderUniformName.DiffuseColor: return "uDiffuseColor";
 
 				case ShaderUniformName.DiffuseMap: return "uDiffuseMap";
 				case ShaderUniformName.NormalMap: return "uNormalMap";
 				case ShaderUniformName.IlluminationMap: return "uIlluminationMap";
 				case ShaderUniformName.RoughnessMap: return "uRoughnessMap";
+				case ShaderUniformName.HeightMap: return "uHeightMap";
+				case ShaderUniformName.MetallicMap: return "uMetallicMap";
 
 				default: return string.Empty;
 			}
@@ -158,17 +153,17 @@ namespace MuffinSpace
 			AddSupportedUniform(ShaderUniformName.NormalMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.IlluminationMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.RoughnessMap, ShaderDataType.Texture2D);
+			AddSupportedUniform(ShaderUniformName.HeightMap, ShaderDataType.Texture2D);
+			AddSupportedUniform(ShaderUniformName.MetallicMap, ShaderDataType.Texture2D);
 
 			AddSupportedUniform(ShaderUniformName.LightsArray, ShaderDataType.Light);
-			AddSupportedUniform(ShaderUniformName.LightPosition, ShaderDataType.Float3);
-			AddSupportedUniform(ShaderUniformName.LightDirection, ShaderDataType.Float3);
+			AddSupportedUniform(ShaderUniformName.LightPositionOrDirection, ShaderDataType.Float3);
 			AddSupportedUniform(ShaderUniformName.LightColor, ShaderDataType.Float3);
-			AddSupportedUniform(ShaderUniformName.ParticleColor, ShaderDataType.Float3);
 
-			AddSupportedUniform(ShaderUniformName.AmbientStrength, ShaderDataType.Float);
-			AddSupportedUniform(ShaderUniformName.DiffuseStrength, ShaderDataType.Float);
-			AddSupportedUniform(ShaderUniformName.SpecularStrength, ShaderDataType.Float);
-			AddSupportedUniform(ShaderUniformName.SpecularPower, ShaderDataType.Float);
+
+			AddSupportedUniform(ShaderUniformName.Alpha, ShaderDataType.Float);
+			AddSupportedUniform(ShaderUniformName.DiffuseColor, ShaderDataType.Float3);
+
 
 			AddSupportedUniform(ShaderUniformName.LinearAttenuation, ShaderDataType.Float);
 			AddSupportedUniform(ShaderUniformName.QuadraticAttenuation, ShaderDataType.Float);
@@ -191,6 +186,18 @@ namespace MuffinSpace
 			supportedAttributes.Add(GetAttributeName(name), new ShaderAttribute(name, type));
 		}
 
+		public bool DoesShaderSupportArrayUniform(ShaderProgram program, ShaderUniformName arrayUniformName)
+		{
+			foreach (ShaderUniform uni in program.uniforms)
+			{
+				if (uni.arrayName == arrayUniformName)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public bool DoesShaderSupportUniform(ShaderProgram program, ShaderUniformName uniform)
 		{
 			foreach (ShaderUniform uni in program.uniforms)
@@ -211,7 +218,7 @@ namespace MuffinSpace
 
 		public bool DoesShaderUseLights(ShaderProgram program)
 		{
-			return DoesShaderSupportUniform(program, ShaderUniformName.LightsArray);
+			return DoesShaderSupportArrayUniform(program, ShaderUniformName.LightsArray);
 		}
 
 		public void SetArrayData(ShaderProgram shader
@@ -324,7 +331,7 @@ namespace MuffinSpace
 					returnValue = new ShaderUniform(ShaderUniformName.InvalidUniformName, ShaderDataType.InvalidType);
 				}
 			}
-			else if (nameString.StartsWith("uCustom"))
+			else if (nameString.StartsWith("uc"))
 			{
 				// Custom attribute is ok
 				returnValue = new ShaderUniform(ShaderUniformName.CustomUniform, UniformTypeToDataType(type), location);
@@ -413,7 +420,7 @@ namespace MuffinSpace
 					returnValue = new ShaderAttribute(ShaderAttributeName.InvalidAttributeName, ShaderDataType.InvalidType);
 				}
 			}
-			else if (nameString.StartsWith("uCustom"))
+			else if (nameString.StartsWith("uc"))
 			{
 				// Custom attribute is ok
 				returnValue = new ShaderAttribute(ShaderAttributeName.CustomAttribute, AttribTypeToDataType(type), location, sizeElements);
@@ -561,6 +568,5 @@ namespace MuffinSpace
 				default: return 0;
 			}
 		}
-
 	}
 }

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 
 namespace MuffinSpace
 {
-
-
 	public class ShaderManager
 	{
 		public static List<ShaderAttribute> getAttributes(List<ShaderAttributeName> names, ShaderProgram program)
@@ -32,13 +30,29 @@ namespace MuffinSpace
 		}
 
 		private List<Shader> allShaders;
+		private List<ShaderProgram> allPrograms;
 
 		public ShaderManager(string shaderDir)
 		{
 			allShaders = new List<Shader>();
+			allPrograms = new List<ShaderProgram>();
+
+			Dictionary<string, string> shaderSources = new Dictionary<string, string>();
 			// Load all shaders
 
 			string[] files = Directory.GetFiles(shaderDir);
+
+			string sourceType = ".ss";
+
+			foreach (string shaderFile in files)
+			{
+				if (shaderFile.Contains(sourceType))
+				{
+					string fileName = GetFilenameFromPath(shaderFile);
+					shaderSources.Add(fileName, GetSourceFromFile(shaderFile));
+					Logger.LogInfo("Saved shader source " + fileName);
+				}
+			}
 
 			string vertexType = ".vs";
 			string fragmentType = ".fs";
@@ -56,16 +70,14 @@ namespace MuffinSpace
 				{
 					sType = OpenTK.Graphics.OpenGL.ShaderType.FragmentShader;
 				}
+				else
+				{
+					continue;
+				}
 
-                // TODO IF LINUX or WINDOWS
-				// char pathSeparator = '\\';
-				char pathSeparator = '/';
-
-				Logger.LogInfo("Path separator is " + pathSeparator);
-				string fileName = shaderFile.Substring(shaderFile.LastIndexOf(pathSeparator) + 1);
-				Shader newShader = Shader.CreateFromFile(sType, shaderFile);
-				newShader.ShaderName = fileName;
-				allShaders.Add(newShader);
+				
+				string shaderName = GetFilenameFromPath(shaderFile);
+				string shaderSource = GetSourceFromFile(shaderFile);
 
 				if (sType == OpenTK.Graphics.OpenGL.ShaderType.FragmentShader)
 				{
@@ -75,13 +87,74 @@ namespace MuffinSpace
 				{
 					Logger.LogInfoLinePart("Vertex shader ", System.ConsoleColor.Gray);
 				}
-				Logger.LogInfoLinePart(fileName, System.ConsoleColor.Cyan);
+				Logger.LogInfoLinePart(shaderName, System.ConsoleColor.Cyan);
 				Logger.LogInfoLineEnd();
-			}
 
+				AddIncludesAndDefines(ref shaderSource, ref shaderSources);
+
+				Shader newShader = new Shader(shaderName, sType, shaderSource);
+				allShaders.Add(newShader);
+			}
 		}
 
-		public Shader GetShader(string shaderName)
+		private string GetFilenameFromPath(string path)
+		{
+			char pathSeparator = '\\';
+			#if (MUFFIN_PLATFORM_LINUX)
+				pathSeparator = '/';
+			#elif (MUFFIN_PLATFORM_WINDOWS)
+				// Nop, \ is the separator
+			#endif
+				
+			string fileName = path.Substring(path.LastIndexOf(pathSeparator) + 1);
+			return fileName;
+		}
+
+		static public string GetSourceFromFile(string filename)
+		{
+			try
+			{
+				StreamReader sourceFile = new StreamReader(filename);
+
+				string sourceCode = sourceFile.ReadToEnd();
+
+				sourceFile.Close();
+
+				return sourceCode;
+			}
+			catch (System.Exception e)
+			{
+
+				Logger.LogError(Logger.ErrorState.Limited, "Shader CreateFromFile exception when opening file " + filename + " Error: " + e.Message);
+				return null;
+			}
+		}
+
+		private void AddIncludesAndDefines(ref string shaderSource, ref Dictionary<string, string> shaderSources)
+		{
+			string includeString = "#include";
+			if (shaderSource.Contains(includeString))
+			{
+				int includeStart = shaderSource.IndexOf(includeString);
+				int includeEnd = shaderSource.IndexOf(';', includeStart); // Removes trailing ;
+				if (includeEnd <= includeStart)
+				{
+					Logger.LogError(Logger.ErrorState.Critical, "Failed parsing include from shader source");
+					return;
+				}
+				string includeRow = shaderSource.Substring(includeStart, includeEnd - includeStart);
+				string[] parts = includeRow.Split(' ');
+				string includeFilename = parts[1];
+				if (shaderSources.ContainsKey(includeFilename))
+				{
+					Logger.LogInfo("Found #include at " + includeStart + " : '" + includeRow + "' and found matching source file");
+					shaderSource = shaderSource.Remove(includeStart, includeEnd - includeStart);
+					shaderSource = shaderSource.Insert(includeStart, shaderSources[includeFilename]);
+				}
+			}
+		}
+
+		private Shader GetShader(string shaderName)
 		{
 			foreach (Shader s in allShaders)
 			{
@@ -91,7 +164,28 @@ namespace MuffinSpace
 				}
 			}
 			Logger.LogError(Logger.ErrorState.Critical, "Shader " + shaderName + " does not exist.");
+			foreach (Shader s in allShaders)
+			{
+				Logger.LogInfo(s.ShaderName);
+			}
 			return null;
+		}
+		
+		public ShaderProgram GetShaderProgram(string shaderName)
+		{
+			foreach (ShaderProgram s in allPrograms)
+			{
+				if (s.name == shaderName)
+				{
+					return s;
+				}
+			}
+
+			string vertexName = shaderName + ".vs";
+			string fragmentName = shaderName + ".fs";
+			ShaderProgram nProg = new ShaderProgram(shaderName, GetShader(vertexName), GetShader(fragmentName));
+			allPrograms.Add(nProg);
+			return nProg;
 		}
 	}
 	

@@ -1,10 +1,8 @@
 using System;
-using System.IO;
 using System.Text;
-using System.Collections;
+using System.Text.RegularExpressions;
 
 using OpenTK;
-using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using System.Collections.Generic;
 
@@ -18,7 +16,7 @@ namespace MuffinSpace
 		
 		public int Handle { get { return handle; } }
 		
-		public Shader(ShaderType type, string code)
+		public Shader(string name, ShaderType type, string code)
 		{
 			handle = GL.CreateShader(type);
 			
@@ -30,27 +28,34 @@ namespace MuffinSpace
             GL.GetShader(handle, ShaderParameter.CompileStatus, out successValue);
             if (successValue == 0)
             {
-				Logger.LogError(Logger.ErrorState.Limited, "Shader compile failed: " + GL.GetShaderInfoLog(handle));
+				string glErrorString = GL.GetShaderInfoLog(handle);
+				Logger.LogError(Logger.ErrorState.Limited, "Shader compile failed: " + glErrorString);
+				// Parse error line
+				int lineStart = glErrorString.IndexOf("(");
+				int lineEnd = glErrorString.IndexOf(")", lineStart);
+				int number = int.Parse(glErrorString.Substring(lineStart + 1, lineEnd - lineStart - 1));
+
+				// Files start at 1, but opengl at 0. 
+				number -= 1;
+
+				string[] fileLines = Regex.Split(code, "\r\n");
+				for (int l = 0; l < fileLines.Length; l++)
+				{
+					if (l < number - 10 || l > number + 10)
+					{
+						continue;
+					}
+					ConsoleColor c = ConsoleColor.Gray;
+					if (l == number)
+					{
+						c = ConsoleColor.Red;
+					}
+					Logger.LogInfoLinePart("" + l + " ", c);
+					Logger.LogInfoLinePart(fileLines[l], c);
+					Logger.LogInfoLineEnd();
+				}
             }
-		}
-		
-		static public Shader CreateFromFile(ShaderType type, string filename)
-		{
-			try
-			{
-				StreamReader sourceFile = new StreamReader(filename);
-
-				string sourceCode = sourceFile.ReadToEnd();
-
-				sourceFile.Close();
-
-				return new Shader(type, sourceCode);
-			}
-			catch (Exception e)
-			{
-				Logger.LogError(Logger.ErrorState.Limited, "Shader CreateFromFile exception when opening file " + filename + " Error: " + e.Message);
-				return null;
-			}
+			ShaderName = name;
 		}
 	}
 	
@@ -63,7 +68,7 @@ namespace MuffinSpace
 		public List<ShaderAttribute> attributes;
 		public List<ShaderUniform> uniforms;
 		
-		public ShaderProgram(params Shader[] shaders)
+		public ShaderProgram(string nameParam, params Shader[] shaders)
 		{
 			handle = GL.CreateProgram();
 			
@@ -82,7 +87,7 @@ namespace MuffinSpace
 				Logger.LogError(Logger.ErrorState.Limited, "Shader link failed: " + GL.GetProgramInfoLog(handle));
             }
 
-			name = shaders[0].ShaderName;
+			name = nameParam;
 			Logger.LogInfoLinePart("Creating Shader Program: ", ConsoleColor.Gray);
 			Logger.LogInfoLinePart(name, ConsoleColor.Cyan);
 			Logger.LogInfoLineEnd();
@@ -212,16 +217,42 @@ namespace MuffinSpace
 			Error.checkGLError("Shader set vec3");
 		}
 
+		public Vector3 GetVec3Uniform(int uniformLocation)
+		{
+			float[] outVec = new float[] { -1, -1, -1 };
+			GL.GetUniform(handle, uniformLocation, outVec);
+			return new Vector3(outVec[0], outVec[1], outVec[2]);
+		}
+
 		public void SetVec2Uniform(int uniformLocation , Vector2 value)
 		{
 			GL.Uniform2(uniformLocation, value);
 			Error.checkGLError("Shader set vec2");
 		}
 
+		public void SetFloatUniform(ShaderUniformName name, float value)
+		{
+			foreach(ShaderUniform u in uniforms)
+			{
+				if (u.name == name)
+				{
+					SetFloatUniform(u.location, value);
+					break;
+				}
+			}
+		}
+
 		public void SetFloatUniform(int uniformLocation , float value)
 		{
 			GL.Uniform1(uniformLocation, value);
 			Error.checkGLError("Shader set float");
+		}
+
+		public float GetFloatUniform(int uniformLocation)
+		{
+			float outFloat = -1;
+			GL.GetUniform(handle, uniformLocation, out outFloat);
+			return outFloat;
 		}
 
 		public void SetIntUniform(int uniformLocation , int value)

@@ -6,7 +6,7 @@ namespace MuffinSpace
 {
 	public class TextGenerator
 	{
-		public TextGenerator GetSingleton()
+		public static TextGenerator GetSingleton()
 		{
 			if (singleton == null)
 			{
@@ -19,7 +19,7 @@ namespace MuffinSpace
       private TextGenerator()
       {
           fonts = new List<PixelFont>();
-          fonts.Add(new PixelFont("commodore", 1024f, 1024f, 90f));
+          fonts.Add(new PixelFont("commodore", 980f, 567f, 70f, 70f));
       }
 
       private List<PixelFont> fonts;
@@ -46,20 +46,22 @@ namespace MuffinSpace
 
         private static int column = 0;
         private static int row = 0;
-        float imageWidth = 1024;
-        float imageHeight = 1024;
-        float letterSize = 90;
+        float imageWidth;
+        float imageHeight;
+        float letterWidth;
+        float letterHeight;
 
-        private float letterUVWidth;
+        private Vector2 letterUVSize;
 
-        public PixelFont(string nameParam, float textureWidth, float textureHeight, float letterSizeParam)
+        public PixelFont(string nameParam, float textureWidth, float textureHeight, float letterWidthParam, float letterHeightParam)
         {
             name = nameParam;
             imageWidth = textureWidth;
             imageHeight = textureHeight;
-            letterSize = letterSizeParam;
+			letterWidth = letterWidthParam;
+			letterHeight = letterHeightParam;
 
-            letterUVWidth = letterSize / imageWidth;
+			letterUVSize = new Vector2(letterWidth / imageWidth, letterHeight / imageHeight);
             GenerateUVs();
         }
 
@@ -76,11 +78,12 @@ namespace MuffinSpace
 
         public Vector2 GetLetterUVSize()
         {
-			return new Vector2(letterUVWidth, letterUVWidth);
+			return letterUVSize;
         }
 
 		public void GenerateUVs()
 		{
+			Logger.LogInfo("Generating UVs for characters");
 			uvCoords = new Dictionary<char, Vector2>();
 			Add('!');
 			Add('\"');
@@ -207,24 +210,22 @@ namespace MuffinSpace
 			Add('}');
 			Add('~');
 
-			// Following are all empty character
-			row++;
-			column = 0;
 			Add(' ');
-			Vector2 emptyUV = uvCoords[' '];
-			uvCoords.Add('\t', emptyUV);
-			uvCoords.Add('\r', emptyUV);
-			uvCoords.Add('\r', emptyUV);
-			uvCoords.Add('\f', emptyUV);
-			uvCoords.Add('\r', emptyUV);
 		}
       private void Add(char cha)
       {
-        Vector2 uv = new Vector2((column * letterSize) / imageWidth
-        , 1.0f - row / imageHeight);
+			float U = (column * letterWidth) / imageWidth; 
+			float V = 1.0f - (row * letterHeight) / imageHeight;
+			Vector2 uv = new Vector2(U, V);
 
         column++;
-
+		
+		if (uvCoords.ContainsKey(cha))
+		{
+			Logger.LogError(Logger.ErrorState.Critical, "Character '" + cha + "' is already added to font");
+			return;
+		}
+			//Logger.LogInfo("Char " + cha + " : (" + uv.X + ", " + uv.Y + ")");
         uvCoords.Add(cha, uv);
       }
     }

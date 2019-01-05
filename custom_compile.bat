@@ -12,6 +12,6 @@ for /f %%f in ('dir /b source') do (
 	set "files=!files! %%f"
 	)
 pushd source
-call csc.exe %files% -lib:%opentkpath% -r:OpenTK.dll,System.Drawing.dll -out:..\build\demotest.exe
+call csc.exe %files% -d:MUFFIN_PLATFORM_WINDOWS -d:DEBUG -lib:%opentkpath% -r:OpenTK.dll,System.Drawing.dll -out:..\build\demotest.exe
 popd
 IF NOT EXIST build\OpenTK.dll copy %opentkpath%\OpenTK.dll build\

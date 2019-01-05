@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 
+using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using OpenTK.Input;
@@ -30,6 +31,11 @@ namespace MuffinSpace
 			cameraFrames = null;
 
 			activeLights = new List<Light>();
+			activeLights.Add(Light.CreateBlackLight(Light.LightType.Directional));
+			for (int l = 1; l <= maxPointLightIndex; l++)
+			{
+				activeLights.Add(Light.CreateBlackLight(Light.LightType.Point));
+			}
 
 			// Default state
 			GL.FrontFace(FrontFaceDirection.Ccw); // This is the default of OpenGL
@@ -59,20 +65,38 @@ namespace MuffinSpace
 			camera.UpdateInput(keyState, mouseState);
 		}
 
+		private void ResetLights()
+		{
+			foreach( Light l in activeLights)
+			{
+				l.SetToBlack();
+			}
+		}
+	
 
-		public void ClearScreen(Color4 color)
+		public void SetClearColor(Color4 color)
 		{
 			if (clearingColor != color)
 			{
 				clearingColor = color;
 				GL.ClearColor(color);
 			}
+		}
+
+		public void ClearScreen()
+		{
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+		}
+
+		public void StartFrame()
+		{
+			ClearScreen();
+			ResetLights();
+			activeProgram = null;
 		}
 
 		public void EndFrame()
 		{
-			activeProgram = null;
 		}
 
 		public void ResizeScreen(int widthParam, int heightParam)
@@ -140,19 +164,19 @@ namespace MuffinSpace
 			man.TrySetData(activeProgram, ShaderUniformName.ProjectionMatrix, camera);
 		}
 
-		public void ActivateLight(Light light)
+		public void ActivateLight(Light light, int index)
 		{
-			if (!activeLights.Contains(light))
+			if (index < activeLights.Count)
 			{
-				activeLights.Add(light);
+				activeLights[index].SetTo(light);
 			}
 		}
 
-		public void DeactivateLight(Light light)
+		public void DeactivateLight(int index)
 		{
-			if (activeLights.Contains(light))
+			if (index < activeLights.Count)
 			{
-				activeLights.Remove(light);
+				activeLights[index].SetToBlack();
 			}
 		}
 
@@ -188,10 +212,7 @@ namespace MuffinSpace
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "RenderLight, directional lights must have index 0");
 			}
-			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
-			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightDirection, light, lightIndex);
-			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightColor, light, lightIndex);
-			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.QuadraticAttenuation, light, lightIndex);
+			PassLightData(light, lightIndex);
 		}
 		
 		public void RenderPointLight(IShaderDataOwner light, int lightIndex)
@@ -205,8 +226,13 @@ namespace MuffinSpace
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "RenderLight, point lights must have index greater than 0");
 			}
+			PassLightData(light, lightIndex);
+		}
+
+		private void PassLightData(IShaderDataOwner light, int lightIndex)
+		{
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
-			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightPosition, light, lightIndex);
+			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightPositionOrDirection, light, lightIndex);
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LightColor, light, lightIndex);
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.LinearAttenuation, light, lightIndex);
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.QuadraticAttenuation, light, lightIndex);
@@ -214,15 +240,15 @@ namespace MuffinSpace
 
 		public void RenderMesh(DrawableMesh mesh)
 		{
+			if (mesh == null)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "RenderMesh, no mesh given");
+				return;
+			}
 			SetActiveShader(mesh.ShaderProgram);
 			if (activeProgram == null)
 			{
 				Logger.LogError(Logger.ErrorState.Critical, "RenderMesh, no active shader");
-				return;
-			}
-			if (mesh == null)
-			{
-				Logger.LogError(Logger.ErrorState.Critical, "RenderMesh, no mesh given");
 				return;
 			}
 
@@ -245,6 +271,7 @@ namespace MuffinSpace
 		{
 			GL.DepthFunc(DepthFunction.Lequal);
 
+			mesh.Transform.Position = camera.Position;
 			RenderMesh(mesh);
 		}
 

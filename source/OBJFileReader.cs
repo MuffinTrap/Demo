@@ -157,6 +157,12 @@ namespace MuffinSpace
 				face.texCoordIndex = Convert.ToUInt32(faceStrings[1].Trim());
 				face.normalIndex = Convert.ToUInt32(faceStrings[2].Trim());
 			}
+			else if (faceStrings.Length == 2) // #/#
+			{
+				face.positionIndex = Convert.ToUInt32(faceStrings[0].Trim());
+				face.texCoordIndex = 0;
+				face.normalIndex = Convert.ToUInt32(faceStrings[1].Trim());
+			}
 
 			return face;
 		}

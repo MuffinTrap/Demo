@@ -57,6 +57,12 @@ namespace MuffinSpace
 
 			timer = new Stopwatch();
 
+			Scene = 0;
+			SceneProgress = 0.0f;
+			FrameProgress = 0.0f;
+			Frame = 0;
+			AudioTrack = -1.0f;
+
 			syncDevice = new Device("Demo", false);
 			sceneNumber = syncDevice.GetTrack("Scene");
 			cameraFrame = syncDevice.GetTrack("CameraFrame");
@@ -190,6 +196,11 @@ namespace MuffinSpace
 		public int GetSyncRow()
 		{
 			return syncRow;
+		}
+
+		public Track GetTrack(string trackName)
+		{
+			return syncDevice.GetTrack(trackName);
 		}
 
 	}

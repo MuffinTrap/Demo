@@ -8,25 +8,11 @@ namespace MuffinSpace
 	{
 		public Matrix4Uniform worldMatrix;
 		public Vector3 Position { get; set; }
-		private Vector3 direction;
-		public Vector3 Direction
-		{
-			get
-			{
-				Vector4 defaultRot = new Vector4(1.0f, 0.0f, 0.0f, 0.0f);
-				Vector4 applied = rotationMatrix * defaultRot;
-				return new Vector3(applied.X, applied.Y, applied.Z);
-			}
-			set
-			{
-				direction = value.Normalized(); 
-			}
-		}
+		public Vector3 Direction { get; set; }
 		public float Scale { get; set; }
 
-		private float rotationX;
-		private float rotationY;
-		private float rotationZ;
+		private float rotationAngle;
+		private Vector3 rotationAxis;
 
 		private float orbitAngle = 0.0f;
 
@@ -39,9 +25,8 @@ namespace MuffinSpace
 			rotationMatrix = Matrix4.Identity;
 
 			Scale = 1.0f;
-			rotationX = 0.0f;
-			rotationY = 0.0f;
-			rotationZ = 0.0f;
+			rotationAxis = new Vector3(0.0f, 1.0f, 0.0f);
+			rotationAngle = 0.0f;
 		}
 
 		public TransformComponent(Vector3 position) : this()
@@ -57,7 +42,7 @@ namespace MuffinSpace
 
 		private Matrix4 CreateRotationMatrixFromAxisAngle()
 		{
-			return Matrix4.CreateRotationX(rotationX) * Matrix4.CreateRotationY(rotationY) * Matrix4.CreateRotationZ(rotationZ);
+			return Matrix4.CreateFromAxisAngle(rotationAxis, rotationAngle);
 		}
 
 		public void UpdateWorldMatrix()
@@ -68,19 +53,26 @@ namespace MuffinSpace
 			worldMatrix.Matrix = S * R * T;
 		}
 
-		public void setRotationX(float rotation)
+		public void SetRotationAxis(Vector3 axis)
 		{
-			rotationX = rotation;
-			rotationMatrix = CreateRotationMatrixFromAxisAngle();
+			rotationAxis = axis;
+		}
+
+		public void SetRotation(float angle)
+		{
+			rotationAngle = angle;
+			if (rotationAngle > MathHelper.TwoPi)
+			{
+				rotationAngle -= MathHelper.TwoPi;
+			}
+			else if (rotationAngle < 0.0f)
+			{
+				rotationAngle += MathHelper.TwoPi;
+			}
 		}
 
 		public void rotateAroundY(float speed)
 		{
-			rotationY += speed;
-			if (rotationY > MathHelper.TwoPi)
-			{
-				rotationY = 0.0f;
-			}
 		}
 
 		public void Orbit(float speed, float height, float distance, Vector3 targetPoint)

@@ -101,49 +101,30 @@ namespace MuffinSpace
 			return meshManager.GetMeshData(fileName);
 		}
 
-		private Shader GetShader(string shaderName)
-		{
-			return shaderManager.GetShader(shaderName);
-		}
-
 		public ShaderProgram GetShaderProgram(string shaderName)
 		{
-			return new ShaderProgram(GetShader(shaderName + ".vs"), GetShader(shaderName + ".fs"));
-		}
-
-		public ShaderProgram GetShaderProgram(string vertexName, string fragmentName)
-		{
-			return new ShaderProgram(GetShader(vertexName), GetShader(fragmentName));
+			return shaderManager.GetShaderProgram(shaderName);
 		}
 
 		public DrawableMesh GetMesh(string name
 			, string modelFile
 			, string material
 			, ShaderProgram shader
-			, Vector3 position
-			, float scale)
+			, Vector3 position)
 		{
 			MeshData data = GetMeshData(modelFile);
-			return GetMesh(name, data, material, shader, position, scale);
-			
+			return CreateMesh(name, data, material, shader, position);
 		}
 
-		public DrawableMesh GetMesh(string name
+		public DrawableMesh CreateMesh(string name
 		, MeshData data
 		, string material
 		, ShaderProgram shader
-		, Vector3 position
-		, float scale)
+		, Vector3 position)
 		{
-			// What attributes does this data need/use?
 			List<ShaderAttributeName> attr = data.GetNeededAttributes();
-			TransformComponent t = new TransformComponent();
-			t.setLocationAndScale(position, scale);
-			Material m = null;
-			if (material != null)
-			{
-				m = GetMaterial(material);
-			}
+			TransformComponent t = new TransformComponent(position);
+			Material m =  GetMaterial(material);
 
 			return new DrawableMesh(name, data, ShaderManager.getAttributes(attr, shader), t, m, shader);
 		}

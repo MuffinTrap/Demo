@@ -19,6 +19,8 @@ namespace MuffinSpace
 		float worldWidth;
 		float worldDepth;
 
+		float triangleRot = 0.0f;
+
 		public TestScene()
 		{
 			cornerTriangles = new List<DrawableMesh>(3);
@@ -31,41 +33,42 @@ namespace MuffinSpace
 		{
 			gridShader = assetManager.GetShaderProgram("gridmesh");
 
-			DrawableMesh xt = assetManager.GetMesh("Triangle X"
+			DrawableMesh xt = assetManager.CreateMesh("Triangle X"
 			, MeshDataGenerator.CreateTriangleMesh()
-			, null
+			, "default"
 			, gridShader
-			, new Vector3(worldWidth, 0.0f, 0.0f), 1.0f);
+			, new Vector3(worldWidth, 0.0f, 0.0f));
 
-			DrawableMesh zt = assetManager.GetMesh("Triangle Z"
+			DrawableMesh zt = assetManager.CreateMesh("Triangle Z"
 			, MeshDataGenerator.CreateTriangleMesh()
-			, null
+			, "default"
 			, gridShader
-			, new Vector3(0.0f, 0.0f, worldDepth), 1.0f);
+			, new Vector3(0.0f, 0.0f, worldDepth));
 
-			DrawableMesh ot = assetManager.GetMesh("Triangle O"
+			DrawableMesh ot = assetManager.CreateMesh("Triangle O"
 			, MeshDataGenerator.CreateTriangleMesh()
-			, null
+			, "default"
 			, gridShader
-			, new Vector3(0.0f, 0.0f, 0.0f), 1.0f);
+			, new Vector3(0.0f, 0.0f, 0.0f));
 
 			cornerTriangles.Add(xt);
 			cornerTriangles.Add(zt);
 			cornerTriangles.Add(ot);
 				
-			megaGrid = assetManager.GetMesh("Megagrid"
+			megaGrid = assetManager.CreateMesh("Megagrid"
 			, MeshDataGenerator.CreateXZGrid(worldWidth * 2.0f, worldDepth * 2.0f, 1, 1)
-			, null
+			, "default"
 			, gridShader
-			, new Vector3(0.0f, 0.0f, 0.0f), 1);
+			, new Vector3(0.0f, 0.0f, 0.0f));
 
+			Renderer rend = Renderer.GetSingleton();
+			rend.SetClearColor(Color4.CornflowerBlue);
 			Error.checkGLError("TestScene.loadScene");
 		}
 
 		public void Draw()
 		{
 			Renderer rend = Renderer.GetSingleton();
-			rend.ClearScreen(Color4.AliceBlue);
 			rend.RenderMesh(megaGrid);
 
 			foreach (DrawableMesh ct in cornerTriangles)
@@ -78,9 +81,11 @@ namespace MuffinSpace
 
 		public void Update()
 		{
+
+			triangleRot += 0.1f;
 			foreach (DrawableMesh ct in cornerTriangles)
 			{
-				ct.Transform.rotateAroundY(0.05f);
+				ct.Transform.SetRotation(triangleRot);
 			}
 		}
 	}

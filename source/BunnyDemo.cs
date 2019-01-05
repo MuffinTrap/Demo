@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 
+using RocketNet;
 using OpenTK;
 
 namespace MuffinSpace
 {
 	public class BunnyDemo : IDemo
 	{
-		List<Scene> scenes;
 		Audio music;
 		DemoSettings settings;
 
@@ -16,40 +16,219 @@ namespace MuffinSpace
 		// Fadeout scene
 		ShaderProgram guiShader;
 		int fadeAlphaLocation = 0;
-		float fadeAlpha;
+		float fadeAlpha = 0.0f;
 		DrawableMesh fadeoutQuad;
+		Track fadeoutAlpha;
+
+		DrawableMesh starSphere;
 
 		MountainScene mountains;
+		MonolithSpaceScene monolithSpace;
+		SeaScene seaScene;
+		BunnyScene bunnyScene;
 
-		public class MountainScene : IDemo
+		public class BunnyScene : IDemo
 		{
-			// DrawableMesh mountains;
-			// DrawableMesh starSphere;
-
-			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager)
+			DrawableMesh bunnyMesh;
+			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
 			{
-				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
-				ShaderProgram skyboxProgram = assetManager.GetShaderProgram("sky");
+				ShaderProgram bunnyShader = assetManager.GetShaderProgram("bunny");
+				TunableManager tm = TunableManager.GetSingleton();
+				Vector3 bunnypos = tm.GetVec3("bunny.position");
+				Logger.LogInfo("loaded bunny pos " + Logger.PrintVec3(bunnypos));
+				bunnyMesh = assetManager.GetMesh("bunny", "bunny.obj", "default", bunnyShader, bunnypos);
 
 			}
+
 			public void Sync(SyncSystem syncer)
 			{
-				// Rotate star sphere world matrix
 
 			}
-			public void Draw(SyncSystem syncer, Renderer renderer)
+			public void Draw(Renderer renderer)
 			{
-				// Draw mountains
-				// Draw stars
+				renderer.RenderObject(bunnyMesh);
 			}
 		}
 
+		public class MonolithSpaceScene : IDemo
+		{
+			DrawableMesh greetMesh;
+			DrawableMesh fontTestMesh;
+			DrawableMesh monolith;
+			DrawableMesh mono_normals;
+
+			float textAlpha = 1.0f;
+
+			Light moon;
+
+			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+			{
+				Logger.LogInfo("Loading Monolith in space scene");
+
+				ShaderProgram texShader = assetManager.GetShaderProgram("texturedobjmesh");
+				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
+				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
+
+				TextGenerator textgen = TextGenerator.GetSingleton();
+				PixelFont commodore = textgen.GetFont("commodore");
+
+				moon = Light.CreateDirectionalLight(new Vector3(0.5f, 0.5f, 1.0f), 0.3f, 0.4f, new Vector3(-0.4f, -0.2f, 0.4f));
+
+				Logger.LogInfo("Created directional moon light " + moon.GetInfoString());
+				greetMesh = assetManager.CreateMesh("greeting"
+				, MeshDataGenerator.CreateTextMesh("Gambatte Minnasan", commodore)
+				, "commodore_font"
+				, texShader
+				, new Vector3(1.5f, 12, 0));
+
+				fontTestMesh = assetManager.CreateMesh("font_test"
+				, MeshDataGenerator.CreateQuadMesh(false, true)
+				, "commodore_font"
+				, texShader
+				, new Vector3(-1, 3, 0));
+
+				monolith = assetManager.CreateMesh("monolith"
+				, MeshDataGenerator.CreateCubeMesh(new Vector3(1.5f, 2.0f, 0.15f), true, true)
+				, "konata"
+				, objShader
+				, new Vector3(0.0f, 12.0f, 0.0f));
+
+				mono_normals = assetManager.CreateMesh("mono_normals"
+				, MeshDataGenerator.CreateNormalDebug(monolith.Data.positions, monolith.Data.normals)
+				, "default"
+				, gridShader
+				, monolith.Transform.Position);
+			}
+
+			public void Sync(SyncSystem syncer)
+			{
+
+			}
+
+			public void Draw(Renderer renderer)
+			{
+				//renderer.RenderObject(fontTestMesh);
+				renderer.SetActiveShader(greetMesh.ShaderProgram);
+				greetMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, textAlpha);
+				renderer.RenderObject(greetMesh);
+
+				// renderer.ActivateLight(moon, 0);
+				renderer.RenderObject(monolith);
+				// renderer.RenderObject(mono_normals);
+				Error.checkGLError("Monolith Draw");
+			}
+		}
+
+		public class MountainScene : IDemo
+		{
+			DrawableMesh mountains;
+			DrawableMesh mountain_normals;
+			DrawableMesh pyra;
+			Light starLight;
+			Light testLight;
+
+			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+			{
+				Logger.LogInfo("Loading Mountain scene");
+				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
+				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
+
+				starLight = Light.CreateDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.2f, 0.8f, new Vector3(0.4f, -1.0f, 0.0f));
+				Logger.LogInfo("Created directional star light " + starLight.GetInfoString());
+
+				testLight = Light.CreatePointLight(new Vector3(1.0f, 1.0f, 1.0f), 56.0f, new Vector3(0, 5.0f, 0.0f));
+				Logger.LogInfo("Created Point  light " + testLight.GetInfoString());
+
+				mountains = assetManager.CreateMesh("mountains"
+			, MeshDataGenerator.CreateMountains(40, true, 4, 0.5f, 1)
+			, "mountain_palette"
+			, objShader
+			, new Vector3(0, 0, 0));
+
+				mountain_normals = assetManager.CreateMesh("mono_normals"
+				, MeshDataGenerator.CreateNormalDebug(mountains.Data.positions, mountains.Data.normals)
+				, "default"
+				, gridShader
+				, mountains.Transform.Position);
+
+				pyra = assetManager.CreateMesh("pyra"
+				, MeshDataGenerator.CreatePyramidMesh(1.0f, 1.0f, false, false)
+				, "default"
+				, gridShader
+				, new Vector3(0, 5, 0));
+
+
+			}
+
+			public void Sync(SyncSystem syncer)
+			{
+			}
+
+			public void Draw(Renderer renderer)
+			{
+				renderer.SetClearColor(OpenTK.Graphics.Color4.DarkSlateBlue);
+				renderer.ActivateLight(starLight, 0);
+				renderer.ActivateLight(testLight, 1);
+				//	renderer.RenderObject(mountain_normals);
+				renderer.RenderObject(pyra);
+				renderer.RenderObject(mountains);
+				//				renderer.RenderSky(starSphere);
+
+				Error.checkGLError("MountainScene Draw");
+			}
+		}
+
+		public class SeaScene : IDemo
+		{
+
+			DrawableMesh seaMesh;
+			ShaderProgram seaShader;
+
+			int texOffset1Location;
+			int texOffset2Location;
+
+			Vector2 offset1;
+			Vector2 offset2;
+
+			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+			{
+
+				seaShader = assetManager.GetShaderProgram("heightMapTerrain");
+				texOffset1Location = seaShader.GetCustomUniformLocation("ucUVoffset1");
+				texOffset2Location = seaShader.GetCustomUniformLocation("ucUVoffset2");
+
+				seaMesh = assetManager.CreateMesh("sea"
+				, MeshDataGenerator.CreateTerrain(40, 40, 1, true, true, 1.0f, 1.0f)
+				, "sea"
+				, seaShader
+				, new Vector3(0, 0.4f, 0));
+
+				offset1 = new Vector2(0, 0);
+				offset2 = new Vector2(0, 0);
+			}
+
+			public void Sync(SyncSystem syncer)
+			{
+				offset1.X += 0.0001f;
+				offset2.X += 0.003f;
+			}
+			public void Draw(Renderer renderer)
+			{
+				renderer.SetActiveShader(seaMesh.ShaderProgram);
+				seaShader.SetVec2Uniform(texOffset1Location, offset1);
+				seaShader.SetVec2Uniform(texOffset2Location, offset2);
+				renderer.RenderObject(seaMesh);
+
+				Error.checkGLError("SeaScene Draw");
+			}
+
+		}
 		public BunnyDemo()
 		{
 			settings = DemoSettings.GetDefaults();
 		}
 
-		public void Load(IAudioSystem audioSystemParam, AssetManager assetManager)
+		public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
 		{
 			if (settings.AudioEnabled)
 			{
@@ -57,26 +236,49 @@ namespace MuffinSpace
 				string audioFileName = "../data/music/bosca.wav";
 				music = audioSystem.LoadAudioFile(audioFileName);
 			}
-
-			scenes = new List<Scene>();
+			Logger.LogInfo("Loading Bunny Demo");
 
 			mountains = new MountainScene();
+			mountains.Load(audioSystem, assetManager, syncSystem);
 
+			monolithSpace = new MonolithSpaceScene();
+			monolithSpace.Load(audioSystem, assetManager, syncSystem);
+
+			seaScene = new SeaScene();
+			seaScene.Load(audioSystem, assetManager, syncSystem);
+
+			bunnyScene = new BunnyScene();
+			bunnyScene.Load(audioSystem, assetManager, syncSystem);
 
 			// Fade scene
 			guiShader = assetManager.GetShaderProgram("gui");
-			fadeAlphaLocation = guiShader.GetCustomUniformLocation("uCustomAlpha");
+			if (guiShader == null)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "Did not get gui shader");
+			}
+			fadeAlphaLocation = guiShader.GetCustomUniformLocation("uAlpha");
+			fadeoutAlpha = syncSystem.GetTrack("FadeOut");
 
 			Material fadeoutMaterial = new Material("blackfadeout");
 			fadeoutMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, MaterialManager.GetSingleton().GetColorTextureByName("black"));
 			MaterialManager.GetSingleton().AddNewMaterial(fadeoutMaterial);
 
-			fadeoutQuad = assetManager.GetMesh("black_overlay"
+			fadeoutQuad = assetManager.CreateMesh("black_overlay"
 				, MeshDataGenerator.CreateQuadMesh(false, true)
 				, fadeoutMaterial.materialName
 				, guiShader
-				, new Vector3(-2.0f, -0.5f, 0.0f)
-				, 3.0f);
+				, new Vector3(-2.0f, -0.5f, 0.0f));
+
+			ShaderProgram skyboxProgram = assetManager.GetShaderProgram("sky");
+			starSphere = assetManager.CreateMesh("stars"
+										 , MeshDataGenerator.CreateStarSphere(90.0f, 500, 0.05f, 0.8f)
+										 , "star_palette"
+										 , skyboxProgram
+										 , new Vector3(0, 0, 0));
+
+			starSphere.Transform.SetRotationAxis(new Vector3(0.3f, 0.8f, 0.0f).Normalized());
+
+			Logger.LogPhase("Bunny demo is loaded");
 		}
 
 		public void Start()
@@ -91,10 +293,13 @@ namespace MuffinSpace
 		public void Sync(SyncSystem syncer)
 		{
 			// Get scene combination by Scene value
-			if (syncer.Scene == 0)
-			{
-				UpdateFadeout(syncer.SceneProgress);
-			}
+			UpdateFadeout(syncer.SceneProgress);
+			UpdateStarRotation();
+			mountains.Sync(syncer);
+			monolithSpace.Sync(syncer);
+			seaScene.Sync(syncer);
+			bunnyScene.Sync(syncer);
+
 		}
 
 		private void UpdateFadeout(float progress)
@@ -102,16 +307,35 @@ namespace MuffinSpace
 			fadeAlpha = progress;
 		}
 
-		public void Draw(SyncSystem syncer, Renderer renderer)
+		private void UpdateStarRotation()
 		{
-			if (syncer.Scene == 0)
+				// Rotate star sphere world matrix
+				starSphere.Transform.SetRotation(0.0f);
+		}
+
+		public void Draw(Renderer renderer)
+		{
+			if (fadeAlpha > 0.0f)
 			{
 				DrawFadeout(renderer, fadeAlpha);
 			}
+			
+			mountains.Draw(renderer);
+			monolithSpace.Draw(renderer);
+			bunnyScene.Draw(renderer);
+			seaScene.Draw(renderer);
+
+			renderer.RenderSky(starSphere);
+			Error.checkGLError("BunnyDemo Draw");
 		}
 
 		private void DrawFadeout(Renderer renderer, float progress)
 		{
+			if (guiShader == null)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "No shader to render with");
+				return;
+			}
 			renderer.GetCamera().EnableOrthogonal();
 			renderer.SetActiveShader(guiShader);
 			guiShader.SetFloatUniform(fadeAlphaLocation, progress);
@@ -124,70 +348,4 @@ namespace MuffinSpace
 			return settings;
 		}
 	}
-
-	/*
-			Scene lightScene = new Scene();
-
-			Light sunLight;
-			Light lampLight;
-			Light lampLight2;
-
-			Vector3 lampPos1 = new Vector3(2.0f, 3.0f, -2.0f);
-			Vector3 lampPos2 = new Vector3(2.0f, 15.0f, -4.0f);
-
-			sunLight = Light.createDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.0f, new Vector3(0.0f, 0.0f, 0.0f));
-			lampLight = Light.createPointLight(new Vector3(1.0f, 0.8f, 0.8f), 0.0f, 84.0f, lampPos1);
-			lampLight2 = Light.createPointLight(new Vector3(0.8f, 1.0f, 0.8f), 0.0f, 52.0f
-			, lampPos2);
-
-			DrawableMesh quadMesh = assetManager.GetMesh("monu9"
-			, assetManager.getMeshData("monu9.obj")
-			, "monu9"
-			, objShader
-			, new Vector3(4.0f, 0.0f, 0.0f)
-			, 0.2f);
-
-			DrawableMesh lampMesh1 = assetManager.GetMesh("lamp1"
-				, MeshDataGenerator.CreatePyramidMesh(1.0f, 1.0f, false, true)
-				, "lamp"
-				, objShader
-				, lampPos1
-				, 1.0f);
-
-			DrawableMesh lampMesh2 = assetManager.GetMesh("lamp2"
-				, MeshDataGenerator.CreatePyramidMesh(1.0f, 1.0f, false, true)
-				, "lamp"
-				, objShader
-				, lampPos2
-				, 1.0f);
-
-			DrawableMesh starSphere = assetManager.GetMesh("starSphere"
-				, MeshDataGenerator.CreateStarSphere(10.0f, 910)
-				, "star_palette"
-				, skyboxProgram
-				, new Vector3(0, 0, 0)
-				, 1.0f);
-
-			DrawableMesh mountainMesh = assetManager.GetMesh("mountains"
-			, MeshDataGenerator.CreateMountains(160, 1, true, 1.0f, 1.0f, 6, 0.5f)
-			, "mountain_palette"
-			, objShader
-			, new Vector3(0, 4, 0)
-			, 0.5f);
-
-			// DEBUG 
-			DrawableMesh mountainNormals = assetManager.GetMesh("mountain_normals"
-			, MeshDataGenerator.CreateNormalDebug(mountainMesh.Data.positions, mountainMesh.Data.normals)
-			, "default"
-			, debugShader
-			, mountainMesh.Transform.Position
-			, 0.5f);
-
-			lightScene.AddDrawable(quadMesh);
-			lightScene.AddDrawable(mountainMesh);
-			lightScene.AddDrawable(lampMesh1);
-			lightScene.AddDrawable(lampMesh2);
-			lightScene.AddDrawable(starSphere);
-
-			*/
 }

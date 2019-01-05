@@ -136,7 +136,7 @@ namespace MuffinSpace
 					int nameLength = modelName.Length - (modelName.Length - fileTypeStart);
 					string modelNameNoOBJ = modelName.Substring(0, nameLength);
 
-					scene.AddDrawable(assetManager.GetMesh(modelNameNoOBJ, modelName, assetManager.GetMaterial(modelNameNoOBJ).materialName, modelShader, position, scale));
+					scene.AddDrawable(assetManager.GetMesh(modelNameNoOBJ, modelName, assetManager.GetMaterial(modelNameNoOBJ).materialName, modelShader, position));
 
 					Logger.LogInfo("Model: " + modelName + " added to scene ");
 
@@ -148,8 +148,6 @@ namespace MuffinSpace
 				if (vsFound && fsFound)
 				{
 					Logger.LogInfo("Found shader setting: VS: " + vsName + ", FS: " + fsName);
-
-					ShaderProgram newProgram = assetManager.GetShaderProgram(vsName, fsName);
 
 					Logger.LogInfo("Shader: " + vsName + " added to scene ");
 

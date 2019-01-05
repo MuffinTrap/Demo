@@ -1,5 +1,7 @@
 
+using System.IO;
 using System.Collections.Generic;
+using System;
 using OpenTK;
 using RocketNet;
 
@@ -7,198 +9,184 @@ namespace MuffinSpace
 {
 	public class Tunable
 	{
-		public string name;
-		private float tunableValue;
-		public float Value
-		{
-			get
-			{
-				return tunableValue;
+		public string Name { get; set; }
+		public string Value { get; set; }
 
-			}
-			set
-			{
-				value = MathHelper.Clamp(value, min, max);
-			}
-		}
-		public float min;
-		public float max;
-
-		public Tunable(string nameParam, float minParam, float valueParam, float maxParam)
+		public Tunable(string nameParam, string valueParam)
 		{
-			name = nameParam;
-			min = minParam;
-			max = maxParam;
-			tunableValue = MathHelper.Clamp(valueParam, min, max);
+			Name = nameParam;
+			Value = valueParam;
 		}
 	}
 
-	public class TunableGroup
+	public class TunableObject
 	{
-		int id = 0;
-		public int Id
-		{
-			get
-			{
-				return id;
-			}
-			private set
-			{
-				if (value > 1)
-				{
-					id = value;
-				}
-			}
-		}
-		int parentId = 0;
-		private string name;
-		public string Name
-		{
-			get
-			{
-				return name;
-			}
-			private set {
-				if (value.Length > 0)
-				{
-					name = value;
-				}
-			}
-		}
-		List<Tunable> tunables;
-		public List<int> subGroups;
+		public string Name { get; set; }
+		public List<Tunable> tunables;
 
-		public TunableGroup(int idParam, int parentIdParam, string nameParam)
+		public TunableObject(string nameParam)
 		{
-			id = idParam;
-			parentId = parentIdParam;
-			name = nameParam;
-
+			Name = nameParam;
 			tunables = new List<Tunable>();
-			subGroups = new List<int>();
 		}
 
-
-		public Tunable AddTunable(string name, float min, float startValue, float max)
+		public void AddTunable(string name, string value)
 		{
 			// Check if exists. because could be loaded from file
 			foreach (Tunable t in tunables)
 			{
-				if (t.name == name)
+				if (t.Name == name)
 				{
-					return t;
+					return;
 				}
 			}
-			Tunable newT = new Tunable(name, min, startValue, max);
+			Tunable newT = new Tunable(name, value);
 			tunables.Add(newT);
-			return newT;
-		}
-	
-		public void AddGroup(int groupId)
-		{
-			if (!subGroups.Contains(groupId))
-			{
-				subGroups.Add(groupId);
-			}
 		}
 	}
 
-	public class MenuSystem
+	public class TunableManager
 	{
-		private static MenuSystem singleton = null;
-		private int rootGroupId = 1;
-		private int idCounter = 2;
-		public static int GetInvalidId()
+		private static TunableManager singleton = null;
+
+		private List<TunableObject> tunables;
+
+		private TunableManager()
 		{
-			return -1;
+			tunables = new List<TunableObject>();
 		}
 
-		private Dictionary<int, TunableGroup> groups;
-
-		public int GetRootGroupId()
-		{
-			return rootGroupId;
-		}
-
-		private MenuSystem()
-		{
-			groups = new Dictionary<int, TunableGroup>();
-			TunableGroup rootGroup = new TunableGroup(rootGroupId, 0, "Root");
-			groups.Add(rootGroupId, rootGroup);
-		}
-
-		public static MenuSystem GetSingleton()
+		public static TunableManager GetSingleton()
 		{
 			if (singleton == null)
 			{
-				singleton = new MenuSystem();
+				singleton = new TunableManager();
 			}
 			return singleton;
 		}
 
-		public Tunable CreateTunable(int parentGroup, string name, float min, float startValue, float max)
+		public void AddObject(string objectName)
 		{
-			if (groups.ContainsKey(parentGroup))
-			{
-				TunableGroup parent = groups[parentGroup];
-				return parent.AddTunable(name, min, startValue, max);
-			}
-			return null;
+			tunables.Add(new TunableObject(objectName));
 		}
 
-		public bool ContainsGroup(int groupId, string groupName)
+		public void AddTunable(string name, string value)
 		{
-			return (GetGroupId(groupId, groupName) != GetInvalidId());
+			tunables[tunables.Count - 1].AddTunable(name, value);
 		}
 
-		public int GetGroupId(int parentGroup, string groupName)
+		public void ReloadValues()
 		{
-			TunableGroup parent = groups[parentGroup];
-			foreach(int id in parent.subGroups)
+			tunables.Clear();
+			ReadSettings();
+		}
+
+
+		public float GetFloat(string name)
+		{
+			return Single.Parse(GetValue(name));
+		}
+		public Vector3 GetVec3(string name)
+		{
+			return readVector3(GetValue(name));
+		}
+
+		private string GetValue(string name)
+		{
+			string[] pathParts = name.Split('.');
+			foreach (TunableObject o in tunables)
 			{
-				TunableGroup subGroup = groups[id];
-				if (subGroup.Name == groupName)
+				if (o.Name == pathParts[0])
 				{
-					return subGroup.Id;
+					foreach(Tunable t in o.tunables)
+					{
+						if (t.Name == pathParts[1])
+						{
+							return t.Value;
+						}
+					}
 				}
 			}
-			return GetInvalidId();
+			Logger.LogError(Logger.ErrorState.Limited, "No such setting as: " + name);
+			return "";
 		}
 
-		public int CreateTunableGroup(int parentGroup, string name)
+		public static Vector3 readVector3(string vectorLine)
 		{
-			if (groups.ContainsKey(parentGroup))
+			char split = ',';
+			string[] values = vectorLine.Split(split);
+
+			Vector3 vec = new Vector3();
+
+			Logger.LogInfo("Reading vector3: " + vectorLine);
+			if (values.Length == 3)  // #, #, #
 			{
-				int extId = GetGroupId(parentGroup, name);
-				if (extId == GetInvalidId())
+				// use . as separator instead of system default
+				System.Globalization.NumberFormatInfo nfi = new System.Globalization.CultureInfo("en-US", false).NumberFormat;
+
+				try
 				{
-					int newId = idCounter;
-					idCounter += 1;
-					TunableGroup newGroup = new TunableGroup(newId, parentGroup, name);
-					groups.Add(newId, newGroup);
-					TunableGroup parent = groups[parentGroup];
-					parent.AddGroup(newId);
-					return newId;
-				}
-				else
+					vec.X = Single.Parse(values[0], nfi);
+					vec.Y = Single.Parse(values[1], nfi);
+					vec.Z = Single.Parse(values[2], nfi);
+				} catch (FormatException e)
 				{
-					return extId;
+					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, values[1]));
 				}
 			}
-			return -1;
+
+			return vec;
 		}
 
-		// Writes all tunables and their values and relationships
-		// to a file
-		public bool WriteToFile(string filenameAndPath)
+        private void ReadSettings()
 		{
-			return false;
-		}
+			StreamReader fileReader;
+			fileReader = new StreamReader("settings.cfg");
 
-		// Reads a file and creates tunables defined therein 
-		public bool ReadFromFile(string filenameAndPath)
-		{
-			return false;
+			// Find all settings in the file
+			char [] settingSplit = {' '};
+			char [] valueSplit = {':'};
+
+			string activeHeader = "";
+			
+			while (fileReader.EndOfStream == false)
+			{
+				string settingLine = fileReader.ReadLine();
+				if (settingLine.Contains(";"))
+				{
+					// Comment
+					continue;
+				}
+
+				// Header or value?
+				if (settingLine.Contains("{"))
+				{
+					string[] headerLine = settingLine.Split(settingSplit);
+					string headerName = headerLine[0].Trim();
+					activeHeader = headerName;
+					AddObject(activeHeader);
+					Logger.LogInfo("Added setting group: " + settingLine);
+				}
+				
+				string[] nameAndSetting = null;
+				nameAndSetting = settingLine.Split(valueSplit);
+
+				if (nameAndSetting.Length == 2)
+				{
+					string settingName = nameAndSetting[0].Trim();
+					string settingValue = nameAndSetting[1].Trim();
+
+					AddTunable(settingName, settingValue);
+					Logger.LogInfo("Read setting: " + settingLine);
+				}
+				else if (nameAndSetting.Length > 0 && nameAndSetting[0].Length != 0)
+				{
+					Console.WriteLine("Invalid setting: " + nameAndSetting[0]);
+				}
+			}
+				
+			//
+			fileReader.Close();
 		}
 	}
 }

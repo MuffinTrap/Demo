@@ -10,6 +10,7 @@ namespace MuffinSpace
 		public MeshData()
 		{
 			VAOHandle = GL.GenVertexArray();
+			VertexAmount = -1;
 		}
 
 		public void GenerateBufferHandles()
@@ -63,7 +64,7 @@ namespace MuffinSpace
 
 
 		// Vertices
-		public int VertexAmount { get; set; }
+		public int VertexAmount { get; private set; }
 		public int VAOHandle;
 
 		private bool checkAttribute(ShaderAttribute attribute)
@@ -125,6 +126,7 @@ namespace MuffinSpace
 
 		private bool bufferData(List<ShaderAttribute> attributes)
 		{
+			VertexAmount = positions.Count;
 			if (hasPositionData)
 			{
 				GL.BindBuffer(BufferTarget.ArrayBuffer, positionBufferHandle);

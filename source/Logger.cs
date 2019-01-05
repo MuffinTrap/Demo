@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 
+using OpenTK;
 using OpenTK.Graphics.OpenGL;
 
 using OpenTK.Audio.OpenAL;
@@ -18,6 +19,7 @@ namespace MuffinSpace
 			Critical,	// Program cannot continue. Code error
 			Limited,	// Something is missing. Data error
 			Unoptimal,	// Stupid or conflicting settings. User error
+			User,		// Programming error
 			NoErrors
 		}
 
@@ -30,6 +32,11 @@ namespace MuffinSpace
 		}
 
 		static public ErrorState ProgramErrorState { get; private set; }
+
+		static public string PrintVec3(Vector3 vec3)
+		{
+			return ("(" + vec3.X + ", " + vec3.Y + ", " + vec3.Z + ")");
+		}
 
 		static public void LogInfo(string message)
 		{
@@ -176,6 +183,14 @@ namespace MuffinSpace
 				errorFound = true;
 			}
 			return errorFound;
+		}
+
+		static public void Assume(bool assumption, string message)
+		{
+			if (!assumption)
+			{
+				Logger.LogError(Logger.ErrorState.User, message);
+			}
 		}
 	}
 }

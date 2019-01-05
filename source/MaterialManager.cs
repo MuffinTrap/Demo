@@ -130,6 +130,16 @@ namespace MuffinSpace
 				GL.ActiveTexture(TextureUnit.Texture3);
 				textureUnit = 3;
 			}
+			else if (uniform == ShaderUniformName.MetallicMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture4);
+				textureUnit = 4;
+			}
+			else if (uniform == ShaderUniformName.HeightMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture5);
+				textureUnit = 5;
+			}
 			if (textureUnit == -1)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "No defined texture unit for uniform " + ShaderUniformManager.GetSingleton().GetUniformName(uniform) + ", cannot bind");
@@ -141,6 +151,19 @@ namespace MuffinSpace
 		public List<Material> materials;
 		private List<TextureMap> colorMaps;
 		private Material defaultMaterial;
+
+		private struct LoadOptions
+		{
+			public bool mipmaps;
+			public bool interpolation;
+			public bool repeat;
+			public LoadOptions(bool createMipmaps, bool enableInterpolation, bool enableRepeat)
+			{
+				mipmaps = createMipmaps;
+				interpolation = enableInterpolation;
+				repeat = enableRepeat;
+			}
+		}
 
 		private MaterialManager()
 		{
@@ -158,6 +181,8 @@ namespace MuffinSpace
 			defaultMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, GetColorTextureByName("black"));
 			defaultMaterial.textureMaps.Add(ShaderUniformName.NormalMap, GetColorTextureByName("normalMap"));
 			defaultMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, GetColorTextureByName("roughnessMap"));
+			defaultMaterial.textureMaps.Add(ShaderUniformName.MetallicMap, GetColorTextureByName("black"));
+			defaultMaterial.textureMaps.Add(ShaderUniformName.HeightMap, GetColorTextureByName("black"));
 
 			materials.Add(defaultMaterial);
 
@@ -320,6 +345,10 @@ namespace MuffinSpace
 				newMaterial = new Material(materialName);
 			}
 
+			// Different texture maps can have different options, change this struct
+			// as we go
+			LoadOptions options = new LoadOptions(false, false, false);
+
 			// Read rest of the file
 
 			// use . as separator instead of system default
@@ -337,12 +366,33 @@ namespace MuffinSpace
 				{
 					// comment
 				}
+				else if (line.Contains("mipmaps"))
+				{
+					// Mipmap option
+					// mipmaps: true
+					string optionValue = line.Split(space)[1];
+					options.mipmaps = (optionValue == "true");
+				}
+				else if (line.Contains("repeat"))
+				{
+					// Repeat option
+					// repeat: true
+					string optionValue = line.Split(space)[1];
+					options.repeat = (optionValue == "true");
+				}
+				else if (line.Contains("interpolate"))
+				{
+					// Interpolation option
+					// interpolate: true
+					string optionValue = line.Split(space)[1];
+					options.interpolation = (optionValue == "true");
+				}
 				else if (line.Contains("map_Kd"))
 				{
 					// Diffuse map
 					// map_Kd filename.png
 					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName);
+					int textureGLIndex = loadTexture(textureName, options);
 					TextureMap diffuse = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, diffuse);
 
@@ -355,7 +405,7 @@ namespace MuffinSpace
 					// Illumination map
 					// map_Ki filename_i.png
 					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName);
+					int textureGLIndex = loadTexture(textureName, options);
 					TextureMap illumination = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, illumination);
 
@@ -368,7 +418,7 @@ namespace MuffinSpace
 					// Normal map
 					// map_Kn filename_n.png
 					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName);
+					int textureGLIndex = loadTexture(textureName, options);
 					TextureMap normal = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.NormalMap, normal);
 
@@ -381,13 +431,43 @@ namespace MuffinSpace
 					// Roughness map
 					// map_Kr filename_r.png
 					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName);
+					int textureGLIndex = loadTexture(textureName, options);
 					TextureMap roughness = new TextureMap(textureName, textureGLIndex);
 					newMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, roughness);
 
 					Logger.LogInfoLinePart("  Roughness map :", ConsoleColor.Gray);
 					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
 					Logger.LogInfoLineEnd();
+				}
+				else if (line.Contains("map_Km"))
+				{
+					// Metallic map
+					// map_Km filename_m.png
+					string textureName = line.Split(space)[1];
+					int textureGLIndex = loadTexture(textureName, options);
+					TextureMap metallic = new TextureMap(textureName, textureGLIndex);
+					newMaterial.textureMaps.Add(ShaderUniformName.MetallicMap, metallic);
+
+					Logger.LogInfoLinePart("  Metallic map :", ConsoleColor.Gray);
+					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+					Logger.LogInfoLineEnd();
+				}
+				else if (line.Contains("map_Kh"))
+				{
+					// Height map
+					// map_Kh filename_h.png
+					string textureName = line.Split(space)[1];
+					int textureGLIndex = loadTexture(textureName, options);
+					TextureMap height = new TextureMap(textureName, textureGLIndex);
+					newMaterial.textureMaps.Add(ShaderUniformName.HeightMap, height);
+
+					Logger.LogInfoLinePart("  Height map :", ConsoleColor.Gray);
+					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+					Logger.LogInfoLineEnd();
+				}
+				else
+				{
+					// Logger.LogError(Logger.ErrorState.Unoptimal, "Unhandled line '" + line + "' in material file " + materialFileName);
 				}
 			} while (line != null);
 
@@ -408,18 +488,19 @@ namespace MuffinSpace
 						map.SetPixel(x, y, textureColor);
 					}
 				}
-			int textureId = loadTextureFromBitmap(map);
+			LoadOptions defaults = new LoadOptions(false, false, false);
+			int textureId = loadTextureFromBitmap(map, defaults);
 			return textureId;
 		}
 
-		int loadTexture(string textureFileName)
+		int loadTexture(string textureFileName, LoadOptions options)
 		{
 			int textureId = -1;
 			
 			try
 			{
 				Bitmap map = new Bitmap(textureFileName);
-				textureId = loadTextureFromBitmap(map); 
+				textureId = loadTextureFromBitmap(map, options); 
 			}
 			catch (FileNotFoundException e)
 			{
@@ -434,7 +515,7 @@ namespace MuffinSpace
 			return textureId;
 		}
 
-		int loadTextureFromBitmap(Bitmap map)
+		int loadTextureFromBitmap(Bitmap map, LoadOptions options)
 		{
 			int texID = GL.GenTexture();
 			GL.ActiveTexture(TextureUnit.Texture0);
@@ -454,19 +535,37 @@ namespace MuffinSpace
 
 			map.UnlockBits(data);
 
-			GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+			if (options.mipmaps)
+			{
+				GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+			}
+			else
+			{
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
+			}
 
-			// Don't use mipmaps
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
+			if (options.repeat)
+			{
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.MirroredRepeat);
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.MirroredRepeat);
+			}
+			else
+			{
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+			}
 
-			// Don't loop
-			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-
-			// Don't interpolate
-			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-			GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+			if (options.interpolation)
+			{
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
+			}
+			else
+			{
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+			}
 
 			GL.BindTexture(TextureTarget.Texture2D, 0);
 

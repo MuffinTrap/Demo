@@ -71,8 +71,10 @@ namespace MuffinSpace
 			perspectiveMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
 
 			float aspectRatio = 16.0f / 9.0f;
-			perspectiveMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, aspectRatio, 0.1f, 100f);
-			orthogonalMatrix.Matrix = Matrix4.CreateOrthographic(aspectRatio, 1.0f, 0.0f, 10.0f);
+			float near = 0.1f;
+			float far = 100.0f;
+			perspectiveMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, aspectRatio, near, far);
+			orthogonalMatrix.Matrix = Matrix4.CreateOrthographic(aspectRatio, 1.0f, near, far);
 
 			EnablePerspective();
 

@@ -68,10 +68,9 @@ namespace MuffinSpace
 
 			ParticleShader = ass.GetShaderProgram("particle");
 
-			
 
-			ParticleMesh = ass.GetMesh("particle", MeshDataGenerator.CreateQuadMesh(false, false), null, ParticleShader
-			, new Vector3(0, 0, 0), 0.1f);
+			ParticleMesh = ass.CreateMesh("particle", MeshDataGenerator.CreateQuadMesh(false, false), null, ParticleShader
+			, new Vector3(0, 0, 0));
 
 			Matrices = new List<Matrix4>(particleAmount);
 			Particles = new List<Particle>(particleAmount);

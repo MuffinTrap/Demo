@@ -29,10 +29,9 @@ namespace MuffinSpace
 			OBJFileReader.readOBJ(filename, materialManager, ref faces, ref positions, ref normals, ref texCoords, ref meshMaterial);
 
 			// Create positions 
-			newData.VertexAmount = faces.Count;
 
 			newData.hasPositionData = true;
-			newData.hasTexCoordData = true;
+			newData.hasTexCoordData = texCoords.Count > 0;
 			newData.hasNormalData = true;
 
 			bool useIndices = true;
@@ -50,7 +49,10 @@ namespace MuffinSpace
 			}
 			
 			newData.positions = new List<Vector3>();
-			newData.texCoords = new List<Vector2>();
+			if (newData.hasTexCoordData)
+			{
+				newData.texCoords = new List<Vector2>();
+			}
 			newData.normals = new List<Vector3>();
 
 			bool addFace = true;
@@ -82,7 +84,10 @@ namespace MuffinSpace
 				if (addFace)
 				{
 					newData.positions.Add(positions[(int)face.positionIndex - 1]);
-					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
+					if (newData.hasTexCoordData)
+					{
+						newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
+					}
 					newData.normals.Add(normals[(int)face.normalIndex - 1]);
 				}
 			}
@@ -114,7 +119,6 @@ namespace MuffinSpace
 			triMesh.indices = new List<int> { 0, 2, 1 };
 			triMesh.hasIndexData = true;
 
-			triMesh.VertexAmount = 3;
 			triMesh.drawType = MeshData.DataDrawType.Triangles;
 
 			triMesh.GenerateBufferHandles();
@@ -123,32 +127,65 @@ namespace MuffinSpace
 
 			return triMesh;
 		}
-		static public MeshData CreateTextMesh()
+		static public MeshData CreateTextMesh(string message, PixelFont font)
 		{
 			MeshData textMesh = new MeshData();
-			textMesh.sourceFileName = "text_mesh";
+			textMesh.sourceFileName = "text_mesh: " + message;
+
 			textMesh.positions = new List<Vector3>();
 			textMesh.texCoords = new List<Vector2>();
 			textMesh.indices = new List<int>();
 
-			int letters = 100 * 4;
-			float xstart = 0.0f;
-			float step = 0.01f;
-			for (int i = 0; i < letters; i++)
-			{
-				textMesh.positions.Add(new Vector3(xstart + 0.0f, 0.0f, 0.0f)); // 0
-				textMesh.positions.Add(new Vector3(.0f, 1.0f, 0.0f));  // 1
-				textMesh.positions.Add(new Vector3(1.0f, 1.0f, 0.0f));   // 2
-				textMesh.positions.Add(new Vector3(1.0f, 0.0f, 0.0f));  // 3
-				textMesh.texCoords.Add(new Vector2(0, 0));
-			}
-
 			textMesh.hasPositionData = true;
 			textMesh.hasTexCoordData = true;
+			textMesh.hasIndexData = true;
 
+			List<Vector2> uvs = font.GetUVsOfString(message);
+			Vector2 uvStep = font.GetLetterUVSize();
+			int letters = message.Length;
+
+			float xstart = 0.0f;
+			float step = 1.0f;
+			int ind = 0;
+			for (int i = 0; i < letters; i++)
+			{
+				textMesh.positions.Add(new Vector3(xstart + 0.0f, 0.0f, 0.0f)); // 0  L B
+				textMesh.positions.Add(new Vector3(xstart + 0.0f, step, 0.0f));  // 1 L T
+				textMesh.positions.Add(new Vector3(xstart + step, step, 0.0f));   // 2  R T
+				textMesh.positions.Add(new Vector3(xstart + step, 0.0f, 0.0f));  // 3	R B
+
+				// We are given the upper left corner in uvs[]
+				// but the quads start from lower left
+				// Texture coordinates Y decreases downwards, top is 1
+				float uX = uvs[i].X;		// L
+				float uY = uvs[i].Y;		// T
+				float uW = uX + uvStep.X;	// R
+				float uH = uY - uvStep.Y;	// B
+
+				textMesh.texCoords.Add(new Vector2(uX, uH));	// L B
+				textMesh.texCoords.Add(new Vector2(uX, uY));	// L T
+				textMesh.texCoords.Add(new Vector2(uW, uY));	// R T
+				textMesh.texCoords.Add(new Vector2(uW, uH));	// R B
+
+				textMesh.indices.Add(ind);
+				textMesh.indices.Add(ind + 3);
+				textMesh.indices.Add(ind + 2);
+
+				textMesh.indices.Add(ind);
+				textMesh.indices.Add(ind + 2);
+				textMesh.indices.Add(ind + 1);
+
+				ind += 4;
+
+				xstart += step;
+			}
+
+			textMesh.drawType = MeshData.DataDrawType.Triangles;
 			textMesh.GenerateBufferHandles();
 
-			return textMesh();
+			Error.checkGLError("Text Mesh Data creation");
+
+			return textMesh;
 		}
 		static public MeshData CreateQuadMesh(bool createNormals, bool createTexCoords)
 		{
@@ -199,7 +236,6 @@ namespace MuffinSpace
 				quadMesh.hasNormalData = true;
 			}
 
-			quadMesh.VertexAmount = positions.Count;
 
 			quadMesh.drawType = MeshData.DataDrawType.Triangles;
 
@@ -208,6 +244,91 @@ namespace MuffinSpace
 			Error.checkGLError("Quad Mesh Data creation");
 
 			return quadMesh;
+		}
+
+		static private void CreateCubeSide(Vector3 sideCenter, Vector3 up, Vector3 right, ref List<Vector3> positions
+		, ref List<Vector3> normals, ref List<Vector2> texCoords, ref List<int> indices)
+		{
+			int ind = positions.Count;
+			positions.Add(sideCenter - up - right);
+			positions.Add(sideCenter - up + right);
+			positions.Add(sideCenter + up + right);
+			positions.Add(sideCenter + up - right);
+
+			normals.Add(sideCenter);
+			normals.Add(sideCenter);
+			normals.Add(sideCenter);
+			normals.Add(sideCenter);
+
+			texCoords.Add(new Vector2(0.0f, 0.0f));
+			texCoords.Add(new Vector2(1.0f, 0.0f));
+			texCoords.Add(new Vector2(1.0f, 1.0f));
+			texCoords.Add(new Vector2(0.0f, 1.0f));
+
+			indices.Add(ind + 0);
+			indices.Add(ind + 1);
+			indices.Add(ind + 2);
+
+			indices.Add(ind + 0);
+			indices.Add(ind + 2);
+			indices.Add(ind + 3);
+		}
+
+		static public MeshData CreateCubeMesh(Vector3 size, bool createNormals, bool createTexCoords)
+		{
+			MeshData cube = new MeshData();
+
+			List<Vector3> positions = new List<Vector3>();
+			List<Vector3> normals = new List<Vector3>();
+			List<Vector2> texCoords = new List<Vector2>();
+			List<int> indices = new List<int>();
+
+			Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
+			Vector3 right = new Vector3(1.0f, 0.0f, 0.0f);
+			Vector3 forwards = new Vector3(0.0f, 0.0f, 1.0f);
+
+			// Forwards
+			CreateCubeSide(forwards, up, right, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(-forwards, up, -right, ref positions, ref normals, ref texCoords, ref indices);
+
+			CreateCubeSide(up, forwards, -right, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(-up, forwards, right, ref positions, ref normals, ref texCoords, ref indices);
+
+			CreateCubeSide(right, up, -forwards, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(-right, up, forwards, ref positions, ref normals, ref texCoords, ref indices);
+
+			Matrix3 scale = Matrix3.CreateScale(size);
+
+			for (int pi = 0; pi < positions.Count; pi++)
+			{
+				positions[pi] = scale * positions[pi];
+			}
+
+			cube.positions = positions;
+			cube.hasPositionData = true;
+
+			cube.indices = indices;
+			cube.hasIndexData = true;
+
+			if (createNormals)
+			{
+				cube.normals = normals;
+				foreach(Vector3 n in cube.normals)
+				{
+					n.Normalize();
+				}
+				cube.hasNormalData = true;
+			}
+			if (createTexCoords)
+			{
+				cube.texCoords = texCoords;
+				cube.hasTexCoordData = true;
+			}
+			
+			cube.drawType = MeshData.DataDrawType.Triangles;
+			cube.GenerateBufferHandles();
+
+			return cube;
 		}
 		
 		static private void CreatePyramidSideNormals(Vector3 sideFacing, float normalAngle, List<Vector3> normals)
@@ -397,7 +518,6 @@ namespace MuffinSpace
 			pyraMesh.positions = positions;
 			pyraMesh.hasPositionData = true;
 
-			pyraMesh.VertexAmount = positions.Count;
 			pyraMesh.drawType = MeshData.DataDrawType.Triangles;
 
 			pyraMesh.GenerateBufferHandles();
@@ -420,7 +540,6 @@ namespace MuffinSpace
 			}
 
 			grid.hasPositionData = true;
-			grid.VertexAmount = grid.positions.Count;
 			grid.drawType = MeshData.DataDrawType.Lines;
 
 			grid.GenerateBufferHandles();
@@ -446,7 +565,6 @@ namespace MuffinSpace
 			}
 
 			grid.hasPositionData = true;
-			grid.VertexAmount = grid.positions.Count;
 			grid.drawType = MeshData.DataDrawType.Points;
 
 			grid.GenerateBufferHandles();
@@ -456,59 +574,88 @@ namespace MuffinSpace
 			return grid;
 		}
 
-		static public MeshData CreateStarSphere(float radius, int starsAmount, float sizeDegrees)
+		static public MeshData CreateStarSphere(float radius, int starsAmount, float sizeMin, float sizeMax)
 		{
 			Random randomizer = new Random(0);
 			MeshData stars = new MeshData();
 			stars.sourceFileName = "Stars_r:_" + radius + "_amount:_" + stars;
 			stars.hasPositionData = true;
 			stars.hasTexCoordData = true;
-			// stars.hasIndexData = true;
+			stars.hasIndexData = true;
 			stars.positions = new List<Vector3>();
 			stars.texCoords = new List<Vector2>();
-			// stars.indices = new List<int>();
+			stars.indices = new List<int>();
 
+			Vector3 worldRight = new Vector3(1.0f, 0.0f, 0.0f);
+			Vector3 worldUp = new Vector3(0.0f, 1.0f, 0.0f);
 			float circle = MathHelper.DegreesToRadians(360);
-			float size = MathHelper.DegreesToRadians(sizeDegrees);
-			Vector3 right = new Vector3(1.0f, 0.0f, 0.0f);
+			float hCircle = circle * 0.5f;
+			int ind = 0;
 			for (int i = 0; i < starsAmount; i++)
 			{
 				float yAngle = (float)randomizer.NextDouble() * circle;
-				float zAngle = (float)randomizer.NextDouble() * circle;
+				float starAngle = ((float)i / starsAmount) * circle;
+				float elevationAngle = ((float)randomizer.NextDouble() - 0.5f) * hCircle;
 
-				Matrix3 rot = Matrix3.CreateRotationZ(zAngle) * Matrix3.CreateRotationY(yAngle);
-				Vector3 center = rot * right;
+				Matrix3 headingRot = Matrix3.CreateRotationY(yAngle);
+				Vector3 heading = headingRot * worldRight;
+				Vector3 headingRigth = Vector3.Cross(heading, worldUp);
 
+				Vector3 right = headingRigth;
 
-				center.Normalize();
-				center *= radius;
-				stars.positions.Add(center);
-				Vector2 tex = new Vector2((float)randomizer.NextDouble(), 0.5f);
-				stars.texCoords.Add(tex);
-				// Logger.LogInfo("Star at: " + pos.X + ", " + pos.Y + ", " + pos.Z + ".U: " + tex.X + " V: " + tex.Y );
+				Matrix3 elevationRot = Matrix3.CreateFromAxisAngle(headingRigth, elevationAngle);
+				Vector3 direction = elevationRot * heading;
+
+				direction.Normalize();
+				Vector3 up = Vector3.Cross(right, direction);
+
+				// Logger.LogInfo("Star angle: " + MathHelper.RadiansToDegrees(elevationAngle) + " dir.length " + direction.Length + " r.length " + right.Length + " up.length: " + up.Length);
+
+				direction *= radius;
+				float size = (float)randomizer.NextDouble() * (sizeMax - sizeMin) + sizeMin;
+				right *= size;
+				up *= size;
+
+				stars.positions.Add(direction - right - up);
+				stars.positions.Add(direction + right - up);
+				stars.positions.Add(direction + right + up);
+				stars.positions.Add(direction - right + up);
+
+				stars.indices.Add(ind);
+				stars.indices.Add(ind + 1);
+				stars.indices.Add(ind + 2);
+				stars.indices.Add(ind);
+				stars.indices.Add(ind + 2);
+				stars.indices.Add(ind + 3);
+
+				ind += 4;
+
+				stars.texCoords.Add(new Vector2(0.0f, 0.0f));
+				stars.texCoords.Add(new Vector2(1.0f, 0.0f));
+				stars.texCoords.Add(new Vector2(1.0f, 1.0f));
+				stars.texCoords.Add(new Vector2(0.0f, 1.0f));
 			}
 
-			stars.VertexAmount = starsAmount;
-			stars.hasNormalData = false;
-			stars.hasIndexData = false;
-
-			stars.drawType = MeshData.DataDrawType.Points;
+			stars.drawType = MeshData.DataDrawType.Triangles;
 			stars.GenerateBufferHandles();
+
 			return stars;
 		}
 
-		static public MeshData CreateMountains(float sideLength, float trianglesPerUnit
-			, bool createNormals, float UVrepeatX, float UVrepeatZ, int iterations, float variation)
+		static public MeshData CreateMountains(float sideLength
+			, bool createNormals, int iterations, float variation, int randomSeed)
 		{
-			MeshData mountains = new MeshData();
-			mountains.sourceFileName = "Mountains_" + sideLength + "_x_" + sideLength;
 
-			Random randomizer = new Random(1);
+			Random randomizer = new Random(randomSeed);
 
 			// Code from the article
 			float maxLevel = 0.0f;
 			int dim = (int)Math.Pow(2, iterations);
-			float[,] data = new float[dim + 1, dim + 1];
+			int arrayWidth = dim + 1;
+			int arrayHeight = dim + 1;
+
+			float[,] data = new float[arrayWidth, arrayHeight];
+
 			for (int iteration = iterations; iteration > 0; iteration--)
 			{
 				int skip = (int)Math.Pow(2, iteration);
@@ -517,9 +664,9 @@ namespace MuffinSpace
 				Logger.LogInfo("Iteration " + iteration + " skip: " + skip);
 
 				// Logger.LogInfo("Tops and bottoms");
-				for (int y = 0; y <= dim; y += skip)
+				for (int y = 0; y < arrayHeight; y += skip)
 				{
-					for (int x = half; x <= dim; x += skip)
+					for (int x = half; x < arrayWidth; x += skip)
 					{
 						float rand = ((float)randomizer.NextDouble() - 0.5f) * variation * squareSide;
 						float change = (data[x - half, y] + data[x + half, y]) / 2.0f;
@@ -528,9 +675,9 @@ namespace MuffinSpace
 				}
 
 				// Logger.LogInfo("Sides");
-				for (int x = 0; x <= dim; x += skip)
+				for (int x = 0; x < arrayWidth; x += skip)
 				{
-					for (int y = half; y <= dim; y += skip)
+					for (int y = half; y < arrayHeight; y += skip)
 					{
 						float rand = ((float)randomizer.NextDouble() - 0.5f) * variation * squareSide;
 						float change = (data[x, y - half] + data[x, y + half]) / 2.0f;
@@ -539,9 +686,9 @@ namespace MuffinSpace
 				}
 
 				// Logger.LogInfo("Centers");
-				for (int x = half; x <= dim; x += skip)
+				for (int x = half; x < arrayWidth; x += skip)
 				{
-					for (int y = half; y <= dim; y += skip)
+					for (int y = half; y < arrayHeight; y += skip)
 					{
 						float rand = ((float)randomizer.NextDouble() - 0.5f) * variation * squareSide;
 						float change1 = (data[x + half, y - half] + data[x - half, y + half]) / 2.0f;
@@ -555,314 +702,255 @@ namespace MuffinSpace
 				}
 			}
 
-			////////////////
+			MeshData mountains = new MeshData();
+			mountains.sourceFileName = "Mountains_" + sideLength + "_x_" + sideLength;
 
-			// 4 Points on sides of square
-			float s = sideLength;
-			float sh = sideLength / 2.0f;
-			float xc = 0.0f - sh;
-			float zc = 0.0f + sh;
+			CreateTerrainFromHeightArray(data, arrayWidth, arrayHeight, sideLength, sideLength, ref mountains, createNormals);
+			CreateHeightScaleTexCoords(arrayWidth, arrayHeight, ref mountains, maxLevel);
 
-			mountains.hasPositionData = true;
-			mountains.positions = new List<Vector3>();
+			mountains.drawType = MeshData.DataDrawType.Triangles;
+			mountains.GenerateBufferHandles();
 
-			mountains.hasIndexData = true;
-			mountains.indices = new List<int>();
+			Error.checkGLError("Mountain Mesh Data creation");
+			return mountains;
+		}
 
+		static public MeshData CreateTerrain(float width, float depth, float trianglesPerUnit
+			, bool createNormals, bool createTexCoords
+			, float UVrepeatX, float UVrepeatZ)
+		{
+			// Array of heights
+			int arrayWidth = (int)Math.Floor(trianglesPerUnit * width);
+			int arrayHeight = (int)Math.Floor(trianglesPerUnit * depth);
 
-			// Indices
-			/*  (0,0) (1,0) (1,1)
-			 *	(0,0) (1,1) (0,1)
-			 * 
-			 *  x,y  x+1, y  x+1, y+1
-			 *  x,y  
-			 *  
-			 *  x
-			 */
-			float waterLevel = 0.0f;
-			float sideStep = sideLength / (float)dim;
-			for (int posZ = 0; posZ <= dim; posZ++)
+			int vertexAmount = arrayWidth * arrayHeight;
+
+			float[,] heights = new float[arrayWidth, arrayHeight];
+
+			for (int x = 0; x < arrayWidth; x++)
 			{
-				for (int posX = 0; posX <= dim; posX++)
+				for (int z = 0; z < arrayHeight; z++)
 				{
-					mountains.positions.Add(new Vector3(xc + sideStep * posX
-					, MathHelper.Clamp(data[posX, posZ], waterLevel, maxLevel)
-					, zc - sideStep * posZ));
+					heights[x, z] = 0.0f;
 				}
 			}
+
+			MeshData terrain = new MeshData();
+			terrain.sourceFileName = "Terrain " + width + "x" + depth;
+
+			CreateTerrainFromHeightArray(heights, arrayWidth, arrayHeight, width, depth, ref terrain, createNormals);
+			CreateRepeatingTexCoords(arrayWidth, arrayHeight, ref terrain, UVrepeatX, UVrepeatZ);
+			
+			terrain.drawType = MeshData.DataDrawType.Triangles;
+			terrain.GenerateBufferHandles();
+
+			Error.checkGLError("Terrain Mesh Data creation");
+			return terrain;
+		}
+
+		static private void CreateTerrainFromHeightArray(float[,] heights, int width, int height
+		, float terrainWidth, float terrainDepth
+		, ref MeshData mesh , bool createNormals)
+		{
+			// Positions
+
+			/*  X ->
+			 *  Z [0, 1, 2, 3, ..., W - 1
+			 *  |  W, W+1, ... , W * 2 - 1
+			 *	|  2W, 
+				|	...				W * H
+			 *  V
+
+			 Array = [x0,z0, x1,z0, x2, z0 ...
+			 */
+			mesh.hasPositionData = true;
+			mesh.positions = new List<Vector3>();
+
+			float s = terrainWidth;
+			float hw = terrainWidth / 2.0f;
+			float hd = terrainDepth / 2.0f;
+			float xc = 0.0f - hw;
+			float zc = 0.0f - hd;
+
+			float widthStep = terrainWidth / (float)width;
+			float depthStep = terrainDepth / (float)height;
+			for (int posZ = 0; posZ < height; posZ++)
+			{
+				for (int posX = 0; posX < width; posX++)
+				{
+						float Y = heights[posX, posZ];
+						mesh.positions.Add(new Vector3(xc + widthStep * posX
+						, Y
+						, zc + depthStep * posZ));
+				}
+			}
+
 
 			// Create normals
 			if (createNormals)
 			{
-				Logger.LogInfo("Creating normals for mountains");
-				mountains.hasNormalData = true;
-				mountains.normals = new List<Vector3>();
-				Vector3 right = new Vector3(1.0f, 0.0f, 0.0f);
-				Vector3 backward = new Vector3(0.0f, 0.0f, -1.0f);
+				Logger.LogInfo("Creating normals for terrain, position count : " + mesh.positions.Count);
+
+				mesh.hasNormalData = true;
+				mesh.normals = new List<Vector3>();
+
 				Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
-				Vector3 unset = new Vector3(-1.0f, -1.0f, -1.0f);
-				for (int ni = 0; ni < mountains.positions.Count; ni++)
+
+				for (int posZ = 0; posZ < height; posZ++)
 				{
-					mountains.normals.Add(unset);
-				}
-				// Along x axis
-				for (int posZ = 0; posZ <= dim; posZ++)
-				{
-					for (int posX = 0; posX <= dim; posX++)
+					for (int posX = 0; posX < width; posX++)
 					{
-						if ((posX == 0 || posX == dim) && (posZ == 0 || posZ == dim))
+						int positionIndex = posX + (width) * posZ;
+						int currentI = positionIndex + 0;
+
+						if ((posX == 0 || posX == width - 1) 
+							|| (posZ == 0 || posZ == height - 1))
 						{
+							// Borders and corners
+							mesh.normals.Add(up);
 							continue;
 						}
 						// Check previous and next to determine normal
-						int positionIndex = posX + (dim + 1) * posZ;
-						int prevI = positionIndex - 1;
-						int currentI = positionIndex + 0;
-						int nextI = positionIndex + 1;
-						int max = mountains.positions.Count;
-						if (prevI >= max || nextI > max || currentI > max)
-						{
-							Logger.LogError(Logger.ErrorState.Critical, "Out of array, index " + prevI + ", " + currentI + ", " + nextI + " > " + max);
-							break;
-						}
-						// Logger.LogInfo("Height indices X: " + prevI + ", " + currentI + ", " + nextI);
-						Vector3 prev = mountains.positions[prevI];
-						Vector3 current = mountains.positions[currentI];
-						Vector3 next = mountains.positions[nextI];
+						int prevXI = currentI - 1;
+						int nextXI = currentI + 1;
+						int prevZI = currentI - width;
+						int nextZI = currentI + width;
+						Vector3 current = mesh.positions[currentI];
+						Vector3 prevX = mesh.positions[prevXI];
+						Vector3 nextX = mesh.positions[nextXI];
+						Vector3 prevZ = mesh.positions[prevZI];
+						Vector3 nextZ = mesh.positions[nextZI];
 
-						Vector3 normal = CalculateMountainNormal(prev, next, current, right);
-						mountains.normals[currentI] = normal;
-					}
-				}
-
-				// Along Z axis
-				for (int posX = 0; posX <= dim; posX++)
-				{
-					for (int posZ = 1; posZ < dim; posZ++)
-					{
-						if ((posX == 0 || posX == dim) && (posZ == 0 || posZ == dim))
-						{
-							continue;
-						}
-						// Check previous and next to determine normal
-						int perRow = (dim + 1);
-						int positionIndex = posX + perRow * posZ;
-						int prevI = positionIndex - perRow;
-						int currentI = positionIndex + 0;
-						int nextI = positionIndex + perRow;
-						// Logger.LogInfo("Height indices Z: " + prevI + ", " + currentI + ", " + nextI);
-						Vector3 prev = mountains.positions[prevI];
-						Vector3 current = mountains.positions[currentI];
-						Vector3 next = mountains.positions[nextI];
-
-						Vector3 normal = CalculateMountainNormal(prev, next, current, backward);
-						if (mountains.normals[currentI] == unset)
-						{
-							mountains.normals[currentI] = normal;
-						}
-						else
-						{
-							mountains.normals[currentI] += normal;
-						}
-					}
-				}
-
-				for(int normalI = 0; normalI < mountains.normals.Count; normalI++)
-				{
-					if (mountains.normals[normalI] == unset)
-					{
-						mountains.normals[normalI] = up;
-					}
-					else
-					{
-						mountains.normals[normalI].Normalize();
+						Vector3 normal = CalculateTerrainNormal(prevX, nextX, prevZ, nextZ, current);
+						mesh.normals.Add(normal);
 					}
 				}
 			}
+
+			// Indices
+
+			mesh.hasIndexData = true;
+			mesh.indices = new List<int>();
 
 			// Not until the end, because the triangle includes the next row/column
 			Logger.LogInfo("Creating indices for mountains");
-			for (int indiceY = 0; indiceY < dim; indiceY++)
+			for (int indiceZ = 0; indiceZ < height - 1; indiceZ++)
 			{
-				for (int indiceX = 0; indiceX < dim; indiceX++)
+				for (int indiceX = 0; indiceX < width - 1; indiceX++)
 				{
-					int corner = indiceY * (dim + 1) + indiceX;
-					int nextX = indiceY * (dim + 1) + indiceX + 1;
-					int below = (indiceY + 1) * (dim + 1) + indiceX;
-					int across = (indiceY + 1) * (dim + 1) + indiceX + 1;
+					int corner = indiceX * width + indiceZ;
+					int nextX = corner + 1;
+					int below = corner + width;
+					int across = below + 1;
 
-					mountains.indices.Add(corner);
-					mountains.indices.Add(nextX);
-					mountains.indices.Add(across);
+					mesh.indices.Add(corner);
+					mesh.indices.Add(below);
+					mesh.indices.Add(across);
 
-					mountains.indices.Add(corner);
-					mountains.indices.Add(across);
-					mountains.indices.Add(below);
+					mesh.indices.Add(corner);
+					mesh.indices.Add(across);
+					mesh.indices.Add(nextX);
 				}
 			}
-			
-			mountains.VertexAmount = mountains.positions.Count;
-
-			mountains.hasTexCoordData = true;
-			mountains.texCoords = new List<Vector2>();
-
-			for (int i = 0; i < mountains.VertexAmount; i++)
-			{
-				float h = mountains.positions[i].Y;
-				float tec = h / maxLevel;
-            
-				Vector2 tex = new Vector2(tec, 0.5f);
-				mountains.texCoords.Add(tex);
-			}
-
-			mountains.drawType = MeshData.DataDrawType.Triangles;
-
-			mountains.GenerateBufferHandles();
-
-			return mountains;
 		}
 
-		static private Vector3 CalculateMountainNormal(Vector3 prev, Vector3 next, Vector3 current, Vector3 slopeSideFacing)
+		static private Vector3 CalculateTerrainNormal(Vector3 prevX, Vector3 nextX
+			, Vector3 prevZ, Vector3 nextZ
+			, Vector3 current)
 		{
 			Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
-			Vector3 sideFacing = new Vector3(slopeSideFacing);
-			Vector3 slope = (prev - next).Normalized();
-			bool adjust = false;
-			if (prev.Y < current.Y && current.Y < next.Y) 
+			Vector3 right = new Vector3(1.0f, 0.0f, 0.0f);
+			Vector3 forward = new Vector3(0.0f, 0.0f, 1.0f);
+
+			Vector3 sideFacingX = new Vector3(right);
+			Vector3 sideFacingZ = new Vector3(forward);
+			Vector3 slopeX = (nextX - prevX).Normalized();
+			Vector3 slopeZ = (nextZ - prevZ).Normalized();
+			bool adjustX = false;
+			bool adjustZ = false;
+
+			Vector3 normalX = up;
+			Vector3 normalZ = up;;
+
+			Error.Assume(Vector3.Dot(slopeX, forward) == 0.0f, "Slope X is not x-wise");
+			Error.Assume(Vector3.Dot(slopeZ, right) == 0.0f, "Slope Z is not z-wise");
+
+			if (prevX.Y > current.Y && current.Y > nextX.Y) 
 			{
-				sideFacing *= -1.0f;
-				slope = (next - prev).Normalized();
-				adjust = true;
+				sideFacingX *= -1.0f;
+				slopeX *= -1.0f;
+				adjustX = true;
 			}
-			if (prev.Y > current.Y && current.Y > next.Y)
+			if (prevX.Y < current.Y && current.Y < nextX.Y)
 			{
-				adjust = true;
+				adjustX = true;
 			}
-			if (adjust)
+			if (prevZ.Y > current.Y && current.Y > nextZ.Y) 
 			{
-				float outerAngle = (float)Math.Cos(Vector3.Dot(up, slope));
-				Matrix3 rot = Matrix3.CreateFromAxisAngle(Vector3.Cross(sideFacing, up), outerAngle);
-				return new Vector3(sideFacing * rot);
+				sideFacingZ *= -1.0f;
+				slopeZ *= -1.0f;
+				adjustZ = true;
 			}
-			return up;
+			if (prevZ.Y < current.Y && current.Y < nextZ.Y)
+			{
+				adjustZ = true;
+			}
+
+			if (adjustX)
+			{
+				Error.Assume(slopeX.Y > 0.0f, "Slope X is not going up");
+				normalX = CalculateSlopeNormal(slopeX, sideFacingX);
+			}
+			if (adjustZ)
+			{
+				Error.Assume(slopeZ.Y > 0.0f, "Slope Z is not going up");
+				normalZ = CalculateSlopeNormal(slopeZ, sideFacingZ);
+			}
+			return (normalX + normalZ).Normalized();
 		}
 
-		static public MeshData CreateTerrain(float width, float depth, float trianglesPerUnit
-			, bool createNormals, float UVrepeatX, float UVrepeatZ)
+		static private Vector3 CalculateSlopeNormal(Vector3 slope, Vector3 sideFacing)
 		{
-			MeshData terrain = new MeshData();
-			terrain.sourceFileName = "Terrain" + width + "x" + depth;
+			Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
+			float dotProd = Vector3.Dot(up, slope);
+			Error.Assume(dotProd >= 0.0f, "up dot slope is negative");
+			float outerAngle = (float)Math.Cos(dotProd);
+			Error.Assume(outerAngle > 0.0f && MathHelper.RadiansToDegrees(outerAngle) < 90, "Outer angle is negative or over 90 degrees");
+			Matrix3 rot = Matrix3.CreateFromAxisAngle(Vector3.Cross(sideFacing, up), outerAngle);
+				return new Vector3(up * rot);
+		}
 
-			int quadsWidth = (int)Math.Floor(trianglesPerUnit * width);
-			int quadsDepth = (int)Math.Floor(trianglesPerUnit * depth);
-			int widthVertices = quadsWidth * 2;
-			int depthVertices = quadsDepth * 2;
-			float triangleSideWidth = width / (quadsWidth);
-			float triangleSideDepth = depth / (quadsDepth);
+		static private void CreateRepeatingTexCoords(int width, int height, ref MeshData mesh, float uvRepeatX, float uvRepeatZ)
+		{
+			mesh.hasTexCoordData = true;
+			mesh.texCoords = new List<Vector2>();
 
-			int vertexAmount = widthVertices * depthVertices;
-			terrain.positions = new List<Vector3>(vertexAmount);
-			terrain.texCoords = new List<Vector2>(vertexAmount);
-			if (createNormals)
+			float uStep = uvRepeatX / width;
+			float vStep = uvRepeatZ / height;
+
+			for (int x = 0; x < width; x++)
 			{
-				terrain.normals = new List<Vector3>(vertexAmount);
-				Vector3 normal = new Vector3(0, 1, 0);
-				for (int i = 0; i< vertexAmount; i++)
+				for (int z = 0; z < height; z++)
 				{
-					terrain.normals.Add(normal);
+					Vector2 tex = new Vector2(x * uStep, z * vStep);
+					mesh.texCoords.Add(tex);
 				}
 			}
-			terrain.indices = new List<int>();
-			
-			/* Quad rows  -> width   V depth
-			 *		0  (1 4) 5
-			 *		2  (3 6) 7
-			 *      8  (9
-			 *      10 (11
-			 */
+		}
 
-			float widthStartPos = -(width / 2);
-			float depthStartPos = -(depth / 2);
-			int indice = 0;
-	
-			for (int qd = 0; qd < quadsDepth; qd++)
+		static private void CreateHeightScaleTexCoords(int width, int height, ref MeshData mesh, float maxHeight)
+		{
+			mesh.hasTexCoordData = true;
+			mesh.texCoords = new List<Vector2>();
+
+			for (int i = 0; i < mesh.positions.Count; i++)
 			{
-				for (int qw = 0; qw < quadsWidth; qw++)
-				{
-					// 0
-					float xCoord = widthStartPos + qw * triangleSideWidth;
-					float zCoord = depthStartPos + qd * triangleSideDepth;
-
-					//Logger.LogInfo("Terrain piece (" + qw + "," + qd + " at: " + xCoord + ", " + zCoord + " Size: " + triangleSideWidth + ", " + triangleSideDepth);
-
-					float divWidth = quadsWidth / UVrepeatX;
-					float divDepth = quadsDepth / UVrepeatZ;
-					float texX0 = ((float)qw / divWidth);
-					float texX1 = ((float)(qw + 1)/ divWidth);
-					float texY0 = ((float)qd / divDepth);
-					float texY1 = ((float)(qd + 1) / divDepth);
-					Vector2 tex00 = new Vector2(texX0, texY0);
-					Vector2 tex10 = new Vector2(texX1, texY0);
-					Vector2 tex01 = new Vector2(texX0, texY1);
-					Vector2 tex11 = new Vector2(texX1, texY1);
-
-					/*
-					Logger.LogInfo("Terrain piece (" + qw + "," + qd 
-					+ " at: " + xCoord + ", " + zCoord 
-					+ " TxC: " + tex00.X + ", " + tex00.Y + " - " + tex11.X + ", " + tex11.Y
-					+ " Size: " + triangleSideWidth + ", " + triangleSideDepth);
-					*/
-
-
-					// 0
-					terrain.positions.Add(new Vector3(xCoord
-											, 0.0f
-											, zCoord));
-					terrain.texCoords.Add(tex00);
-
-					// 1
-					terrain.positions.Add(new Vector3(xCoord + triangleSideWidth
-										, 0.0f
-										, zCoord));
-					terrain.texCoords.Add(tex10);
-
-					// 2
-					terrain.positions.Add(new Vector3(xCoord
-											, 0.0f
-											, zCoord + triangleSideDepth));
-					terrain.texCoords.Add(tex01);
-
-					// 3
-					terrain.positions.Add(new Vector3(xCoord + triangleSideWidth
-										, 0.0f
-										, zCoord + triangleSideDepth));
-					terrain.texCoords.Add(tex11);
-
-					terrain.indices.Add(indice);
-					terrain.indices.Add(indice + 1);
-					terrain.indices.Add(indice + 2);
-					terrain.indices.Add(indice + 3);
-					terrain.indices.Add(indice + 2);
-					terrain.indices.Add(indice + 1);
-					indice += 4;
-				}
+				float h = mesh.positions[i].Y;
+				float tec = h / maxHeight;
+            
+				Vector2 tex = new Vector2(tec, 0.5f);
+				mesh.texCoords.Add(tex);
 			}
-
-			terrain.hasPositionData = true;
-			terrain.hasIndexData = true;
-			terrain.hasTexCoordData = true;
-			if (createNormals)
-			{
-				terrain.hasNormalData = true;
-			}
-			terrain.VertexAmount = vertexAmount;
-			terrain.drawType = MeshData.DataDrawType.Triangles;
-
-			terrain.GenerateBufferHandles();
-
-			Logger.LogInfo("Generated terrain: Vertices: " + terrain.VertexAmount + " Indices: " + terrain.indices.Count);
-			Error.checkGLError("Terrain Mesh Data creation");
-			return terrain;
 		}
 	}
 }
