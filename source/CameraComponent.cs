@@ -20,11 +20,11 @@ namespace MuffinSpace
 	public class CameraComponent : IShaderDataOwner
 	{
 		// Camera
-		public Vector3 Position 
+		public Vector3 Position
 		{
 			get;
 			set;
-			}
+		}
 
 		public Vector3 Direction
 		{
@@ -42,9 +42,22 @@ namespace MuffinSpace
 		private int lastMouseY = 0;
 
 		private int cameraDebug = 0;
-		private bool printPosDirDown = false;
 
-		public float speed;
+		public float Speed { get; set; }
+		private float speedStep;
+		public float SpeedStep { get
+			{
+				return speedStep;
+			}
+			set
+			{
+				speedStep = Math.Max(0.0f, value);
+			}
+		}
+		
+		public float FOV { get; set; }
+
+		public bool FreeMode { get; set; }
 
 		private float yaw = 0.0f;
 		private float pitch = 0.0f;
@@ -63,7 +76,8 @@ namespace MuffinSpace
 			Direction = CalculateEulerDirection(pitch, yaw);
 			Up = new Vector3(0.0f, 1.0f, 0.0f);
 
-			speed = 0.05f;
+			Speed = 0.15f;
+			SpeedStep = 0.05f;
 
 			viewMatrix = new Matrix4Uniform(ShaderUniformName.ViewMatrix);
 			projectionMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
@@ -153,47 +167,34 @@ namespace MuffinSpace
 
 		public void UpdateInput(KeyboardState keyState, MouseState mouseState)
 		{
-			// Print pos and dir
-			if (keyState.IsKeyDown(Key.F1))
-			{
-				printPosDirDown = true;
-			}
-			if (printPosDirDown && keyState.IsKeyUp(Key.F1))
-			{
-
-				Logger.LogInfo("Camera Print: Pos: (" + Position.X + ", " + Position.Y + ", " + Position.Z + ")");
-				Logger.LogInfo("Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
-				printPosDirDown = false;
-			}
-
 			Vector3 rightX = Vector3.Normalize(Vector3.Cross(Up, Direction));
 
 			// Position 
 			if (keyState.IsKeyDown(key: Key.Up) || keyState.IsKeyDown(Key.W))
 			{
-				Position -= Direction * speed;
+				Position -= Direction * Speed;
 			}
 			else if (keyState.IsKeyDown(Key.Down) || keyState.IsKeyDown(Key.S))
 			{
-				Position += Direction * speed;
+				Position += Direction * Speed;
 			}
 
 			if (keyState.IsKeyDown(key: Key.Left) || keyState.IsKeyDown(Key.A))
 			{
-				Position -= rightX * speed;
+				Position -= rightX * Speed;
 			}
 			else if (keyState.IsKeyDown(Key.Right) || keyState.IsKeyDown(Key.D))
 			{
-				Position += rightX * speed;
+				Position += rightX * Speed;
 			}
 
 			if (keyState.IsKeyDown(key: Key.R))
 			{
-				Position += Up * speed;
+				Position += Up * Speed;
 			}
 			else if (keyState.IsKeyDown(Key.F))
 			{
-				Position -= Up * speed;
+				Position -= Up * Speed;
 			}
 			
 
@@ -278,9 +279,9 @@ namespace MuffinSpace
 		}
 
 		// Changing frame
-		public void SetFrame(float cameraFrame, List<PosAndDir> cameraFrames)
+		public void SetFrame(int frame, float progress, List<PosAndDir> cameraFrames)
 		{
-			int firstFrame = (int)Math.Floor(cameraFrame);
+			int firstFrame = frame;
 			int secondFrame = firstFrame + 1;
 
 			bool firstInFrames = firstFrame < cameraFrames.Count;
@@ -292,9 +293,8 @@ namespace MuffinSpace
 				Vector3 targetPos = cameraFrames[secondFrame].position;
 				Vector3 targetDir = cameraFrames[secondFrame].direction;
 
-				float diff = cameraFrame - (float)firstFrame;
-				Position = startPos * (1.0f - diff) + targetPos * (diff);
-				Direction = startDir * (1.0f - diff) + targetDir * (diff);
+				Position = startPos * (1.0f - progress) + targetPos * (progress);
+				Direction = startDir * (1.0f - progress) + targetDir * (progress);
 			}
 			else if (firstInFrames && !secondInFrames)
 			{

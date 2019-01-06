@@ -25,6 +25,7 @@ namespace MuffinSpace
 					return attr;
 				}
 			}
+			Logger.LogError(Logger.ErrorState.Critical, "Did not get attribute " + ShaderUniformManager.GetSingleton().GetAttributeName(name));
 			ShaderAttribute invalid = new ShaderAttribute(ShaderAttributeName.InvalidAttributeName, ShaderDataType.InvalidType);
 			return invalid;
 		}
@@ -99,14 +100,19 @@ namespace MuffinSpace
 
 		private string GetFilenameFromPath(string path)
 		{
-			char pathSeparator = '\\';
-			#if (MUFFIN_PLATFORM_LINUX)
-				pathSeparator = '/';
-			#elif (MUFFIN_PLATFORM_WINDOWS)
-				// Nop, \ is the separator
-			#endif
-				
-			string fileName = path.Substring(path.LastIndexOf(pathSeparator) + 1);
+			char pathSeparatorWin = '\\';
+			char pathSeparatorLnx = '/';
+
+
+			int lastSeparator = -1;
+			lastSeparator = path.LastIndexOf(pathSeparatorWin); // Returns - 1 if not found
+			if (lastSeparator < 0)
+			{
+				lastSeparator = path.LastIndexOf(pathSeparatorLnx);
+			}
+
+			lastSeparator += 1;
+			string fileName = path.Substring(lastSeparator);
 			return fileName;
 		}
 

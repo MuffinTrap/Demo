@@ -26,13 +26,11 @@ namespace MuffinSpace
 
 		Track sceneNumber;
 		Track cameraFrame;
-		Track audioTrack;
 
 		public int Scene { get; private set; }
 		public int Frame { get; private set; }
 		public float FrameProgress { get; private set; }
 		public float SceneProgress { get; private set; }
-		public float AudioTrack { get; private set; }
 
         private int bpm;
         private int rowsPerBeat;
@@ -61,12 +59,10 @@ namespace MuffinSpace
 			SceneProgress = 0.0f;
 			FrameProgress = 0.0f;
 			Frame = 0;
-			AudioTrack = -1.0f;
 
-			syncDevice = new Device("Demo", false);
+			syncDevice = new Device("syncdata", false);
 			sceneNumber = syncDevice.GetTrack("Scene");
 			cameraFrame = syncDevice.GetTrack("CameraFrame");
-			audioTrack = syncDevice.GetTrack("Audio");
 		}
 
 		private void Connect()
@@ -147,10 +143,13 @@ namespace MuffinSpace
 			float frameFloor = (float)Math.Floor(frameValue);
 			Frame = (int)frameFloor;
 			FrameProgress = frameValue - frameFloor;
-
-			AudioTrack = (float)Math.Floor(audioTrack.GetValue(syncRow));
-
         }
+
+		public void Restart()
+		{
+			timer.Restart();
+			syncRow = 0;
+		}
 
 		public void Stop()
 		{
@@ -177,10 +176,11 @@ namespace MuffinSpace
 			}
 		}
 
-		public void SetAudioProperties(int bpmParam, float songLengthSeconds)
+		public void SetAudioProperties(int bpmParam, float songLengthSeconds, int rowsPerPeatParam)
 		{
 			bpm = bpmParam;
 			songLength = songLengthSeconds;
+			rowsPerBeat = rowsPerPeatParam;
 		}
 
 		public bool IsPaused()

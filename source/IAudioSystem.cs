@@ -16,7 +16,7 @@ namespace MuffinSpace
 		void PlayAudio(Audio audioFile);
 		void PauseAudio(Audio audioFile);
 		void StopAudio(Audio audioFile);
-		void SetAudioProgress(Audio audioFile, float progress);
+		void RestartAudio(Audio audioFile);
 
 		void CleanAndExit();
 	}

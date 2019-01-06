@@ -48,6 +48,7 @@ namespace MuffinSpace
 
 		public Audio LoadAudioFile(string filename)
 		{
+			Logger.LogInfo("Loading audio " + filename);
 			// Init complete
 
 			int alBuffer = AL.GenBuffer();
@@ -56,33 +57,19 @@ namespace MuffinSpace
 
 			int frequenzy = 44100;
 
-			// Buffer data
-			bool dataisVorbis = false;
+			// Load wav
 
-			string vorbisEXTName = "AL_EXT_vorbis";
-			if (AL.IsExtensionPresent(vorbisEXTName) && dataisVorbis)
-			{
-				Logger.LogInfo("AL can use vorbis");
-				IntPtr vorbisBuffer = System.IntPtr.Zero;
-				int vorbisSize = 0;
-				AL.BufferData(alBuffer, ALFormat.VorbisExt, vorbisBuffer, vorbisSize, frequenzy);
-			}
-			else
-			{
-				// Load wav
+			FileStream audioFile = File.Open(filename, FileMode.Open, FileAccess.Read);
+			long wavSize = audioFile.Length;
+			byte[] audioContents = new byte[wavSize];
 
-				FileStream audioFile = File.Open(filename, FileMode.Open, FileAccess.Read);
-				long wavSize = audioFile.Length;
-				byte[] audioContents = new byte[wavSize];
+			audioFile.Read(audioContents, 0, (int)wavSize);
+			IntPtr wavBuffer = Marshal.AllocHGlobal(audioContents.Length);
+			Marshal.Copy(audioContents, 0, wavBuffer, audioContents.Length);
 
-				audioFile.Read(audioContents, 0, (int)wavSize);
-				IntPtr wavBuffer = Marshal.AllocHGlobal(audioContents.Length);
-				Marshal.Copy(audioContents, 0, wavBuffer, audioContents.Length);
-
-				AL.BufferData(alBuffer, ALFormat.Stereo16, wavBuffer, (int)wavSize, frequenzy);
-				Marshal.FreeHGlobal(wavBuffer);
-				audioFile.Close();
-			}
+			AL.BufferData(alBuffer, ALFormat.Stereo16, wavBuffer, (int)wavSize, frequenzy);
+			Marshal.FreeHGlobal(wavBuffer);
+			audioFile.Close();
 
 			Error.checkALError("initAudio bufferAudio");
 
@@ -122,9 +109,10 @@ namespace MuffinSpace
 			AL.SourceStop(audioFile.id);
 		}
 
-		public void SetAudioProgress(Audio audioFile, float progress)
+		public void RestartAudio(Audio audioFile)
 		{
-			ALSourceState state = AL.GetSourceState(audioFile.id);
+			AL.SourceRewind(audioFile.id);
+			AL.SourcePlay(audioFile.id);
 		}
 
 		public void CleanAndExit()

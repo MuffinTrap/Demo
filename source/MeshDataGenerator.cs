@@ -31,7 +31,7 @@ namespace MuffinSpace
 			// Create positions 
 
 			newData.hasPositionData = true;
-			newData.hasTexCoordData = texCoords.Count > 0;
+			newData.hasTexCoordData = true;
 			newData.hasNormalData = true;
 
 			bool useIndices = true;
@@ -49,10 +49,7 @@ namespace MuffinSpace
 			}
 			
 			newData.positions = new List<Vector3>();
-			if (newData.hasTexCoordData)
-			{
-				newData.texCoords = new List<Vector2>();
-			}
+			newData.texCoords = new List<Vector2>();
 			newData.normals = new List<Vector3>();
 
 			bool addFace = true;
@@ -84,10 +81,7 @@ namespace MuffinSpace
 				if (addFace)
 				{
 					newData.positions.Add(positions[(int)face.positionIndex - 1]);
-					if (newData.hasTexCoordData)
-					{
-						newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
-					}
+					newData.texCoords.Add(texCoords[(int)face.texCoordIndex - 1]);
 					newData.normals.Add(normals[(int)face.normalIndex - 1]);
 				}
 			}

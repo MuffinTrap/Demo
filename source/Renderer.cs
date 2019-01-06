@@ -13,7 +13,7 @@ namespace MuffinSpace
 		ShaderProgram activeProgram = null;
 
 		// OpenGL state
-		Color4 clearingColor;
+		Vector3 clearingColor;
 		int width;
 		int height;
 
@@ -26,7 +26,7 @@ namespace MuffinSpace
 
 		private Renderer()
 		{
-			clearingColor = new Color4(0, 0, 0, 1);
+			clearingColor = new Vector3(0, 0, 0);
 			camera = new CameraComponent();
 			cameraFrames = null;
 
@@ -74,12 +74,13 @@ namespace MuffinSpace
 		}
 	
 
-		public void SetClearColor(Color4 color)
+		public void SetClearColor(Vector3 color)
 		{
 			if (clearingColor != color)
 			{
 				clearingColor = color;
-				GL.ClearColor(color);
+				Color4 ccolor = new Color4(color.X, color.Y, color.Z, 1.0f);
+				GL.ClearColor(ccolor);
 			}
 		}
 
@@ -154,9 +155,11 @@ namespace MuffinSpace
 				return;
 			}
 
-			if (cameraFrames != null)
+			if (cameraFrames != null && !camera.FreeMode)
 			{
-				camera.SetFrame(0.0f, cameraFrames);
+				int frame = SyncSystem.GetSingleton().Frame;
+				float frameProg = SyncSystem.GetSingleton().FrameProgress;
+				camera.SetFrame(frame, frameProg, cameraFrames);
 			}
 
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();

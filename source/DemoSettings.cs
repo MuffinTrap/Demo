@@ -7,10 +7,10 @@ public sealed class DemoSettings
 	private DemoSettings()
 	{
 		AudioEnabled = false;
-		SyncEnabled = false;
-		CameraSetting = CameraMode.Free;
+		SyncEnabled = true;
+		CameraSetting = CameraMode.Frames;
 		AudioSetting = AudioMode.OpenAL;
-		Resolution = new Vector2(800, 600);
+		Resolution = new Vector2(1024, 720);
 		UpdatesPerSecond = 120.0;
 	}
 
@@ -37,5 +37,6 @@ public sealed class DemoSettings
 	public AudioMode AudioSetting { get; set; }
 	public Vector2 Resolution { get; set; }
 	public double UpdatesPerSecond { get; set; }
+	public string WindowTitle { get; set; }
 
 }

@@ -5,6 +5,17 @@ using OpenTK;
 
 namespace MuffinSpace
 {
+	public struct GreetPage
+	{
+		public	float progress;
+		public List<Greeting> greets;
+	}
+	public struct Greeting
+	{
+		public DrawableMesh textMesh;
+		public float alpha;
+	}
+
 	public class BunnyDemo : IDemo
 	{
 		Audio music;
@@ -21,23 +32,32 @@ namespace MuffinSpace
 		Track fadeoutAlpha;
 
 		DrawableMesh starSphere;
+		float starRotSpeed;
+		float starRot;
+
+		Light moon;
 
 		MountainScene mountains;
 		MonolithSpaceScene monolithSpace;
 		SeaScene seaScene;
 		BunnyScene bunnyScene;
 
+
+		// Detect starting music
+		bool syncWasPaused = true;
+
 		public class BunnyScene : IDemo
 		{
 			DrawableMesh bunnyMesh;
-			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+			public void Load(AssetManager assetManager, SyncSystem syncSystem)
 			{
-				ShaderProgram bunnyShader = assetManager.GetShaderProgram("bunny");
 				TunableManager tm = TunableManager.GetSingleton();
-				Vector3 bunnypos = tm.GetVec3("bunny.position");
-				Logger.LogInfo("loaded bunny pos " + Logger.PrintVec3(bunnypos));
-				bunnyMesh = assetManager.GetMesh("bunny", "bunny.obj", "default", bunnyShader, bunnypos);
-
+				ShaderProgram bunnyShader = assetManager.GetShaderProgram(tm.GetString("bunny.shader"));
+				bunnyMesh = assetManager.GetMesh("bunny"
+				, tm.GetString("bunny.model")
+				, tm.GetString("bunny.material")
+				, bunnyShader
+				, tm.GetVec3("bunny.position"));
 			}
 
 			public void Sync(SyncSystem syncer)
@@ -52,69 +72,110 @@ namespace MuffinSpace
 
 		public class MonolithSpaceScene : IDemo
 		{
-			DrawableMesh greetMesh;
-			DrawableMesh fontTestMesh;
 			DrawableMesh monolith;
-			DrawableMesh mono_normals;
 
-			float textAlpha = 1.0f;
+			Vector3 greetOffset;
+			Vector3 greetSpacing;
+			float greetScale;
 
-			Light moon;
+			List<GreetPage> greets;
 
-			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+
+			public void Load(AssetManager assetManager, SyncSystem syncSystem)
 			{
 				Logger.LogInfo("Loading Monolith in space scene");
+				TunableManager tm = TunableManager.GetSingleton();
 
 				ShaderProgram texShader = assetManager.GetShaderProgram("texturedobjmesh");
 				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
 				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
 
 				TextGenerator textgen = TextGenerator.GetSingleton();
-				PixelFont commodore = textgen.GetFont("commodore");
 
-				moon = Light.CreateDirectionalLight(new Vector3(0.5f, 0.5f, 1.0f), 0.3f, 0.4f, new Vector3(-0.4f, -0.2f, 0.4f));
 
-				Logger.LogInfo("Created directional moon light " + moon.GetInfoString());
-				greetMesh = assetManager.CreateMesh("greeting"
-				, MeshDataGenerator.CreateTextMesh("Gambatte Minnasan", commodore)
-				, "commodore_font"
-				, texShader
-				, new Vector3(1.5f, 12, 0));
-
-				fontTestMesh = assetManager.CreateMesh("font_test"
-				, MeshDataGenerator.CreateQuadMesh(false, true)
-				, "commodore_font"
-				, texShader
-				, new Vector3(-1, 3, 0));
 
 				monolith = assetManager.CreateMesh("monolith"
-				, MeshDataGenerator.CreateCubeMesh(new Vector3(1.5f, 2.0f, 0.15f), true, true)
-				, "konata"
+				, MeshDataGenerator.CreateCubeMesh(tm.GetVec3("monolith_greet.size")
+				, true, true)
+				, tm.GetString("monolith_greet.material")
 				, objShader
-				, new Vector3(0.0f, 12.0f, 0.0f));
+				, tm.GetVec3("monolith_greet.position"));
 
-				mono_normals = assetManager.CreateMesh("mono_normals"
-				, MeshDataGenerator.CreateNormalDebug(monolith.Data.positions, monolith.Data.normals)
-				, "default"
-				, gridShader
-				, monolith.Transform.Position);
+				string greet_font = tm.GetString("monolith_greet.greet_font");
+				PixelFont greetFont = textgen.GetFont(greet_font);
+				string greet_material = tm.GetString("monolith_greet.greet_material");
+				ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("monolith_greet.greet_shader"));
+
+				greets = new List<GreetPage>();
+				int gp = tm.GetInt("monolith_greet.greet_pages");
+				for (int pi = 0; pi < gp; pi++)
+				{
+					GreetPage page = new GreetPage();
+					page.greets = new List<Greeting>();
+					string pageName = "monolith_greet_page_" + (pi + 1);
+					int greet_amount = tm.GetInt(pageName + "." + "greet_amount");
+					for (int gi = 0; gi < greet_amount; gi++)
+					{
+						Greeting greet = new Greeting();
+
+						greet.textMesh = assetManager.CreateMesh("greet" + gi
+						, MeshDataGenerator.CreateTextMesh(tm.GetString(pageName + "." + "greet_" + (gi + 1))
+						, greetFont)
+						, greet_material
+						, greetShader
+						, new Vector3(0,0,0));
+
+						greet.alpha = 1.0f;
+						page.greets.Add(greet);
+					}
+					greets.Add(page);
+				}
+
+				greetOffset = tm.GetVec3("monolith_greet.greet_offset");
+				greetSpacing = tm.GetVec3("monolith_greet.greet_spacing");
+				greetScale = tm.GetFloat("monolith_greet.greet_scale");
+
+				for (int pi = 0; pi < greets.Count; pi++)
+				{
+					GreetPage p = greets[pi];
+					for (int gi = 0; gi < p.greets.Count; gi++)
+					{
+						Greeting g = p.greets[gi];
+							// Set monolith as parent transform so it can rotate
+						g.textMesh.Transform.Position = greetOffset + (greetSpacing * gi);
+						g.textMesh.Transform.Scale = greetScale;
+					}
+				}
 			}
 
 			public void Sync(SyncSystem syncer)
 			{
-
+				for (int pi = 0; pi < greets.Count; pi++)
+				{
+					GreetPage p = greets[pi];
+					p.progress = syncer.SceneProgress;
+				}
 			}
 
 			public void Draw(Renderer renderer)
 			{
-				//renderer.RenderObject(fontTestMesh);
-				renderer.SetActiveShader(greetMesh.ShaderProgram);
-				greetMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, textAlpha);
-				renderer.RenderObject(greetMesh);
-
-				// renderer.ActivateLight(moon, 0);
+				// Render monolith
 				renderer.RenderObject(monolith);
-				// renderer.RenderObject(mono_normals);
+
+				// Render greeting pages
+				foreach(GreetPage p in greets)
+				{
+					for (int gi = 0; gi < p.greets.Count; gi++)
+					{
+						Greeting g = p.greets[gi];
+						g.alpha = 1.0f;
+
+						renderer.SetActiveShader(g.textMesh.ShaderProgram);
+						g.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, g.alpha);
+						renderer.RenderObject(g.textMesh);
+					}
+				}
+
 				Error.checkGLError("Monolith Draw");
 			}
 		}
@@ -122,57 +183,67 @@ namespace MuffinSpace
 		public class MountainScene : IDemo
 		{
 			DrawableMesh mountains;
-			DrawableMesh mountain_normals;
-			DrawableMesh pyra;
-			Light starLight;
-			Light testLight;
+			Greeting groupNameGreet;
+			Greeting demoNameGreet;
 
-			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+			public void Load(AssetManager assetManager, SyncSystem syncSystem)
 			{
 				Logger.LogInfo("Loading Mountain scene");
+				TunableManager tm = TunableManager.GetSingleton();
 				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
 				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
 
-				starLight = Light.CreateDirectionalLight(new Vector3(1.0f, 1.0f, 1.0f), 0.2f, 0.8f, new Vector3(0.4f, -1.0f, 0.0f));
-				Logger.LogInfo("Created directional star light " + starLight.GetInfoString());
 
-				testLight = Light.CreatePointLight(new Vector3(1.0f, 1.0f, 1.0f), 56.0f, new Vector3(0, 5.0f, 0.0f));
-				Logger.LogInfo("Created Point  light " + testLight.GetInfoString());
 
 				mountains = assetManager.CreateMesh("mountains"
-			, MeshDataGenerator.CreateMountains(40, true, 4, 0.5f, 1)
-			, "mountain_palette"
-			, objShader
-			, new Vector3(0, 0, 0));
+					, MeshDataGenerator.CreateMountains(
+						tm.GetFloat("mountain_scene.mountain_size")
+						, true, tm.GetInt("mountain_scene.mountain_iterations")
+						, tm.GetFloat("mountain_scene.mountain_height_variation")
+						, tm.GetInt("mountain_scene.mountain_random_seed"))
+					, tm.GetString("mountain_scene.mountain_material")
+					, objShader
+					, tm.GetVec3("mountain_scene.mountain_position"));
 
-				mountain_normals = assetManager.CreateMesh("mono_normals"
-				, MeshDataGenerator.CreateNormalDebug(mountains.Data.positions, mountains.Data.normals)
-				, "default"
-				, gridShader
-				, mountains.Transform.Position);
+				TextGenerator textgen = TextGenerator.GetSingleton();
+				string greet_font = tm.GetString("monolith_greet.greet_font");
+				PixelFont greetFont = textgen.GetFont(greet_font);
+				string greet_material = tm.GetString("monolith_greet.greet_material");
+				ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("monolith_greet.greet_shader"));
+				DrawableMesh groupName = assetManager.CreateMesh("groupText"
+				, MeshDataGenerator.CreateTextMesh("FCCCF", greetFont)
+				, greet_material
+				, greetShader
+				, tm.GetVec3("mountain_scene.group_name_position"));
 
-				pyra = assetManager.CreateMesh("pyra"
-				, MeshDataGenerator.CreatePyramidMesh(1.0f, 1.0f, false, false)
-				, "default"
-				, gridShader
-				, new Vector3(0, 5, 0));
+				groupNameGreet.textMesh = groupName;
+				groupNameGreet.alpha = 0.0f;
 
+				DrawableMesh demoName = assetManager.CreateMesh("groupText"
+				, MeshDataGenerator.CreateTextMesh("Lepus Minor", greetFont)
+				, greet_material
+				, greetShader
+				, tm.GetVec3("mountain_scene.demo_name_position"));
 
+				demoNameGreet.textMesh = demoName;
+				demoNameGreet.alpha = 0.0f;
 			}
 
 			public void Sync(SyncSystem syncer)
 			{
+				groupNameGreet.alpha = syncer.SceneProgress;
+				demoNameGreet.alpha = syncer.SceneProgress;
 			}
 
 			public void Draw(Renderer renderer)
 			{
-				renderer.SetClearColor(OpenTK.Graphics.Color4.DarkSlateBlue);
-				renderer.ActivateLight(starLight, 0);
-				renderer.ActivateLight(testLight, 1);
-				//	renderer.RenderObject(mountain_normals);
-				renderer.RenderObject(pyra);
 				renderer.RenderObject(mountains);
-				//				renderer.RenderSky(starSphere);
+
+				renderer.SetActiveShader(groupNameGreet.textMesh.ShaderProgram);
+				groupNameGreet.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, groupNameGreet.alpha);
+				renderer.RenderObject(groupNameGreet.textMesh);
+				demoNameGreet.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, demoNameGreet.alpha);
+				renderer.RenderObject(demoNameGreet.textMesh);
 
 				Error.checkGLError("MountainScene Draw");
 			}
@@ -189,19 +260,28 @@ namespace MuffinSpace
 
 			Vector2 offset1;
 			Vector2 offset2;
+			Vector2 seaUVSpeed1;
+			Vector2 seaUVSpeed2;
 
-			public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+			public void Load(AssetManager assetManager, SyncSystem syncSystem)
 			{
+				TunableManager tm = TunableManager.GetSingleton();
 
 				seaShader = assetManager.GetShaderProgram("heightMapTerrain");
 				texOffset1Location = seaShader.GetCustomUniformLocation("ucUVoffset1");
 				texOffset2Location = seaShader.GetCustomUniformLocation("ucUVoffset2");
 
+				Vector2 seaSize = tm.GetVec2("sea.size");
+				float seaTrianglesDensity = tm.GetFloat("sea.detail_level");
+				Vector2 seaUVRepeat = tm.GetVec2("sea.UV_repeat");
+				seaUVSpeed1 = tm.GetVec2("sea.UV_speed_1");
+				seaUVSpeed2 = tm.GetVec2("sea.UV_speed_2");
 				seaMesh = assetManager.CreateMesh("sea"
-				, MeshDataGenerator.CreateTerrain(40, 40, 1, true, true, 1.0f, 1.0f)
-				, "sea"
+				, MeshDataGenerator.CreateTerrain(seaSize.X, seaSize.Y, seaTrianglesDensity, true, true
+				, seaUVRepeat.X, seaUVRepeat.Y)
+				, tm.GetString("sea.material")
 				, seaShader
-				, new Vector3(0, 0.4f, 0));
+				, tm.GetVec3("sea.position"));
 
 				offset1 = new Vector2(0, 0);
 				offset2 = new Vector2(0, 0);
@@ -209,8 +289,8 @@ namespace MuffinSpace
 
 			public void Sync(SyncSystem syncer)
 			{
-				offset1.X += 0.0001f;
-				offset2.X += 0.003f;
+				offset1 = seaUVSpeed1 * syncer.SceneProgress;
+				offset2 = seaUVSpeed2 * syncer.SceneProgress;
 			}
 			public void Draw(Renderer renderer)
 			{
@@ -223,32 +303,63 @@ namespace MuffinSpace
 			}
 
 		}
+
+		/// <summary>
+		/// //////////////////////////////// BUNNY DEMO 
+		/// </summary>
+
 		public BunnyDemo()
 		{
 			settings = DemoSettings.GetDefaults();
 		}
 
-		public void Load(IAudioSystem audioSystemParam, AssetManager assetManager, SyncSystem syncSystem)
+		public void SetAudioSystem(IAudioSystem audioSystemParam)
 		{
+			audioSystem = audioSystemParam;
+		}
+
+		public void Load(AssetManager assetManager, SyncSystem syncSystem)
+		{
+			TunableManager tm = TunableManager.GetSingleton();
 			if (settings.AudioEnabled)
 			{
-				audioSystem = audioSystemParam;
-				string audioFileName = "../data/music/bosca.wav";
+				string audioFileName = tm.GetString("audio.filename");
 				music = audioSystem.LoadAudioFile(audioFileName);
+			}
+			if (settings.SyncEnabled)
+			{
+				syncSystem.SetAudioProperties(tm.GetInt("audio.bpm"), tm.GetFloat("audio.length_seconds")
+					, tm.GetInt("audio.rows_per_beat"));
 			}
 			Logger.LogInfo("Loading Bunny Demo");
 
+			CameraComponent camera = Renderer.GetSingleton().GetCamera();
+			camera.FOV = MathHelper.DegreesToRadians(tm.GetFloat("camera.fov"));
+			camera.Speed = tm.GetFloat("camera.speed");
+			camera.SpeedStep = tm.GetFloat("camera.speed_step");
+
+			// Camera frames
+			List<PosAndDir> frames = new List<PosAndDir>();
+			int frameAmount = tm.GetInt("camera_frames.amount");
+			for (int frameI = 0; frameI < frameAmount; frameI++)
+			{
+				Vector3 pos = tm.GetVec3("camera_frames.frame_" + frameI + "_pos");
+				Vector3 dir = tm.GetVec3("camera_frames.frame_" + frameI + "_dir");
+				frames.Add(new PosAndDir(pos, dir));
+			}
+			Renderer.GetSingleton().SetCameraFrames(frames);
+
 			mountains = new MountainScene();
-			mountains.Load(audioSystem, assetManager, syncSystem);
+			mountains.Load(assetManager, syncSystem);
 
 			monolithSpace = new MonolithSpaceScene();
-			monolithSpace.Load(audioSystem, assetManager, syncSystem);
+			monolithSpace.Load(assetManager, syncSystem);
 
 			seaScene = new SeaScene();
-			seaScene.Load(audioSystem, assetManager, syncSystem);
+			seaScene.Load(assetManager, syncSystem);
 
 			bunnyScene = new BunnyScene();
-			bunnyScene.Load(audioSystem, assetManager, syncSystem);
+			bunnyScene.Load(assetManager, syncSystem);
 
 			// Fade scene
 			guiShader = assetManager.GetShaderProgram("gui");
@@ -267,7 +378,9 @@ namespace MuffinSpace
 				, MeshDataGenerator.CreateQuadMesh(false, true)
 				, fadeoutMaterial.materialName
 				, guiShader
-				, new Vector3(-2.0f, -0.5f, 0.0f));
+				, tm.GetVec3("fade.position"));
+
+			fadeoutQuad.Transform.Scale = tm.GetFloat("fade.scale");
 
 			ShaderProgram skyboxProgram = assetManager.GetShaderProgram("sky");
 			starSphere = assetManager.CreateMesh("stars"
@@ -276,7 +389,13 @@ namespace MuffinSpace
 										 , skyboxProgram
 										 , new Vector3(0, 0, 0));
 
-			starSphere.Transform.SetRotationAxis(new Vector3(0.3f, 0.8f, 0.0f).Normalized());
+			starSphere.Transform.SetRotationAxis(tm.GetVec3("mountain_scene.star_rotation_axis"));
+			starRotSpeed = tm.GetFloat("mountain_scene.star_rotation_speed");
+
+			moon = Light.CreateDirectionalLight(tm.GetVec3("moon.color")
+			, tm.GetFloat("moon.ambient"), tm.GetFloat("moon.intensity")
+			, tm.GetVec3("moon.direction"));
+			Logger.LogInfo("Created directional moon light " + moon.GetInfoString());
 
 			Logger.LogPhase("Bunny demo is loaded");
 		}
@@ -292,14 +411,26 @@ namespace MuffinSpace
 
 		public void Sync(SyncSystem syncer)
 		{
-			// Get scene combination by Scene value
-			UpdateFadeout(syncer.SceneProgress);
-			UpdateStarRotation();
-			mountains.Sync(syncer);
-			monolithSpace.Sync(syncer);
-			seaScene.Sync(syncer);
-			bunnyScene.Sync(syncer);
 
+			// Get scene combination by Scene value
+			UpdateFadeout(fadeoutAlpha.GetValue(syncer.GetSyncRow()));
+			UpdateStarRotation(syncer.SceneProgress);
+
+			switch(syncer.Scene)
+			{
+				case 0:
+				mountains.Sync(syncer);
+					break;
+				case 1:
+				monolithSpace.Sync(syncer);
+					break;
+				case 2:
+				seaScene.Sync(syncer);
+					break;
+				case 3:
+				bunnyScene.Sync(syncer);
+					break;
+			}
 		}
 
 		private void UpdateFadeout(float progress)
@@ -307,25 +438,39 @@ namespace MuffinSpace
 			fadeAlpha = progress;
 		}
 
-		private void UpdateStarRotation()
+		private void UpdateStarRotation(float progress)
 		{
-				// Rotate star sphere world matrix
-				starSphere.Transform.SetRotation(0.0f);
+			// Rotate star sphere world matrix
+			starRot = starRotSpeed * progress;
+			starSphere.Transform.SetRotation(starRot);
 		}
 
 		public void Draw(Renderer renderer)
 		{
+			renderer.ActivateLight(moon, 0);
+			
+			switch(SyncSystem.GetSingleton().Scene)
+			{
+				case 0:
+				mountains.Draw(renderer);
+					break;
+				case 1:
+					monolithSpace.Draw(renderer);
+					break;
+				case 2:
+				seaScene.Draw(renderer);
+					break;
+				case 3:
+				bunnyScene.Draw(renderer);
+					break;
+			}
+
+			renderer.RenderSky(starSphere);
+
 			if (fadeAlpha > 0.0f)
 			{
 				DrawFadeout(renderer, fadeAlpha);
 			}
-			
-			mountains.Draw(renderer);
-			monolithSpace.Draw(renderer);
-			bunnyScene.Draw(renderer);
-			seaScene.Draw(renderer);
-
-			renderer.RenderSky(starSphere);
 			Error.checkGLError("BunnyDemo Draw");
 		}
 
@@ -338,14 +483,28 @@ namespace MuffinSpace
 			}
 			renderer.GetCamera().EnableOrthogonal();
 			renderer.SetActiveShader(guiShader);
-			guiShader.SetFloatUniform(fadeAlphaLocation, progress);
+			guiShader.SetFloatUniform(ShaderUniformName.Alpha, fadeAlpha);
 			renderer.RenderGui(fadeoutQuad);
 			renderer.GetCamera().EnablePerspective();
 		}
 
 		public DemoSettings GetDemoSettings()
 		{
+			TunableManager tm = TunableManager.GetSingleton();
+			settings.AudioEnabled = tm.GetBool("demosettings.audio_enabled");
+			settings.SyncEnabled = tm.GetBool("demosettings.sync_enabled");
+			settings.Resolution = tm.GetVec2("demosettings.resolution");
+			settings.UpdatesPerSecond = tm.GetInt("demosettings.updates_per_second");
+			settings.WindowTitle = tm.GetString("demosettings.window_title");
 			return settings;
+		}
+
+		public void Restart()
+		{
+			if (GetDemoSettings().AudioEnabled)
+			{
+				audioSystem.RestartAudio(music);
+			}
 		}
 	}
 }

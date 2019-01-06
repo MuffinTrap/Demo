@@ -15,9 +15,41 @@ namespace MuffinSpace
 		private bool running = false;
 		bool loadCompleted = false;
 
+		private class Button
+		{
+			bool down;
+			Key keyName;
+
+			public Button(Key tiedKey)
+			{
+				keyName = tiedKey;
+				down = false;
+			}
+			public bool Pressed(KeyboardState keyState)
+			{
+				if (keyState.IsKeyDown(keyName))
+				{
+					down = true;
+					return false;
+				}
+				else if (down && keyState.IsKeyUp(keyName))
+				{
+					down = false;
+					return true;
+				}
+				return false;
+			}
+		}
+
+		Button InputEnabledButton;
+		Button ReloadDemoButton;
+		Button CameraModeButton;
+		Button CameraSpeedUpButton;
+		Button CameraSpeedDownButton;
+		Button PrintFrameButton;
+		Button RestartDemoButton;
+
 		bool inputEnabled = true;
-		bool f6Down = false;
-		bool f9Down = false;
 
 		SyncSystem syncSystem;
 		Renderer renderer;
@@ -37,17 +69,11 @@ namespace MuffinSpace
                   3,	// OpenGL Minor Version minimum
                   GraphicsContextFlags.ForwardCompatible)
         {
-			#if (MUFFIN_PLATFORM_WINDOWS)
-				Logger.LogInfo("Windows platform defined");
-			#elif (MUFFIN_PLATFORM_LINUX)
-				Logger.LogInfo("Linux platform defined");
-			#endif
-
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
 
 			Logger.LogPhase("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
 			base.TargetUpdateFrequency = 120;
-			base.Location = new Point(510, 10);
+			base.Location = new Point(0, 0);
         }
 
         protected override void OnResize(EventArgs e)
@@ -57,15 +83,17 @@ namespace MuffinSpace
 
         protected override void OnLoad(EventArgs e)
         {
-			demoWrapper = new DemoWrapper();
-			demoWrapper.Create();
-			demoSettings = demoWrapper.Demo.GetDemoSettings();
-            CursorVisible = true;
+			InputEnabledButton = new Button(Key.F4);
+			ReloadDemoButton = new Button(Key.F5);
+			RestartDemoButton = new Button(Key.F6);
+
+			CameraModeButton = new Button(Key.F9);
+			CameraSpeedDownButton = new Button(Key.F10);
+			CameraSpeedUpButton = new Button(Key.F11);
+			PrintFrameButton = new Button(Key.F12);
+
 			tunableManager = TunableManager.GetSingleton();
-
-			// SYNC
 			syncSystem = SyncSystem.GetSingleton();
-
 			renderer = Renderer.GetSingleton();
 
 			string dataFolder = "data";
@@ -77,9 +105,16 @@ namespace MuffinSpace
 			assetManager.printLoadedAssets();
 			Logger.LogPhase("Assets have been loaded");
 
-			// MenuSystem.GetSingleton().ReadFromFile(dataFolder + "/tunables.json");
+			tunableManager.ReloadValues();
+			Logger.LogPhase("Config file have been loaded");
 
-			
+			demoWrapper = new DemoWrapper();
+			demoWrapper.Create();
+			demoSettings = demoWrapper.Demo.GetDemoSettings();
+
+
+            CursorVisible = true;
+
 			// Audio
 			if (demoSettings.AudioEnabled)
 			{
@@ -92,6 +127,7 @@ namespace MuffinSpace
 					return;
 				}
 				Logger.LogPhase("Audio has been initialized");
+				demoWrapper.SetAudioSystem(audioSystem);
 			}
 			
 			if (demoSettings.SyncEnabled)
@@ -99,10 +135,8 @@ namespace MuffinSpace
 				syncSystem.Start();
 			}
 
-
 			testScene = new TestScene();
 			testScene.Load(assetManager);
-
 
 			LoadDemo();
 			Logger.LogPhase("OnLoad complete");
@@ -117,7 +151,7 @@ namespace MuffinSpace
 			tm.ReloadValues();
 			try
 			{
-				demoWrapper.Demo.Load(audioSystem, asman, syncSystem);
+				demoWrapper.Demo.Load(asman, syncSystem);
 			}
 			catch (Exception exception)
 			{
@@ -144,7 +178,8 @@ namespace MuffinSpace
 			if (demoSettings.SyncEnabled)
 			{
 				syncSystem.Sync();
-				Title = $"Seconds: {syncSystem.GetSecondsElapsed():0} Row: {syncSystem.GetSyncRow()}";
+				Title = demoSettings.WindowTitle;
+				Title += "Seconds: " + syncSystem.GetSecondsElapsed() + " Row: " + syncSystem.GetSyncRow() + " Scene : " + syncSystem.Scene + " progress: " + syncSystem.SceneProgress;
 			}
 
 			HandleKeyboardAndUpdateDemo();
@@ -160,26 +195,43 @@ namespace MuffinSpace
 				ExitProgram();
             }
 
-			if (keyState.IsKeyDown(Key.F6))
+			if (InputEnabledButton.Pressed(keyState))
 			{
-				f6Down = true;
+				inputEnabled = !inputEnabled;
 				
 			}
-			if (keyState.IsKeyUp(Key.F6) && f6Down)
+			if (CameraModeButton.Pressed(keyState))
 			{
-				f6Down = false;
-				inputEnabled = !inputEnabled;
+				renderer.GetCamera().FreeMode = !renderer.GetCamera().FreeMode;
+
+			}
+			if (CameraSpeedUpButton.Pressed(keyState))
+			{
+				renderer.GetCamera().Speed += renderer.GetCamera().SpeedStep;
+
+			}
+			if (CameraSpeedDownButton.Pressed(keyState))
+			{
+				renderer.GetCamera().Speed -= renderer.GetCamera().SpeedStep;
 			}
 
-			if (keyState.IsKeyDown(Key.F9))
+			if (PrintFrameButton.Pressed(keyState))
 			{
-				f9Down = true;
+				Logger.LogInfo("Frame Pos: " + Logger.PrintVec3(renderer.GetCamera().Position) + " Dir: " + Logger.PrintVec3(renderer.GetCamera().Direction));
 			}
-			if (keyState.IsKeyUp(Key.F9) && f9Down)
+
+			if (ReloadDemoButton.Pressed(keyState))
 			{
-				f9Down = false;
 				loadCompleted = false;
 				LoadDemo();
+			}
+			if (RestartDemoButton.Pressed(keyState))
+			{
+				if (demoSettings.SyncEnabled)
+				{
+					syncSystem.Restart();
+					demoWrapper.Restart();
+				}
 			}
 			
 			if (!running)
@@ -199,10 +251,9 @@ namespace MuffinSpace
 			}
 			testScene.Update();
 
-			demoWrapper.Demo.Sync(syncSystem);
-			if (!demoSettings.SyncEnabled)
+			if (demoSettings.SyncEnabled)
 			{
-				return;
+				demoWrapper.Demo.Sync(syncSystem);
 			}
 
         }

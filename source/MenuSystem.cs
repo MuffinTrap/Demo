@@ -84,15 +84,49 @@ namespace MuffinSpace
 
 		public float GetFloat(string name)
 		{
-			return Single.Parse(GetValue(name));
+			System.Globalization.NumberFormatInfo nfi = new System.Globalization.CultureInfo("en-US", false).NumberFormat;
+			float value = 0.0f;
+			string valueString = GetValue(name);
+				try
+				{
+
+					value = Single.Parse(valueString, nfi);
+				} catch (FormatException e)
+				{
+					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, valueString));
+				}
+			return value;
 		}
+
+
+		public int GetInt(string name)
+		{
+			return Convert.ToInt32(GetValue(name));
+		}
+
 		public Vector3 GetVec3(string name)
 		{
 			return readVector3(GetValue(name));
 		}
 
+		public Vector2 GetVec2(string name)
+		{
+			return readVector2(GetValue(name));
+		}
+
+		public string GetString(string name)
+		{
+			return GetValue(name);
+		}
+
+		public bool GetBool(string name)
+		{
+			return GetInt(name) > 0;
+		}
+
 		private string GetValue(string name)
 		{
+			Logger.LogInfo("Getting value " + name);
 			string[] pathParts = name.Split('.');
 			foreach (TunableObject o in tunables)
 			{
@@ -113,13 +147,13 @@ namespace MuffinSpace
 
 		public static Vector3 readVector3(string vectorLine)
 		{
-			char split = ',';
+			char split = ' ';
 			string[] values = vectorLine.Split(split);
 
 			Vector3 vec = new Vector3();
 
 			Logger.LogInfo("Reading vector3: " + vectorLine);
-			if (values.Length == 3)  // #, #, #
+			if (values.Length == 3)  // # # #
 			{
 				// use . as separator instead of system default
 				System.Globalization.NumberFormatInfo nfi = new System.Globalization.CultureInfo("en-US", false).NumberFormat;
@@ -129,6 +163,31 @@ namespace MuffinSpace
 					vec.X = Single.Parse(values[0], nfi);
 					vec.Y = Single.Parse(values[1], nfi);
 					vec.Z = Single.Parse(values[2], nfi);
+				} catch (FormatException e)
+				{
+					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, values[1]));
+				}
+			}
+
+			return vec;
+		}
+		public static Vector2 readVector2(string vectorLine)
+		{
+			char split = ' ';
+			string[] values = vectorLine.Split(split);
+
+			Vector2 vec = new Vector2();
+
+			Logger.LogInfo("Reading vector2: " + vectorLine);
+			if (values.Length == 2)  // #, #
+			{
+				// use . as separator instead of system default
+				System.Globalization.NumberFormatInfo nfi = new System.Globalization.CultureInfo("en-US", false).NumberFormat;
+
+				try
+				{
+					vec.X = Single.Parse(values[0], nfi);
+					vec.Y = Single.Parse(values[1], nfi);
 				} catch (FormatException e)
 				{
 					Logger.LogError(Logger.ErrorState.Limited, string.Format("Value {0} Caught Formatexception:" + e.Message, values[1]));
@@ -152,9 +211,9 @@ namespace MuffinSpace
 			while (fileReader.EndOfStream == false)
 			{
 				string settingLine = fileReader.ReadLine();
-				if (settingLine.Contains(";"))
+				if (settingLine.Length == 0 || settingLine.Contains(";") || settingLine.Contains("}"))
 				{
-					// Comment
+					// Empty, comment, block end
 					continue;
 				}
 
@@ -166,6 +225,7 @@ namespace MuffinSpace
 					activeHeader = headerName;
 					AddObject(activeHeader);
 					Logger.LogInfo("Added setting group: " + settingLine);
+					continue;
 				}
 				
 				string[] nameAndSetting = null;
@@ -181,7 +241,7 @@ namespace MuffinSpace
 				}
 				else if (nameAndSetting.Length > 0 && nameAndSetting[0].Length != 0)
 				{
-					Console.WriteLine("Invalid setting: " + nameAndSetting[0]);
+					Logger.LogInfo("Invalid setting line: " + settingLine);
 				}
 			}
 				

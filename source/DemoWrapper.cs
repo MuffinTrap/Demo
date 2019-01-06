@@ -13,5 +13,15 @@ namespace MuffinSpace
 		{
 			return Demo.GetDemoSettings();
 		}
+
+		public void SetAudioSystem(IAudioSystem audioSystem)
+		{
+			Demo.SetAudioSystem(audioSystem);
+		}
+
+		public void Restart()
+		{
+			Demo.Restart();
+		}
 	}
 }
