@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 
 using OpenTK.Input;
 
@@ -7,6 +8,19 @@ using RocketNet;
 
 namespace MuffinSpace
 {
+	public enum SyncMode
+	{
+		Client,
+		Player,
+		Manual
+	}
+
+	public enum SyncState
+	{
+		Paused,
+		Running,
+		Finished
+	}
 
 	public class SyncSystem
 	{
@@ -20,7 +34,7 @@ namespace MuffinSpace
 		}
 		private static SyncSystem singleton;
 
-        public Device syncDevice;
+        private Device syncDevice;
 
         Stopwatch timer;
 
@@ -32,6 +46,11 @@ namespace MuffinSpace
 		public float FrameProgress { get; private set; }
 		public float SceneProgress { get; private set; }
 
+		private SyncMode operationMode = SyncMode.Manual;
+		private float manualSceneAdvanceRate = 0.1f;
+
+		public SyncState State { get; private set; }
+
         private int bpm;
         private int rowsPerBeat;
 
@@ -40,13 +59,11 @@ namespace MuffinSpace
 
 		float secondsElapsed = 0.0f;
 
-        bool paused;
 		bool spaceDown;
-		bool running;
 
 		private SyncSystem()
 		{
-			paused = true;
+			State = SyncState.Paused;
 			spaceDown = false;
 
 			bpm = 120;
@@ -60,16 +77,14 @@ namespace MuffinSpace
 			FrameProgress = 0.0f;
 			Frame = 0;
 
-			syncDevice = new Device("syncdata", false);
-			sceneNumber = syncDevice.GetTrack("Scene");
-			cameraFrame = syncDevice.GetTrack("CameraFrame");
 		}
 
-		private void Connect()
+		private bool Connect()
 		{
+			bool connected = false;
 			try
 			{
-				syncDevice.Connect();
+				connected = syncDevice.Connect();
 			}
 			catch(System.Net.Sockets.SocketException socketE)
 			{
@@ -79,12 +94,14 @@ namespace MuffinSpace
 			syncDevice.IsPlaying = DemoPlaying;
 			syncDevice.Pause = PauseFromEditor;
 			syncDevice.SetRow = SetRowFromEditor;
+
+			return connected;
 		}
 
 		// Functions given to Device
         public bool DemoPlaying()
         {
-            return running;
+			return (State == (SyncState.Running));
         }
 
         public void SetRowFromEditor(int row)
@@ -94,21 +111,61 @@ namespace MuffinSpace
 
         public void PauseFromEditor(bool pause)
         {
-            paused = pause;
+            if (pause)
+			{
+				State = SyncState.Paused;
+			}
+			else
+			{
+				State = SyncState.Running;
+			}
         }
 
-		public void Start()
+		public SyncMode GetOperationMode()
 		{
-			// Timing
-			Connect();
+			return operationMode;
+		}
+
+		public void Start(string fileNamePrefix)
+		{
+			operationMode = SyncMode.Manual;
+
+			syncDevice = new Device(fileNamePrefix, false);
+			bool editorPresent = Connect();
+			if (editorPresent)
+			{
+				operationMode = SyncMode.Client;
+			}
+			else
+			{
+				syncDevice = new Device(fileNamePrefix, true);
+				operationMode = SyncMode.Player;
+			}
+
+			if (operationMode != SyncMode.Manual)
+			{
+				sceneNumber = syncDevice.GetTrack("Scene");
+				cameraFrame = syncDevice.GetTrack("CameraFrame");
+			}
+			else
+			{
+				Logger.LogInfo("Syncer file nor editor was found. Enabling manual mode");
+			}
 			timer.Start();
-			running = true;
+			State = SyncState.Running;
+		}
+
+		public void StartManual()
+		{
+			operationMode = SyncMode.Manual;
+			timer.Start();
+			State = SyncState.Running;
 		}
 
         public void Sync()
         {
             // update sync values only when playing
-            if (!paused)
+            if (State == SyncState.Running)
             {
                 // Calculate sync row.
                 long elapsedMS = timer.ElapsedMilliseconds;
@@ -117,8 +174,15 @@ namespace MuffinSpace
 
                 if (secondsElapsed > songLength)
                 {
-                    // loop around;
-                    timer.Restart();
+					if (operationMode == SyncMode.Player)
+					{
+						// Only in this case
+						State = SyncState.Finished;
+					}
+					else
+					{
+						State = SyncState.Paused;
+					}
                 }
 
                 float beatsElapsed = (float)bpm * minutesElapsed;
@@ -129,20 +193,23 @@ namespace MuffinSpace
                 syncRow = currentRow;
             }
 
-            bool updateOk = syncDevice.Update(syncRow);
-            if (!updateOk)
-            {
-				Connect();
-            }
+			if (operationMode != SyncMode.Manual)
+			{
+				bool updateOk = syncDevice.Update(syncRow);
+				if (!updateOk && operationMode == SyncMode.Client)
+				{
+					Connect();
+				}
 
-			float sceneValue = sceneNumber.GetValue(syncRow); ;
-			float sceneFloor = (float)Math.Floor(sceneValue);
-			Scene = (int)sceneFloor;
-			SceneProgress = sceneValue - sceneFloor;
-			float frameValue = cameraFrame.GetValue(syncRow);
-			float frameFloor = (float)Math.Floor(frameValue);
-			Frame = (int)frameFloor;
-			FrameProgress = frameValue - frameFloor;
+				float sceneValue = sceneNumber.GetValue(syncRow); ;
+				float sceneFloor = (float)Math.Floor(sceneValue);
+				Scene = (int)sceneFloor;
+				SceneProgress = sceneValue - sceneFloor;
+				float frameValue = cameraFrame.GetValue(syncRow);
+				float frameFloor = (float)Math.Floor(frameValue);
+				Frame = (int)frameFloor;
+				FrameProgress = frameValue - frameFloor;
+			}
         }
 
 		public void Restart()
@@ -154,12 +221,15 @@ namespace MuffinSpace
 		public void Stop()
 		{
 			timer.Stop();
-			running = false;
+			State = SyncState.Paused;
 		}
 
 		public void CleanAndExit()
 		{
-			syncDevice.Dispose();
+			if (operationMode != SyncMode.Manual)
+			{
+				syncDevice.Dispose();
+			}
 		}
 
 		public void UpdateInput(KeyboardState keyState)
@@ -172,7 +242,57 @@ namespace MuffinSpace
 			if (spaceDown && keyState.IsKeyUp(Key.Space))
 			{
 				spaceDown = false;
-				paused = !paused;
+				if (DemoPlaying())
+				{
+					State = SyncState.Paused;
+				}
+				else
+				{
+					State = SyncState.Running;
+				}
+			}
+		}
+		
+		// Manual mode scene change and progress
+		public void ChangeToNextScene()
+		{
+			if (operationMode == SyncMode.Manual)
+			{
+				Scene++;
+			}
+		}
+
+		public void ChangeToPrevScene()
+		{
+			if (operationMode == SyncMode.Manual)
+			{
+				Scene--;
+				if (Scene < 0)
+				{
+					Scene = 0;
+				}
+			}
+		}
+		public void RetreatSceneProgress()
+		{
+			if (operationMode == SyncMode.Manual)
+			{
+				SceneProgress -= manualSceneAdvanceRate;
+				if (SceneProgress < 0.0f)
+				{
+					SceneProgress = 0.0f;
+				}
+			}
+		}
+		public void AdvanceSceneProgress()
+		{
+			if (operationMode == SyncMode.Manual)
+			{
+				SceneProgress += manualSceneAdvanceRate;
+				if (SceneProgress > 1.0f)
+				{
+					SceneProgress = 1.0f;
+				}
 			}
 		}
 
@@ -183,9 +303,17 @@ namespace MuffinSpace
 			rowsPerBeat = rowsPerPeatParam;
 		}
 
+		public void SetManualSceneAdvanceRate(float rate)
+		{
+			if (rate > 0.0f && rate < 1.0f)
+			{
+				manualSceneAdvanceRate = rate;
+			}
+		}
+
 		public bool IsPaused()
 		{
-			return paused;
+			return (State == SyncState.Paused);
 		}
 
 		public float GetSecondsElapsed()
@@ -200,7 +328,15 @@ namespace MuffinSpace
 
 		public Track GetTrack(string trackName)
 		{
-			return syncDevice.GetTrack(trackName);
+			if (operationMode == SyncMode.Manual)
+			{
+				Track dummy = new Track();
+				return dummy;
+			}
+			else
+			{
+				return syncDevice.GetTrack(trackName);
+			}
 		}
 
 	}

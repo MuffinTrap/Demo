@@ -100,17 +100,10 @@ namespace MuffinSpace
 
 		private string GetFilenameFromPath(string path)
 		{
-			char pathSeparatorWin = '\\';
-			char pathSeparatorLnx = '/';
+			char pathSeparator= System.IO.Path.DirectorySeparatorChar;
 
 
-			int lastSeparator = -1;
-			lastSeparator = path.LastIndexOf(pathSeparatorWin); // Returns - 1 if not found
-			if (lastSeparator < 0)
-			{
-				lastSeparator = path.LastIndexOf(pathSeparatorLnx);
-			}
-
+			int lastSeparator = path.LastIndexOf(pathSeparator); // Returns - 1 if not found
 			lastSeparator += 1;
 			string fileName = path.Substring(lastSeparator);
 			return fileName;
@@ -138,11 +131,13 @@ namespace MuffinSpace
 
 		private void AddIncludesAndDefines(ref string shaderSource, ref Dictionary<string, string> shaderSources)
 		{
+			// Include line looks like
+			// #include light.ss;
 			string includeString = "#include";
 			if (shaderSource.Contains(includeString))
 			{
 				int includeStart = shaderSource.IndexOf(includeString);
-				int includeEnd = shaderSource.IndexOf(';', includeStart); // Removes trailing ;
+				int includeEnd = shaderSource.IndexOf(';', includeStart); // All but trailing ;
 				if (includeEnd <= includeStart)
 				{
 					Logger.LogError(Logger.ErrorState.Critical, "Failed parsing include from shader source");
@@ -154,8 +149,9 @@ namespace MuffinSpace
 				if (shaderSources.ContainsKey(includeFilename))
 				{
 					Logger.LogInfo("Found #include at " + includeStart + " : '" + includeRow + "' and found matching source file");
-					shaderSource = shaderSource.Remove(includeStart, includeEnd - includeStart);
+					shaderSource = shaderSource.Remove(includeStart, includeEnd + 1 - includeStart); // Remove trailing ; too
 					shaderSource = shaderSource.Insert(includeStart, shaderSources[includeFilename]);
+					shaderSource += '\0'; // Shader source file must end with \0
 				}
 			}
 		}

@@ -5,12 +5,12 @@ using OpenTK;
 
 namespace MuffinSpace
 {
-	public struct GreetPage
+	public class GreetPage
 	{
 		public	float progress;
 		public List<Greeting> greets;
 	}
-	public struct Greeting
+	public class Greeting
 	{
 		public DrawableMesh textMesh;
 		public float alpha;
@@ -152,8 +152,7 @@ namespace MuffinSpace
 			{
 				for (int pi = 0; pi < greets.Count; pi++)
 				{
-					GreetPage p = greets[pi];
-					p.progress = syncer.SceneProgress;
+					greets[pi].progress = syncer.SceneProgress;
 				}
 			}
 
@@ -168,7 +167,7 @@ namespace MuffinSpace
 					for (int gi = 0; gi < p.greets.Count; gi++)
 					{
 						Greeting g = p.greets[gi];
-						g.alpha = 1.0f;
+						g.alpha = p.progress;
 
 						renderer.SetActiveShader(g.textMesh.ShaderProgram);
 						g.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, g.alpha);
@@ -216,6 +215,7 @@ namespace MuffinSpace
 				, greetShader
 				, tm.GetVec3("mountain_scene.group_name_position"));
 
+				groupNameGreet = new Greeting();
 				groupNameGreet.textMesh = groupName;
 				groupNameGreet.alpha = 0.0f;
 
@@ -225,6 +225,7 @@ namespace MuffinSpace
 				, greetShader
 				, tm.GetVec3("mountain_scene.demo_name_position"));
 
+				demoNameGreet = new Greeting();
 				demoNameGreet.textMesh = demoName;
 				demoNameGreet.alpha = 0.0f;
 			}
@@ -326,11 +327,10 @@ namespace MuffinSpace
 				string audioFileName = tm.GetString("audio.filename");
 				music = audioSystem.LoadAudioFile(audioFileName);
 			}
-			if (settings.SyncEnabled)
-			{
-				syncSystem.SetAudioProperties(tm.GetInt("audio.bpm"), tm.GetFloat("audio.length_seconds")
+			syncSystem.SetAudioProperties(tm.GetInt("audio.bpm"), tm.GetFloat("audio.length_seconds")
 					, tm.GetInt("audio.rows_per_beat"));
-			}
+			syncSystem.SetManualSceneAdvanceRate(tm.GetFloat("sync.manual_scene_advance_speed"));
+
 			Logger.LogInfo("Loading Bunny Demo");
 
 			CameraComponent camera = Renderer.GetSingleton().GetCamera();
@@ -496,6 +496,7 @@ namespace MuffinSpace
 			settings.Resolution = tm.GetVec2("demosettings.resolution");
 			settings.UpdatesPerSecond = tm.GetInt("demosettings.updates_per_second");
 			settings.WindowTitle = tm.GetString("demosettings.window_title");
+			settings.SyncFilePrefix = tm.GetString("sync.track_file_prefix");
 			return settings;
 		}
 

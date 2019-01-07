@@ -174,7 +174,7 @@ namespace MuffinSpace
 			string[] matFileLines = mttlibLine.Split(space);
 			string filename = matFileLines[1];
 
-			string fullPath = Directory.GetCurrentDirectory() + "\\" + filename;
+			string fullPath = Directory.GetCurrentDirectory() + System.IO.Path.DirectorySeparatorChar + filename;
 
 			material = materialManager.loadMaterial(fullPath);
 		}

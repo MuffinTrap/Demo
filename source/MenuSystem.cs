@@ -126,7 +126,6 @@ namespace MuffinSpace
 
 		private string GetValue(string name)
 		{
-			Logger.LogInfo("Getting value " + name);
 			string[] pathParts = name.Split('.');
 			foreach (TunableObject o in tunables)
 			{
@@ -152,7 +151,6 @@ namespace MuffinSpace
 
 			Vector3 vec = new Vector3();
 
-			Logger.LogInfo("Reading vector3: " + vectorLine);
 			if (values.Length == 3)  // # # #
 			{
 				// use . as separator instead of system default
@@ -178,7 +176,6 @@ namespace MuffinSpace
 
 			Vector2 vec = new Vector2();
 
-			Logger.LogInfo("Reading vector2: " + vectorLine);
 			if (values.Length == 2)  // #, #
 			{
 				// use . as separator instead of system default
@@ -207,13 +204,18 @@ namespace MuffinSpace
 			char [] valueSplit = {':'};
 
 			string activeHeader = "";
-			
+
 			while (fileReader.EndOfStream == false)
 			{
 				string settingLine = fileReader.ReadLine();
-				if (settingLine.Length == 0 || settingLine.Contains(";") || settingLine.Contains("}"))
+				if (settingLine == null)
 				{
-					// Empty, comment, block end
+					// Empty
+					continue;
+				}
+				if (settingLine.Contains(";") || settingLine.Contains("}"))
+				{
+					// Comment, block end
 					continue;
 				}
 
@@ -224,24 +226,25 @@ namespace MuffinSpace
 					string headerName = headerLine[0].Trim();
 					activeHeader = headerName;
 					AddObject(activeHeader);
-					Logger.LogInfo("Added setting group: " + settingLine);
 					continue;
 				}
-				
-				string[] nameAndSetting = null;
-				nameAndSetting = settingLine.Split(valueSplit);
+				else
+				{ 
+					string[] nameAndSetting = null;
+					nameAndSetting = settingLine.Split(valueSplit);
 
-				if (nameAndSetting.Length == 2)
-				{
-					string settingName = nameAndSetting[0].Trim();
-					string settingValue = nameAndSetting[1].Trim();
+					if (nameAndSetting.Length == 2)
+					{
+						string settingName = nameAndSetting[0].Trim();
+						string settingValue = nameAndSetting[1].Trim();
 
-					AddTunable(settingName, settingValue);
-					Logger.LogInfo("Read setting: " + settingLine);
-				}
-				else if (nameAndSetting.Length > 0 && nameAndSetting[0].Length != 0)
-				{
-					Logger.LogInfo("Invalid setting line: " + settingLine);
+						AddTunable(settingName, settingValue);
+						// Logger.LogInfo("Read setting: " + settingLine);
+					}
+					else if (!string.IsNullOrWhiteSpace(settingLine))
+					{
+						Logger.LogInfo("Could not read setting line : '" + settingLine + "'");
+					}
 				}
 			}
 				

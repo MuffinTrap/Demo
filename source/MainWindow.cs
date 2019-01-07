@@ -18,6 +18,8 @@ namespace MuffinSpace
 		private class Button
 		{
 			bool down;
+			int lastPress = 0; // Stupid limiter lol
+			
 			Key keyName;
 
 			public Button(Key tiedKey)
@@ -39,6 +41,16 @@ namespace MuffinSpace
 				}
 				return false;
 			}
+			public bool Down(KeyboardState keyState)
+			{
+				lastPress++;
+				if (lastPress > 1)
+				{
+					lastPress = 0;
+					return keyState.IsKeyDown(keyName);
+				}
+				return false;
+			}
 		}
 
 		Button InputEnabledButton;
@@ -47,7 +59,10 @@ namespace MuffinSpace
 		Button CameraSpeedUpButton;
 		Button CameraSpeedDownButton;
 		Button PrintFrameButton;
-		Button RestartDemoButton;
+		Button RestartDemoOrRetreatSceneButton;
+		Button AdvanceSceneButton;
+		Button PrevSceneButton;
+		Button NextSceneButton;
 
 		bool inputEnabled = true;
 
@@ -83,9 +98,13 @@ namespace MuffinSpace
 
         protected override void OnLoad(EventArgs e)
         {
-			InputEnabledButton = new Button(Key.F4);
+			PrevSceneButton = new Button(Key.F3);
+			NextSceneButton = new Button(Key.F4);
+
 			ReloadDemoButton = new Button(Key.F5);
-			RestartDemoButton = new Button(Key.F6);
+			RestartDemoOrRetreatSceneButton = new Button(Key.F6);
+			AdvanceSceneButton = new Button(Key.F7);
+			InputEnabledButton = new Button(Key.F8);
 
 			CameraModeButton = new Button(Key.F9);
 			CameraSpeedDownButton = new Button(Key.F10);
@@ -129,10 +148,14 @@ namespace MuffinSpace
 				Logger.LogPhase("Audio has been initialized");
 				demoWrapper.SetAudioSystem(audioSystem);
 			}
-			
+
 			if (demoSettings.SyncEnabled)
 			{
-				syncSystem.Start();
+				syncSystem.Start(demoSettings.SyncFilePrefix);
+			}
+			else
+			{
+				syncSystem.StartManual();
 			}
 
 			testScene = new TestScene();
@@ -169,17 +192,21 @@ namespace MuffinSpace
 				Logger.LogPhase("Error detected, program has stopped. ESC to Exit");
 				running = false;
 
-				if (demoSettings.SyncEnabled)
-				{
-					syncSystem.Stop();
-				}
+				syncSystem.Stop();
 			}
 
-			if (demoSettings.SyncEnabled)
+			syncSystem.Sync();
+
+			if (syncSystem.GetOperationMode() == SyncMode.Player && syncSystem.State == SyncState.Finished)
 			{
-				syncSystem.Sync();
-				Title = demoSettings.WindowTitle;
-				Title += "Seconds: " + syncSystem.GetSecondsElapsed() + " Row: " + syncSystem.GetSyncRow() + " Scene : " + syncSystem.Scene + " progress: " + syncSystem.SceneProgress;
+				// Demo is over!
+				ExitProgram();
+			}
+
+			Title = demoSettings.WindowTitle;
+			if (syncSystem.GetOperationMode() != SyncMode.Player)
+			{
+				Title +=  " Scene : " + syncSystem.Scene + " progress: " + syncSystem.SceneProgress;
 			}
 
 			HandleKeyboardAndUpdateDemo();
@@ -194,6 +221,15 @@ namespace MuffinSpace
             {
 				ExitProgram();
             }
+
+			if (PrevSceneButton.Pressed(keyState))
+			{
+				syncSystem.ChangeToPrevScene();
+			}
+			if (NextSceneButton.Pressed(keyState))
+			{
+				syncSystem.ChangeToNextScene();
+			}
 
 			if (InputEnabledButton.Pressed(keyState))
 			{
@@ -225,12 +261,24 @@ namespace MuffinSpace
 				loadCompleted = false;
 				LoadDemo();
 			}
-			if (RestartDemoButton.Pressed(keyState))
+
+			if (demoSettings.SyncEnabled)
 			{
-				if (demoSettings.SyncEnabled)
+				if (RestartDemoOrRetreatSceneButton.Pressed(keyState))
 				{
 					syncSystem.Restart();
 					demoWrapper.Restart();
+				}
+			}
+			else
+			{
+				if (AdvanceSceneButton.Down(keyState))
+				{
+					syncSystem.AdvanceSceneProgress();
+				}
+				else if (RestartDemoOrRetreatSceneButton.Down(keyState))
+				{
+					syncSystem.RetreatSceneProgress();
 				}
 			}
 			
@@ -251,11 +299,7 @@ namespace MuffinSpace
 			}
 			testScene.Update();
 
-			if (demoSettings.SyncEnabled)
-			{
-				demoWrapper.Demo.Sync(syncSystem);
-			}
-
+			demoWrapper.Demo.Sync(syncSystem);
         }
 
 

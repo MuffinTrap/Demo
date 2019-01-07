@@ -109,7 +109,7 @@ namespace MuffinSpace
 			Console.WriteLine("+++ time :" + elapsed.Seconds + "s. ");
 			timer.Restart();
 		}
-
+		
 		static Logger()
 		{
 			ProgramErrorState = ErrorState.NoErrors;

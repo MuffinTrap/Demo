@@ -38,5 +38,6 @@ public sealed class DemoSettings
 	public Vector2 Resolution { get; set; }
 	public double UpdatesPerSecond { get; set; }
 	public string WindowTitle { get; set; }
+	public string SyncFilePrefix { get; set; }
 
 }
