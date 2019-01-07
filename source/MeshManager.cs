@@ -24,7 +24,7 @@ namespace MuffinSpace
 					if (fileEntry.EndsWith(".obj"))
 					{
 						MeshData newMesh = MeshDataGenerator.CreateFromFile(fileEntry, materialManager);
-						newMesh.sourceFileName = fileEntry.Substring(fileEntry.LastIndexOf('\\') + 1);
+						newMesh.sourceFileName = fileEntry.Substring(fileEntry.LastIndexOf(Path.DirectorySeparatorChar) + 1);
 						allMeshes.Add(newMesh);
 					}
 				}
