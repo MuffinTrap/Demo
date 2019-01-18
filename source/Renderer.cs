@@ -24,6 +24,9 @@ namespace MuffinSpace
 		int maxPointLightIndex = 2;
 		List<Light> activeLights;
 
+		// Skybox material when rendering sky meshes
+		Material activeSkybox = null;
+
 		private Renderer()
 		{
 			clearingColor = new Vector3(0, 0, 0);
@@ -104,9 +107,14 @@ namespace MuffinSpace
 		{
 			width = widthParam;
 			height = heightParam;
+			camera.AspectRatio = (float)width / height;
             GL.Viewport(0, 0, widthParam, heightParam);
 		}
 
+		public void SetActiveSkybox(Material skyboxMaterial)
+		{
+			activeSkybox = skyboxMaterial;
+		}
 
 		public void SetActiveShader(ShaderProgram shader)
 		{
@@ -128,6 +136,11 @@ namespace MuffinSpace
 				if (man.DoesShaderUseLights(activeProgram))
 				{
 					RenderActiveLights();
+				}
+				if (man.DoesShaderSupportUniform(activeProgram, ShaderUniformName.CubeMap))
+				{
+					MaterialManager matMan = MaterialManager.GetSingleton();
+					matMan.SetFromMaterialToShader(activeSkybox, ShaderUniformName.CubeMap, activeProgram);
 				}
 			}
 		}
@@ -256,9 +269,12 @@ namespace MuffinSpace
 			}
 
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
-			man.SetData(activeProgram, ShaderUniformName.WorldMatrix, mesh);
-			MaterialManager matMan = MaterialManager.GetSingleton();
-			matMan.SetMaterialToShader(mesh.BoundMaterial, activeProgram);
+			man.TrySetData(activeProgram, ShaderUniformName.WorldMatrix, mesh);
+			if (mesh.BoundMaterial != null)
+			{
+				MaterialManager matMan = MaterialManager.GetSingleton();
+				matMan.SetMaterialToShader(mesh.BoundMaterial, activeProgram);
+			}
 
 			mesh.draw();
 		}
@@ -276,6 +292,14 @@ namespace MuffinSpace
 
 			mesh.Transform.Position = camera.Position;
 			RenderMesh(mesh);
+			int cubeSamplerLocation = mesh.ShaderProgram.GetUniformLocation(ShaderUniformName.CubeMap);
+			int cubeSamplerValue = mesh.ShaderProgram.GetSamplerUniform(cubeSamplerLocation);
+			int defaultUnit = MaterialManager.GetSingleton().GetTextureUnitForMap(ShaderUniformName.CubeMap);
+			if (cubeSamplerValue != defaultUnit)
+			{
+				Logger.LogInfo("Sampler cube at :" + cubeSamplerLocation + " has value " + cubeSamplerValue
+				+ " default is " + defaultUnit);
+			}
 		}
 
 		public void RenderGui(DrawableMesh mesh)

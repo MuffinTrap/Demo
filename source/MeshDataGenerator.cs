@@ -240,7 +240,7 @@ namespace MuffinSpace
 			return quadMesh;
 		}
 
-		static private void CreateCubeSide(Vector3 sideCenter, Vector3 up, Vector3 right, ref List<Vector3> positions
+		static private void CreateCubeSide(bool counterClockTriangles, Vector3 sideCenter, Vector3 up, Vector3 right, ref List<Vector3> positions
 		, ref List<Vector3> normals, ref List<Vector2> texCoords, ref List<int> indices)
 		{
 			int ind = positions.Count;
@@ -249,26 +249,44 @@ namespace MuffinSpace
 			positions.Add(sideCenter + up + right);
 			positions.Add(sideCenter + up - right);
 
-			normals.Add(sideCenter);
-			normals.Add(sideCenter);
-			normals.Add(sideCenter);
-			normals.Add(sideCenter);
+			Vector3 sideNormal = sideCenter;
+			if (!counterClockTriangles)
+			{
+				sideNormal *= -1.0f;
+			}
+			normals.Add(sideNormal);
+			normals.Add(sideNormal);
+			normals.Add(sideNormal);
+			normals.Add(sideNormal);
 
 			texCoords.Add(new Vector2(0.0f, 0.0f));
 			texCoords.Add(new Vector2(1.0f, 0.0f));
 			texCoords.Add(new Vector2(1.0f, 1.0f));
 			texCoords.Add(new Vector2(0.0f, 1.0f));
 
-			indices.Add(ind + 0);
-			indices.Add(ind + 1);
-			indices.Add(ind + 2);
+			if (counterClockTriangles)
+			{
+				indices.Add(ind + 0);
+				indices.Add(ind + 1);
+				indices.Add(ind + 2);
 
-			indices.Add(ind + 0);
-			indices.Add(ind + 2);
-			indices.Add(ind + 3);
+				indices.Add(ind + 0);
+				indices.Add(ind + 2);
+				indices.Add(ind + 3);
+			}
+			else
+			{
+				indices.Add(ind + 0);
+				indices.Add(ind + 2);
+				indices.Add(ind + 1);
+
+				indices.Add(ind + 0);
+				indices.Add(ind + 3);
+				indices.Add(ind + 2);
+			}
 		}
 
-		static public MeshData CreateCubeMesh(Vector3 size, bool createNormals, bool createTexCoords)
+		static public MeshData CreateCubeMesh(Vector3 size, bool createNormals, bool createTexCoords, bool triangleWindingCCW = true)
 		{
 			MeshData cube = new MeshData();
 
@@ -282,14 +300,16 @@ namespace MuffinSpace
 			Vector3 forwards = new Vector3(0.0f, 0.0f, 1.0f);
 
 			// Forwards
-			CreateCubeSide(forwards, up, right, ref positions, ref normals, ref texCoords, ref indices);
-			CreateCubeSide(-forwards, up, -right, ref positions, ref normals, ref texCoords, ref indices);
+			bool tw = triangleWindingCCW;
+			
+			CreateCubeSide(tw, forwards, up, right, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(tw, -forwards, up, -right, ref positions, ref normals, ref texCoords, ref indices);
 
-			CreateCubeSide(up, forwards, -right, ref positions, ref normals, ref texCoords, ref indices);
-			CreateCubeSide(-up, forwards, right, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(tw, up, forwards, -right, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(tw, -up, forwards, right, ref positions, ref normals, ref texCoords, ref indices);
 
-			CreateCubeSide(right, up, -forwards, ref positions, ref normals, ref texCoords, ref indices);
-			CreateCubeSide(-right, up, forwards, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(tw, right, up, -forwards, ref positions, ref normals, ref texCoords, ref indices);
+			CreateCubeSide(tw, -right, up, forwards, ref positions, ref normals, ref texCoords, ref indices);
 
 			Matrix3 scale = Matrix3.CreateScale(size);
 
@@ -323,6 +343,12 @@ namespace MuffinSpace
 			cube.GenerateBufferHandles();
 
 			return cube;
+		}
+
+		static public MeshData CreateSkybox()
+		{
+			bool counterClockTriangles = false;
+			return CreateCubeMesh(new Vector3(2.0f, 2.0f, 2.0f), false, false, counterClockTriangles);
 		}
 		
 		static private void CreatePyramidSideNormals(Vector3 sideFacing, float normalAngle, List<Vector3> normals)

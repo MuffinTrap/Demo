@@ -50,6 +50,8 @@ namespace MuffinSpace
 		HeightMap,
 		MetallicMap,
 
+		CubeMap,
+
 		// Lighting system
 		LightsArray,
 
@@ -73,6 +75,7 @@ namespace MuffinSpace
 		Mat4,
 
 		Texture2D,
+		TextureCube,
 		Light,
 
 		InvalidType
@@ -135,6 +138,8 @@ namespace MuffinSpace
 				case ShaderUniformName.HeightMap: return "uHeightMap";
 				case ShaderUniformName.MetallicMap: return "uMetallicMap";
 
+				case ShaderUniformName.CubeMap: return "uCubeMap";
+
 				default: return string.Empty;
 			}
 		}
@@ -155,6 +160,8 @@ namespace MuffinSpace
 			AddSupportedUniform(ShaderUniformName.RoughnessMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.HeightMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.MetallicMap, ShaderDataType.Texture2D);
+
+			AddSupportedUniform(ShaderUniformName.CubeMap, ShaderDataType.TextureCube);
 
 			AddSupportedUniform(ShaderUniformName.LightsArray, ShaderDataType.Light);
 			AddSupportedUniform(ShaderUniformName.LightPositionOrDirection, ShaderDataType.Float3);
@@ -452,6 +459,8 @@ namespace MuffinSpace
 					return ShaderDataType.Mat4;
 				case ActiveUniformType.Sampler2D:
 					return ShaderDataType.Texture2D;
+				case ActiveUniformType.SamplerCube:
+					return ShaderDataType.TextureCube;
 
 				default:
 					Logger.LogError(Logger.ErrorState.Critical, "Unsupported shader data type");
@@ -536,6 +545,8 @@ namespace MuffinSpace
 					return "Mat4";
 				case ShaderDataType.Texture2D:
 					return "Texture2D";
+				case ShaderDataType.TextureCube:
+					return "TextureCubeMap";
 
 				case ShaderDataType.InvalidType:
 					return "Invalid";
@@ -544,8 +555,6 @@ namespace MuffinSpace
 					return "(No name for this data type)";
 			}
 		}
-
-
 
 		public static int getAttributeSizeBytes(ShaderAttributeName name)
 		{

@@ -273,6 +273,13 @@ namespace MuffinSpace
 			Error.checkGLError("Shader set sampler");
 		}
 
+		public int GetSamplerUniform(int uniformLocation)
+		{
+			int outInt = -1;
+			GL.GetUniform(handle, uniformLocation, out outInt);
+			return outInt;
+		}
+
 		public int GetCustomUniformLocation(string name)
 		{
 			return GetUniformLocation(handle, name);

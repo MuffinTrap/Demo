@@ -63,6 +63,7 @@ namespace MuffinSpace
 		Button AdvanceSceneButton;
 		Button PrevSceneButton;
 		Button NextSceneButton;
+		Button PauseSyncButton;
 
 		bool inputEnabled = true;
 
@@ -98,6 +99,7 @@ namespace MuffinSpace
 
         protected override void OnLoad(EventArgs e)
         {
+			PauseSyncButton = new Button(Key.Space);
 			PrevSceneButton = new Button(Key.F3);
 			NextSceneButton = new Button(Key.F4);
 
@@ -131,23 +133,33 @@ namespace MuffinSpace
 			demoWrapper.Create();
 			demoSettings = demoWrapper.Demo.GetDemoSettings();
 
+			// Audio ....................................
 
-            CursorVisible = true;
+			Logger.LogPhase("Initializing audio system");
 
-			// Audio
-			if (demoSettings.AudioEnabled)
+			if (demoSettings.AudioEngineSetting == DemoSettings.AudioEngine.System)
 			{
-				Logger.LogPhase("Initializing audio system");
-				audioSystem = new OpenALAudio();
-				bool audioInitOk = audioSystem.Initialize();
-				if (!audioInitOk)
-				{
-					Logger.LogError(Logger.ErrorState.Critical, "Audio system failed to initialize.");
-					return;
-				}
-				Logger.LogPhase("Audio has been initialized");
-				demoWrapper.SetAudioSystem(audioSystem);
+				audioSystem = new SystemAudio();
 			}
+			if (demoSettings.AudioEngineSetting == DemoSettings.AudioEngine.Dummy)
+			{
+				if (demoSettings.AudioEnabled == true)
+				{
+					Logger.LogError(Logger.ErrorState.User, "Initialized dummy audio when Audio is enabled.");
+				}
+				audioSystem = new DummyAudioSystem();
+			}
+			bool audioInitOk = audioSystem.Initialize();
+			if (!audioInitOk)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "Audio system failed to initialize.");
+				return;
+			}
+			Logger.LogPhase("Audio has been initialized");
+			demoWrapper.SetAudioSystem(audioSystem);
+
+
+			// Sync.............................
 
 			if (demoSettings.SyncEnabled)
 			{
@@ -158,6 +170,10 @@ namespace MuffinSpace
 				syncSystem.StartManual();
 			}
 
+			// Rendering .................
+			renderer.ResizeScreen((int)demoSettings.Resolution.X, (int)demoSettings.Resolution.Y);
+
+			CursorVisible = false;
 			testScene = new TestScene();
 			testScene.Load(assetManager);
 
@@ -165,6 +181,11 @@ namespace MuffinSpace
 			Logger.LogPhase("OnLoad complete");
 			loadCompleted = true;
             running = true;
+
+			if (syncSystem.GetOperationMode() == SyncMode.Player)
+			{
+				demoWrapper.Demo.Start();
+			}
         }
 
 		private void LoadDemo()
@@ -192,7 +213,8 @@ namespace MuffinSpace
 				Logger.LogPhase("Error detected, program has stopped. ESC to Exit");
 				running = false;
 
-				syncSystem.Stop();
+				demoWrapper.Demo.Stop();
+				syncSystem.Pause();
 			}
 
 			syncSystem.Sync();
@@ -217,6 +239,29 @@ namespace MuffinSpace
             KeyboardState keyState = Keyboard.GetState();
 			MouseState mouseState = Mouse.GetState();
 
+			HandleButtons(keyState);
+			
+			if (!running)
+			{
+				return;
+			}
+
+			if (!loadCompleted)
+			{
+				return;
+			}
+
+			if (inputEnabled)
+			{
+				renderer.UpdateInput(keyState, mouseState);
+			}
+			testScene.Update();
+
+			demoWrapper.Demo.Sync(syncSystem);
+        }
+
+		private void HandleButtons(KeyboardState keyState)
+		{
             if (keyState.IsKeyDown(Key.Escape))
             {
 				ExitProgram();
@@ -234,18 +279,18 @@ namespace MuffinSpace
 			if (InputEnabledButton.Pressed(keyState))
 			{
 				inputEnabled = !inputEnabled;
-				
 			}
+
 			if (CameraModeButton.Pressed(keyState))
 			{
 				renderer.GetCamera().FreeMode = !renderer.GetCamera().FreeMode;
-
 			}
+
 			if (CameraSpeedUpButton.Pressed(keyState))
 			{
 				renderer.GetCamera().Speed += renderer.GetCamera().SpeedStep;
-
 			}
+
 			if (CameraSpeedDownButton.Pressed(keyState))
 			{
 				renderer.GetCamera().Speed -= renderer.GetCamera().SpeedStep;
@@ -255,52 +300,42 @@ namespace MuffinSpace
 			{
 				Logger.LogInfo("Frame Pos: " + Logger.PrintVec3(renderer.GetCamera().Position) + " Dir: " + Logger.PrintVec3(renderer.GetCamera().Direction));
 			}
+			
+			if (PauseSyncButton.Pressed(keyState))
+			{
+				if (syncSystem.IsPaused())
+				{
+					syncSystem.Run();
+				}
+				else
+				{
+					syncSystem.Pause();
+					demoWrapper.Demo.Stop();
+				}
+			}
 
 			if (ReloadDemoButton.Pressed(keyState))
 			{
+				syncSystem.Pause();
 				loadCompleted = false;
 				LoadDemo();
 			}
 
-			if (demoSettings.SyncEnabled)
+			if (syncSystem.GetOperationMode() != SyncMode.Manual && RestartDemoOrRetreatSceneButton.Pressed(keyState))
 			{
-				if (RestartDemoOrRetreatSceneButton.Pressed(keyState))
-				{
-					syncSystem.Restart();
-					demoWrapper.Restart();
-				}
+				syncSystem.Restart();
+				demoWrapper.Restart();
 			}
-			else
+			else if (RestartDemoOrRetreatSceneButton.Down(keyState))
 			{
-				if (AdvanceSceneButton.Down(keyState))
-				{
-					syncSystem.AdvanceSceneProgress();
-				}
-				else if (RestartDemoOrRetreatSceneButton.Down(keyState))
-				{
-					syncSystem.RetreatSceneProgress();
-				}
-			}
-			
-			if (!running)
-			{
-				return;
+				syncSystem.RetreatSceneProgress();
 			}
 
-			if (!loadCompleted)
+			if (AdvanceSceneButton.Down(keyState))
 			{
-				return;
+				syncSystem.AdvanceSceneProgress();
 			}
-
-			syncSystem.UpdateInput(keyState);
-			if (inputEnabled)
-			{
-				renderer.UpdateInput(keyState, mouseState);
-			}
-			testScene.Update();
-
-			demoWrapper.Demo.Sync(syncSystem);
-        }
+		}
 
 
         protected override void OnRenderFrame(FrameEventArgs e)
@@ -336,13 +371,8 @@ namespace MuffinSpace
 
 		void CleanupAndExit()
 		{
-			syncSystem.Stop();
 			syncSystem.CleanAndExit();
-
-			if (demoSettings.AudioEnabled)
-			{
-				audioSystem.CleanAndExit();
-			}
+			audioSystem.CleanAndExit();
 
 			Logger.ResetColors();
 

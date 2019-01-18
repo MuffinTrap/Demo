@@ -56,6 +56,14 @@ namespace MuffinSpace
 
 	public class MaterialManager
 	{
+		// Cubemap directions
+		const int posX = 0;
+		const int negX = 1;
+		const int posY = 2;
+		const int negY = 3;
+		const int posZ = 4;
+		const int negZ = 5;
+
 		// Sets all materials that apply
 		public void SetMaterialToShader(Material meshMaterial, ShaderProgram program)
 		{
@@ -107,44 +115,100 @@ namespace MuffinSpace
 			}
 		}
 
-		public void SetTextureUniform(ShaderProgram shaderProgram, int location, ShaderUniformName uniform, TextureMap map)
+		public void SetFromMaterialToShader(Material mat, ShaderUniformName uniform, ShaderProgram program)
+		{
+			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
+
+			if (man.DoesShaderSupportUniform(program, uniform))
+			{
+				int location = man.GetDataLocation(program, uniform);
+				if (mat.textureMaps.ContainsKey(uniform))
+				{
+					SetTextureUniform(program, location, uniform, mat.textureMaps[uniform]);
+				}
+			}
+		}
+
+		public int GetTextureUnitForMap(ShaderUniformName uniform)
 		{
 			int textureUnit = -1;
 			if (uniform == ShaderUniformName.DiffuseMap)
 			{
-				GL.ActiveTexture(TextureUnit.Texture0);
 				textureUnit = 0;
 			}
 			else if (uniform == ShaderUniformName.IlluminationMap)
 			{
-				GL.ActiveTexture(TextureUnit.Texture1);
 				textureUnit = 1;
 			}
 			else if (uniform == ShaderUniformName.NormalMap)
 			{
-				GL.ActiveTexture(TextureUnit.Texture2);
 				textureUnit = 2;
 			}
 			else if (uniform == ShaderUniformName.RoughnessMap)
 			{
-				GL.ActiveTexture(TextureUnit.Texture3);
 				textureUnit = 3;
 			}
 			else if (uniform == ShaderUniformName.MetallicMap)
 			{
-				GL.ActiveTexture(TextureUnit.Texture4);
 				textureUnit = 4;
 			}
 			else if (uniform == ShaderUniformName.HeightMap)
 			{
-				GL.ActiveTexture(TextureUnit.Texture5);
 				textureUnit = 5;
 			}
+			else if (uniform == ShaderUniformName.CubeMap)
+			{
+				textureUnit = 6;
+			}
+			return textureUnit;
+
+		}
+
+		public void SetTextureUniform(ShaderProgram shaderProgram, int location, ShaderUniformName uniform, TextureMap map)
+		{
+			int textureUnit = GetTextureUnitForMap(uniform);
+			if (uniform == ShaderUniformName.DiffuseMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture0);
+			}
+			else if (uniform == ShaderUniformName.IlluminationMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture1);
+			}
+			else if (uniform == ShaderUniformName.NormalMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture2);
+			}
+			else if (uniform == ShaderUniformName.RoughnessMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture3);
+			}
+			else if (uniform == ShaderUniformName.MetallicMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture4);
+			}
+			else if (uniform == ShaderUniformName.HeightMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture5);
+			}
+			else if (uniform == ShaderUniformName.CubeMap)
+			{
+				GL.ActiveTexture(TextureUnit.Texture6);
+			}
+
 			if (textureUnit == -1)
 			{
 				Logger.LogError(Logger.ErrorState.Limited, "No defined texture unit for uniform " + ShaderUniformManager.GetSingleton().GetUniformName(uniform) + ", cannot bind");
 			}
-			GL.BindTexture(TextureTarget.Texture2D, map.textureGLIndex);
+
+			if (uniform == ShaderUniformName.CubeMap)
+			{
+				GL.BindTexture(TextureTarget.TextureCubeMap, map.textureGLIndex);
+			}
+			else
+			{
+				GL.BindTexture(TextureTarget.Texture2D, map.textureGLIndex);
+			}
 			shaderProgram.SetSamplerUniform(location, textureUnit);
 		}
 
@@ -354,6 +418,8 @@ namespace MuffinSpace
 			// use . as separator instead of system default
 			System.Globalization.NumberFormatInfo nfi = new System.Globalization.CultureInfo("en-US", false).NumberFormat;
 
+			bool isCubemap = false;
+			List<string> cubemapNames = null;
 			do
 			{
 				line = sourceFile.ReadLine();
@@ -365,6 +431,16 @@ namespace MuffinSpace
 				if (line.Contains("#"))
 				{
 					// comment
+				}
+				else if (line.Contains("cubemap"))
+				{
+					// This is a cubemap
+					isCubemap = true;
+					cubemapNames = new List<string>(6);
+					for (int i = 0; i < 6; i++)
+					{
+						cubemapNames.Add("");
+					}
 				}
 				else if (line.Contains("mipmaps"))
 				{
@@ -387,89 +463,131 @@ namespace MuffinSpace
 					string optionValue = line.Split(space)[1];
 					options.interpolation = (optionValue == "true");
 				}
-				else if (line.Contains("map_Kd"))
-				{
-					// Diffuse map
-					// map_Kd filename.png
-					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName, options);
-					TextureMap diffuse = new TextureMap(textureName, textureGLIndex);
-					newMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, diffuse);
 
-					Logger.LogInfoLinePart("  Diffuse map :", ConsoleColor.Gray);
-					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
-					Logger.LogInfoLineEnd();
-				}
-				else if (line.Contains("map_Ki"))
+				if (isCubemap)
 				{
-					// Illumination map
-					// map_Ki filename_i.png
-					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName, options);
-					TextureMap illumination = new TextureMap(textureName, textureGLIndex);
-					newMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, illumination);
-
-					Logger.LogInfoLinePart("  Illumination map :", ConsoleColor.Gray);
-					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
-					Logger.LogInfoLineEnd();
-				}
-				else if (line.Contains("map_Kn"))
-				{
-					// Normal map
-					// map_Kn filename_n.png
-					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName, options);
-					TextureMap normal = new TextureMap(textureName, textureGLIndex);
-					newMaterial.textureMaps.Add(ShaderUniformName.NormalMap, normal);
-
-					Logger.LogInfoLinePart("  Normal map :", ConsoleColor.Gray);
-					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
-					Logger.LogInfoLineEnd();
-				}
-				else if (line.Contains("map_Kr"))
-				{
-					// Roughness map
-					// map_Kr filename_r.png
-					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName, options);
-					TextureMap roughness = new TextureMap(textureName, textureGLIndex);
-					newMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, roughness);
-
-					Logger.LogInfoLinePart("  Roughness map :", ConsoleColor.Gray);
-					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
-					Logger.LogInfoLineEnd();
-				}
-				else if (line.Contains("map_Km"))
-				{
-					// Metallic map
-					// map_Km filename_m.png
-					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName, options);
-					TextureMap metallic = new TextureMap(textureName, textureGLIndex);
-					newMaterial.textureMaps.Add(ShaderUniformName.MetallicMap, metallic);
-
-					Logger.LogInfoLinePart("  Metallic map :", ConsoleColor.Gray);
-					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
-					Logger.LogInfoLineEnd();
-				}
-				else if (line.Contains("map_Kh"))
-				{
-					// Height map
-					// map_Kh filename_h.png
-					string textureName = line.Split(space)[1];
-					int textureGLIndex = loadTexture(textureName, options);
-					TextureMap height = new TextureMap(textureName, textureGLIndex);
-					newMaterial.textureMaps.Add(ShaderUniformName.HeightMap, height);
-
-					Logger.LogInfoLinePart("  Height map :", ConsoleColor.Gray);
-					Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
-					Logger.LogInfoLineEnd();
+					// Look for cubemap map identifiers
+					if (line.Contains("map_top"))
+					{
+						cubemapNames[posY] = line.Split(space)[1];
+					}
+					else if (line.Contains("map_bottom"))
+					{
+						cubemapNames[negY] = line.Split(space)[1];
+					}
+					else if (line.Contains("map_left"))
+					{
+						cubemapNames[negX] = line.Split(space)[1];
+					}
+					else if (line.Contains("map_right"))
+					{
+						cubemapNames[posX] = line.Split(space)[1];
+					}
+					else if (line.Contains("map_front"))
+					{
+						cubemapNames[posZ] = line.Split(space)[1];
+					}
+					else if (line.Contains("map_back"))
+					{
+						cubemapNames[negZ] = line.Split(space)[1];
+					}
 				}
 				else
 				{
-					// Logger.LogError(Logger.ErrorState.Unoptimal, "Unhandled line '" + line + "' in material file " + materialFileName);
+					if (line.Contains("map_Kd"))
+					{
+						// Diffuse map
+						// map_Kd filename.png
+						string textureName = line.Split(space)[1];
+						int textureGLIndex = loadTexture(textureName, options);
+						TextureMap diffuse = new TextureMap(textureName, textureGLIndex);
+						newMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, diffuse);
+
+						Logger.LogInfoLinePart("  Diffuse map :", ConsoleColor.Gray);
+						Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+						Logger.LogInfoLineEnd();
+					}
+					else if (line.Contains("map_Ki"))
+					{
+						// Illumination map
+						// map_Ki filename_i.png
+						string textureName = line.Split(space)[1];
+						int textureGLIndex = loadTexture(textureName, options);
+						TextureMap illumination = new TextureMap(textureName, textureGLIndex);
+						newMaterial.textureMaps.Add(ShaderUniformName.IlluminationMap, illumination);
+
+						Logger.LogInfoLinePart("  Illumination map :", ConsoleColor.Gray);
+						Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+						Logger.LogInfoLineEnd();
+					}
+					else if (line.Contains("map_Kn"))
+					{
+						// Normal map
+						// map_Kn filename_n.png
+						string textureName = line.Split(space)[1];
+						int textureGLIndex = loadTexture(textureName, options);
+						TextureMap normal = new TextureMap(textureName, textureGLIndex);
+						newMaterial.textureMaps.Add(ShaderUniformName.NormalMap, normal);
+
+						Logger.LogInfoLinePart("  Normal map :", ConsoleColor.Gray);
+						Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+						Logger.LogInfoLineEnd();
+					}
+					else if (line.Contains("map_Kr"))
+					{
+						// Roughness map
+						// map_Kr filename_r.png
+						string textureName = line.Split(space)[1];
+						int textureGLIndex = loadTexture(textureName, options);
+						TextureMap roughness = new TextureMap(textureName, textureGLIndex);
+						newMaterial.textureMaps.Add(ShaderUniformName.RoughnessMap, roughness);
+
+						Logger.LogInfoLinePart("  Roughness map :", ConsoleColor.Gray);
+						Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+						Logger.LogInfoLineEnd();
+					}
+					else if (line.Contains("map_Km"))
+					{
+						// Metallic map
+						// map_Km filename_m.png
+						string textureName = line.Split(space)[1];
+						int textureGLIndex = loadTexture(textureName, options);
+						TextureMap metallic = new TextureMap(textureName, textureGLIndex);
+						newMaterial.textureMaps.Add(ShaderUniformName.MetallicMap, metallic);
+
+						Logger.LogInfoLinePart("  Metallic map :", ConsoleColor.Gray);
+						Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+						Logger.LogInfoLineEnd();
+					}
+					else if (line.Contains("map_Kh"))
+					{
+						// Height map
+						// map_Kh filename_h.png
+						string textureName = line.Split(space)[1];
+						int textureGLIndex = loadTexture(textureName, options);
+						TextureMap height = new TextureMap(textureName, textureGLIndex);
+						newMaterial.textureMaps.Add(ShaderUniformName.HeightMap, height);
+
+						Logger.LogInfoLinePart("  Height map :", ConsoleColor.Gray);
+						Logger.LogInfoLinePart(textureName, ConsoleColor.Cyan);
+						Logger.LogInfoLineEnd();
+					}
 				}
 			} while (line != null);
+
+			if (isCubemap)
+			{
+				int cubeIndex = LoadCubeMap(cubemapNames, options);
+				TextureMap cube = new TextureMap(newMaterial.materialName, cubeIndex);
+				newMaterial.textureMaps.Add(ShaderUniformName.CubeMap, cube);
+					Logger.LogInfoLinePart("  Cube map :", ConsoleColor.Gray);
+					for (int i = 0; i < 6; i++)
+					{
+						Logger.LogInfoLinePart(cubemapNames[i], ConsoleColor.Cyan);
+						Logger.LogInfoLinePart(", ", ConsoleColor.Gray);
+					}
+					Logger.LogInfoLineEnd();
+			}
 
 			sourceFile.Close();
 			materials.Add(newMaterial);
@@ -515,10 +633,94 @@ namespace MuffinSpace
 			return textureId;
 		}
 
+		int LoadCubeMap(List<string> filenames, LoadOptions options)
+		{
+			int invalidId = -1;
+			const int faceCount = 6;
+			if (filenames.Count != faceCount)
+			{
+				Logger.LogError(Logger.ErrorState.Critical, "Invalid amount of filenames given to LoadCubeMap");
+				return invalidId;
+			}
+			List<Bitmap> maps = new List<Bitmap>();
+			for (int i = 0; i < faceCount; i++)
+			{
+				Bitmap faceMap = null;
+				try
+				{
+					faceMap = new Bitmap(filenames[i]);
+				}
+				catch (FileNotFoundException e)
+				{
+					Logger.LogError(Logger.ErrorState.Limited, "Load cubemap did not find file:" + e.Message);
+					return invalidId;
+				}
+				catch (ArgumentException e)
+				{
+					Logger.LogError(Logger.ErrorState.Limited, "Load cubemap did not find file:" + e.Message);
+					return invalidId;
+				}
+				maps.Add(faceMap);
+			}
+			return loadCubeMapFromBitmaps(maps, options);
+		}
+
+		TextureTarget CubeMapFace(int arrayIndex)
+		{
+			switch(arrayIndex)
+			{
+				case posX:
+					return TextureTarget.TextureCubeMapPositiveX;
+				case negX:
+					return TextureTarget.TextureCubeMapNegativeX;
+				case posY:
+					return TextureTarget.TextureCubeMapPositiveY;
+				case negY:
+					return TextureTarget.TextureCubeMapNegativeY;
+				case posZ:
+					return TextureTarget.TextureCubeMapPositiveZ;
+				case negZ:
+					return TextureTarget.TextureCubeMapNegativeZ;
+			}
+			return TextureTarget.TextureCubeMapNegativeZ;
+		}
+		int loadCubeMapFromBitmaps(List<Bitmap> maps, LoadOptions options)
+		{
+			int cubeTexId = GL.GenTexture();
+			GL.BindTexture(TextureTarget.TextureCubeMap, cubeTexId);
+			for (int i = 0; i < 6; i++)
+			{
+				Logger.LogInfo("Loading cube face " + i + " from bitmap");
+				BitmapData faceData = maps[i].LockBits(new System.Drawing.Rectangle(0, 0, maps[i].Width, maps[i].Height)
+				, ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+				GL.TexImage2D(CubeMapFace(i)
+				, level: 0
+				, internalformat: PixelInternalFormat.Rgba
+				, width: faceData.Width
+				, height: faceData.Height
+				, border: 0
+				, format: OpenTK.Graphics.OpenGL.PixelFormat.Bgra
+				, type: PixelType.UnsignedByte
+				, pixels: faceData.Scan0);
+
+				maps[i].UnlockBits(faceData);
+			}
+
+			// Must be false for cube map
+			options.repeat = false;
+			SetTextureOptions(TextureTarget.TextureCubeMap, options);
+			GL.BindTexture(TextureTarget.TextureCubeMap, 0);
+
+			Error.checkGLError("MaterialManager.loadCubeMapTextureFromBitmaps");
+
+			Logger.LogInfo("Cube map got texture id " + cubeTexId);
+			return cubeTexId;
+		}
+
 		int loadTextureFromBitmap(Bitmap map, LoadOptions options)
 		{
 			int texID = GL.GenTexture();
-			GL.ActiveTexture(TextureUnit.Texture0);
 			GL.BindTexture(TextureTarget.Texture2D, texID);
 			BitmapData data = map.LockBits(new System.Drawing.Rectangle(0, 0, map.Width, map.Height),
 				ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -534,44 +736,61 @@ namespace MuffinSpace
 				, pixels: data.Scan0);
 
 			map.UnlockBits(data);
-
-			if (options.mipmaps)
-			{
-				GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
-			}
-			else
-			{
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
-			}
-
-			if (options.repeat)
-			{
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.MirroredRepeat);
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.MirroredRepeat);
-			}
-			else
-			{
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-			}
-
-			if (options.interpolation)
-			{
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
-			}
-			else
-			{
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-				GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
-			}
-
+			SetTextureOptions(TextureTarget.Texture2D, options);
 			GL.BindTexture(TextureTarget.Texture2D, 0);
 
 			Error.checkGLError("MaterialManager.loadTextureFromBitmap");
 
 			return texID;
+		}
+
+		private void SetTextureOptions(TextureTarget target, LoadOptions options)
+		{
+			if (options.mipmaps)
+			{
+				GenerateMipmapTarget mipTarget = GenerateMipmapTarget.Texture2D;
+				if (target == TextureTarget.TextureCubeMap)
+				{
+					mipTarget = GenerateMipmapTarget.TextureCubeMap;
+				}
+				GL.GenerateMipmap(mipTarget);
+			}
+			else
+			{
+				GL.TexParameter(target, TextureParameterName.TextureBaseLevel, 0);
+				GL.TexParameter(target, TextureParameterName.TextureMaxLevel, 0);
+			}
+
+			if (options.repeat)
+			{
+				GL.TexParameter(target, TextureParameterName.TextureWrapS, (int)TextureWrapMode.MirroredRepeat);
+				GL.TexParameter(target, TextureParameterName.TextureWrapT, (int)TextureWrapMode.MirroredRepeat);
+				if (target == TextureTarget.TextureCubeMap)
+				{
+					GL.TexParameter(target, TextureParameterName.TextureWrapR, (int)TextureWrapMode.MirroredRepeat);
+				}
+			}
+			else
+			{
+				GL.TexParameter(target, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+				GL.TexParameter(target, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+				if (target == TextureTarget.TextureCubeMap)
+				{
+					GL.TexParameter(target, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToEdge);
+				}
+			}
+
+			if (options.interpolation)
+			{
+				GL.TexParameter(target, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+				GL.TexParameter(target, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Linear);
+			}
+			else
+			{
+				GL.TexParameter(target, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+				GL.TexParameter(target, TextureParameterName.TextureMagFilter, (int)TextureMinFilter.Nearest);
+			}
+
 		}
 
 	}

@@ -26,7 +26,16 @@ namespace MuffinSpace
 			set;
 		}
 
+		// Direction is the opposite of where the camera is actually pointing to
+		// because movement is done so that to move forward, 
+		// we translate the scene in opposite direction 
 		public Vector3 Direction
+		{
+			get;
+			set;
+		}
+
+		private Vector3 CameraFront
 		{
 			get;
 			set;
@@ -54,8 +63,11 @@ namespace MuffinSpace
 				speedStep = Math.Max(0.0f, value);
 			}
 		}
-		
-		public float FOV { get; set; }
+
+		public float FOV = 90.0f;
+		public float AspectRatio = 16.0f / 9.0f;
+		public float Near = 0.1f;
+		public float Far = 100.0f;
 
 		public bool FreeMode { get; set; }
 
@@ -69,6 +81,8 @@ namespace MuffinSpace
 
 		public CameraComponent()
 		{
+			// OPENGL IS RIGHT HANDED 
+
 			// IN OPENGL THE POSITIVE Z IS TOWARDS YOU
 			Position = new Vector3(0, 0, 0.0f);
 
@@ -84,11 +98,8 @@ namespace MuffinSpace
 			orthogonalMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
 			perspectiveMatrix = new Matrix4Uniform(ShaderUniformName.ProjectionMatrix);
 
-			float aspectRatio = 16.0f / 9.0f;
-			float near = 0.1f;
-			float far = 100.0f;
-			perspectiveMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.PiOver2, aspectRatio, near, far);
-			orthogonalMatrix.Matrix = Matrix4.CreateOrthographic(aspectRatio, 1.0f, near, far);
+			FOV = 90.0f;
+			CreateMatrices();
 
 			EnablePerspective();
 
@@ -97,10 +108,13 @@ namespace MuffinSpace
 			Logger.LogInfo("Camera start. Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
 		}
 
-		public void SetTarget(Vector3 targetPosition)
+		public void CreateMatrices()
 		{
-			Direction = Vector3.Normalize(Position - targetPosition);
+			perspectiveMatrix.Matrix = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), AspectRatio, Near, Far);
+			orthogonalMatrix.Matrix = Matrix4.CreateOrthographic(AspectRatio, 1.0f, Near, Far);
+
 		}
+
 
 		public bool SetUniform(ShaderProgram program, int location, ShaderUniformName name)
 		{
@@ -129,63 +143,68 @@ namespace MuffinSpace
 			projectionMatrix = orthogonalMatrix;
 		}
 
+		private Vector3 GetCameraDirectionTo(Vector3 targetPosition)
+		{
+			// This is intentionally wrong way around
+			return Vector3.Normalize(Position - targetPosition);
+		}
+
 		public Matrix4 GetViewMatrix()
 		{
-			Matrix4 cameraCoordinates = LookAtDirection(Position, Direction, Up);
+			Vector3 target = Position + CameraFront;
+			Direction = GetCameraDirectionTo(target);
+			Matrix4 lookAtRotation = LookAtRotation(Position, Direction);
 
-			cameraCoordinates.Transpose();
-			Matrix4 translationInverse = Matrix4.CreateTranslation(Position).Inverted();
-			return translationInverse * cameraCoordinates;
+
+			lookAtRotation.Transpose();
+
+			// Matrix4 translationInverse = Matrix4.CreateTranslation(Position).Inverted();
+			Matrix4 lookAtTranslation = Matrix4.CreateTranslation(-Position);
+			//Matrix4 lookAtMatrix = lookAtRotation * lookAtTranslation;
+			Matrix4 lookAtMatrix = lookAtTranslation * lookAtRotation;
+			return lookAtMatrix;
+			
 		}
 
 
-		public Matrix4 LookAtDirection(Vector3 position, Vector3 direction, Vector3 up)
+		public Matrix4 LookAtRotation(Vector3 cameraPosition, Vector3 cameraDirection)
 		{
 			// From gluLookAt
-			Vector3 rightX = Vector3.Normalize(Vector3.Cross(up, direction));
-			Vector3 upY = Vector3.Cross(direction, rightX);
-			Matrix4 cameraCoordinates = new Matrix4(
-				  new Vector4(rightX, 0.0f)
-				, new Vector4(upY, 0.0f)
-				, new Vector4(direction, 0.0f)
+			Vector3 worldUp = new Vector3(0.0f, 1.0f, 0.0f);
+			Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(worldUp, cameraDirection));
+			Vector3 cameraUp = Vector3.Cross(cameraDirection, cameraRight);
+			Matrix4 lookAtRotation = new Matrix4(
+				  new Vector4(cameraRight, 0.0f)
+				, new Vector4(cameraUp, 0.0f)
+				, new Vector4(cameraDirection, 0.0f)
 				, new Vector4(0, 0, 0, 1));
 
-			
-			return cameraCoordinates;
+			return lookAtRotation;
 		}
 
-		public Matrix4 LookAtTarget(Vector3 position, Vector3 target, Vector3 up)
-		{
-			Vector3 direction = Vector3.Normalize(target - position);
-			return LookAtDirection(position, direction, up);
-		}
 
-		public Matrix4 GetRotationMatrix()
-		{
-			return LookAtDirection(Position, Direction, Up);
-		}
 
 		public void UpdateInput(KeyboardState keyState, MouseState mouseState)
 		{
-			Vector3 rightX = Vector3.Normalize(Vector3.Cross(Up, Direction));
+			Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(CameraFront, Up));
 
 			// Position 
 			if (keyState.IsKeyDown(key: Key.Up) || keyState.IsKeyDown(Key.W))
 			{
-				Position -= Direction * Speed;
+				Position += CameraFront * Speed;
 			}
 			else if (keyState.IsKeyDown(Key.Down) || keyState.IsKeyDown(Key.S))
 			{
-				Position += Direction * Speed;
+				Position -= CameraFront * Speed;
 			}
 
 			if (keyState.IsKeyDown(key: Key.Left) || keyState.IsKeyDown(Key.A))
 			{
-				Position -= rightX * Speed;
+				Position -= cameraRight * Speed;
 			}
 			else if (keyState.IsKeyDown(Key.Right) || keyState.IsKeyDown(Key.D))
 			{
-				Position += rightX * Speed;
+				Position += cameraRight * Speed;
 			}
 
 			if (keyState.IsKeyDown(key: Key.R))
@@ -232,7 +251,7 @@ namespace MuffinSpace
 			// Mouse state
 
 			int mouseMoveX = mouseState.X - lastMouseX;
-			int mouseMoveY = mouseState.Y - lastMouseY;
+			int mouseMoveY = lastMouseY - mouseState.Y;
 
 			lastMouseX = mouseState.X;
 			lastMouseY = mouseState.Y;
@@ -246,7 +265,7 @@ namespace MuffinSpace
 
 			pitch = MathHelper.Clamp(pitch, -89, 89);
 
-			Direction = CalculateEulerDirection(pitch, yaw);
+			CameraFront = CalculateEulerDirection(pitch, yaw);
 
 			cameraDebug++;
 			if (cameraDebug > 120)
@@ -261,21 +280,20 @@ namespace MuffinSpace
 		{
 			double pitchAngle = Convert.ToDouble(pitch);
 			double pitchRad = MathHelper.DegreesToRadians(pitchAngle);
-			double px = Math.Cos(pitchRad);
-			double py = Math.Sin(pitchRad);
-			double pz = px;
+			double cosPitch = Math.Cos(pitchRad); 
+			double sinPitch = Math.Sin(pitchRad); 
 
 			double yawAngle = Convert.ToDouble(yaw);
 			double yawRad = MathHelper.DegreesToRadians(yawAngle);
-			double yx = Math.Cos(yawRad);
-			double yz = Math.Sin(yawRad);
+			double cosYaw = Math.Cos(yawRad);
+			double sinYaw = Math.Sin(yawRad);
 
-			double directionX = px * yx;
-			double directionY = py;
-			double directionZ = pz * yz;
+			double directionX = cosPitch * cosYaw;
+			double directionY = sinPitch;
+			double directionZ = cosPitch * sinYaw;
 
-			Vector3 lookDir =  new Vector3(Convert.ToSingle(directionX), Convert.ToSingle(directionY), Convert.ToSingle(directionZ));
-			return Vector3.Normalize(lookDir);
+			Vector3 direction =  new Vector3(Convert.ToSingle(directionX), Convert.ToSingle(directionY), Convert.ToSingle(directionZ));
+			return Vector3.Normalize(direction);
 		}
 
 		// Changing frame
@@ -305,6 +323,12 @@ namespace MuffinSpace
 			{
 				// nop
 			}
+		}
+
+		// Used for billboarding
+		public Matrix4 GetRotationMatrix()
+		{
+			return LookAtRotation(Position, Direction);
 		}
 	}
 }

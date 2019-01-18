@@ -26,7 +26,7 @@ namespace MuffinSpace
 			cornerTriangles = new List<DrawableMesh>(3);
 
 			worldWidth = 10;
-			worldDepth = 10;
+			worldDepth = 20;
 		}
 
 		public void Load(AssetManager assetManager)

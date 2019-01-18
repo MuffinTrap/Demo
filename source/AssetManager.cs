@@ -124,7 +124,11 @@ namespace MuffinSpace
 		{
 			List<ShaderAttributeName> attr = data.GetNeededAttributes();
 			TransformComponent t = new TransformComponent(position);
-			Material m =  GetMaterial(material);
+			Material m = null;
+			if (material != null)
+			{
+				m = GetMaterial(material);
+			}
 
 			return new DrawableMesh(name, data, ShaderManager.getAttributes(attr, shader), t, m, shader);
 		}
