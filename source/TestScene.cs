@@ -62,7 +62,9 @@ namespace MuffinSpace
 			, new Vector3(0.0f, 0.0f, 0.0f));
 
 			Renderer rend = Renderer.GetSingleton();
-			rend.SetClearColor(new Vector3(0.5f, 0.5f, 1.0f));
+
+			// rend.SetClearColor(new Vector3(0.5f, 0.5f, 1.0f));
+			rend.SetClearColor(new Vector3(0.001f, 0.001f, 0.01f));
 			Error.checkGLError("TestScene.loadScene");
 		}
 

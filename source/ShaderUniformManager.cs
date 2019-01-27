@@ -38,6 +38,11 @@ namespace MuffinSpace
 		ProjectionMatrix,
 		ViewMatrix,
 
+		SkyboxRotationMatrix,
+
+		// Camera in world space, for skybox sampling
+		CameraPosition,
+
 		// Model properties
 		DiffuseColor,
 		Alpha,
@@ -121,7 +126,10 @@ namespace MuffinSpace
 				case ShaderUniformName.ViewMatrix: return "uViewMatrix";
 				case ShaderUniformName.ProjectionMatrix: return "uProjectionMatrix";
 				case ShaderUniformName.WorldMatrix: return "uWorldMatrix";
+				case ShaderUniformName.SkyboxRotationMatrix: return "uSkyboxRotationMatrix";
 
+				case ShaderUniformName.CameraPosition: return "uCameraPosition";
+				
 				case ShaderUniformName.LightsArray: return "uLights";
 				case ShaderUniformName.LightPositionOrDirection: return "positionDirection";
 				case ShaderUniformName.LightColor: return "color";
@@ -153,6 +161,9 @@ namespace MuffinSpace
 			AddSupportedUniform(ShaderUniformName.WorldMatrix, ShaderDataType.Mat4);
 			AddSupportedUniform(ShaderUniformName.ProjectionMatrix, ShaderDataType.Mat4);
 			AddSupportedUniform(ShaderUniformName.ViewMatrix, ShaderDataType.Mat4);
+			AddSupportedUniform(ShaderUniformName.SkyboxRotationMatrix, ShaderDataType.Mat4);
+			
+			AddSupportedUniform(ShaderUniformName.CameraPosition, ShaderDataType.Float3);
 
 			AddSupportedUniform(ShaderUniformName.DiffuseMap, ShaderDataType.Texture2D);
 			AddSupportedUniform(ShaderUniformName.NormalMap, ShaderDataType.Texture2D);
@@ -247,13 +258,13 @@ namespace MuffinSpace
 					return;
 				}
 			}
-			Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetArrayData. Shader " + shader.name + " does not use data: "
+			Logger.LogError(Logger.ErrorState.Critical, "ShaderUniformManager.SetArrayData. Shader " + shader.programName + " does not use data: "
 			+ GetUniformName(arrayName) + "[" + index + "]." + GetUniformName(dataName));
 			foreach (ShaderUniform uni in shader.uniforms)
 			{
 				if (uni.arrayIndex != -1)
 				{
-					Logger.LogInfo(shader.name + " uses "
+					Logger.LogInfo(shader.programName + " uses "
 					+ GetUniformName(uni.arrayName) + "[" + uni.arrayIndex + "]." + GetUniformName(uni.name));
 				}
 			}
@@ -287,7 +298,7 @@ namespace MuffinSpace
 			bool set = TrySetData(shader, dataName, provider);
 			if (!set)
 			{
-				Logger.LogError(Logger.ErrorState.Unoptimal, "ShaderUniformManager.SetData. Shader " + shader.name + " does not use "
+				Logger.LogError(Logger.ErrorState.Unoptimal, "ShaderUniformManager.SetData. Shader " + shader.programName + " does not use "
 				+ GetUniformName(dataName));
 			}
 		}

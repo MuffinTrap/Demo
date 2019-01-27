@@ -11,6 +11,8 @@ namespace MuffinSpace
 		public Vector3 Direction { get; set; }
 		public float Scale { get; set; }
 
+		public TransformComponent Parent { get; set; }
+
 		private float rotationAngle;
 		private Vector3 rotationAxis;
 
@@ -27,6 +29,8 @@ namespace MuffinSpace
 			Scale = 1.0f;
 			rotationAxis = new Vector3(0.0f, 1.0f, 0.0f);
 			rotationAngle = 0.0f;
+
+			Parent = null;
 		}
 
 		public TransformComponent(Vector3 position) : this()
@@ -51,6 +55,17 @@ namespace MuffinSpace
 			Matrix4 R = CreateRotationMatrixFromAxisAngle();
 			Matrix4 S = Matrix4.CreateScale(Scale);
 			worldMatrix.Matrix = S * R * T;
+
+			if (Parent != null)
+			{
+				Parent.UpdateWorldMatrix();
+				worldMatrix.Matrix = worldMatrix.Matrix * Parent.worldMatrix.Matrix ;
+			}
+		}
+
+		public Matrix4 GetRotationMatrix()
+		{
+			return CreateRotationMatrixFromAxisAngle();
 		}
 
 		public void SetRotationAxis(Vector3 axis)

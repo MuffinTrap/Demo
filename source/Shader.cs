@@ -63,7 +63,7 @@ namespace MuffinSpace
 	{
 		private readonly int handle;
 
-		public string name;
+		public string programName;
 
 		public List<ShaderAttribute> attributes;
 		public List<ShaderUniform> uniforms;
@@ -87,9 +87,9 @@ namespace MuffinSpace
 				Logger.LogError(Logger.ErrorState.Limited, "Shader link failed: " + GL.GetProgramInfoLog(handle));
             }
 
-			name = nameParam;
+			programName = nameParam;
 			Logger.LogInfoLinePart("Creating Shader Program: ", ConsoleColor.Gray);
-			Logger.LogInfoLinePart(name, ConsoleColor.Cyan);
+			Logger.LogInfoLinePart(programName, ConsoleColor.Cyan);
 			Logger.LogInfoLineEnd();
 
 			// Load Uniforms
@@ -176,31 +176,31 @@ namespace MuffinSpace
 			GL.UseProgram(handle);
 		}
 		
-		private static int GetAttributeLocation(int handle, string name)
+		private static int GetAttributeLocation(int handle, string attribName)
 		{
 			if (!GL.IsProgram(handle))
 			{
-				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
+				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + handle + " is not a program"));
 			}
-			int location = GL.GetAttribLocation(handle, name);
+			int location = GL.GetAttribLocation(handle, attribName);
 			if (location == -1)
 			{
-				Logger.LogInfo("Attribute " + name + " not found");
+				Logger.LogInfo("Attribute " + attribName + " not found");
 			}
 			return location;
 		}
 		
-		private static int GetUniformLocation(int handle, string name)
+		private static int GetUniformLocation(int handle, string uniformName)
 		{
 			if (!GL.IsProgram(handle))
 			{
-				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + name + " is not a program"));
+				Logger.LogError(Logger.ErrorState.Limited, ("Shader " + handle + " is not a program"));
 			}
 			
-			int location = GL.GetUniformLocation(handle, name);
+			int location = GL.GetUniformLocation(handle, uniformName);
 			if (location == -1)
 			{
-				Logger.LogError(Logger.ErrorState.Limited, "Uniform " + name + " not found");
+				Logger.LogError(Logger.ErrorState.Limited, "Uniform " + uniformName + " not found");
 			}
 			return location;
 		}
@@ -230,11 +230,11 @@ namespace MuffinSpace
 			Error.checkGLError("Shader set vec2");
 		}
 
-		public void SetFloatUniform(ShaderUniformName name, float value)
+		public void SetFloatUniform(ShaderUniformName uniformName, float value)
 		{
 			foreach(ShaderUniform u in uniforms)
 			{
-				if (u.name == name)
+				if (u.name == uniformName)
 				{
 					SetFloatUniform(u.location, value);
 					break;
@@ -285,31 +285,31 @@ namespace MuffinSpace
 			return GetUniformLocation(handle, name);
 		}
 
-		public int GetUniformLocation(ShaderUniformName name)
+		public int GetUniformLocation(ShaderUniformName uniformName)
 		{
 			foreach(ShaderUniform a in uniforms)
 			{
-				if (a.name == name)
+				if (a.name == uniformName)
 				{
 					return a.location;
 				}
 			}
 			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			Logger.LogError(Logger.ErrorState.Limited, "Uniform " + uniMan.GetUniformName(name) + " location not found");
+			Logger.LogError(Logger.ErrorState.Limited, "Uniform " + uniMan.GetUniformName(uniformName) + " location not found in shader program " + programName );
 			return -1;
 		}
 
-		public int GetAttributeLocation(ShaderAttributeName name)
+		public int GetAttributeLocation(ShaderAttributeName attribName)
 		{
 			foreach (ShaderAttribute a in attributes)
 			{
-				if (a.name == name)
+				if (a.name == attribName)
 				{
 					return a.location;
 				}
 			}
 			ShaderUniformManager uniMan = ShaderUniformManager.GetSingleton();
-			Logger.LogError(Logger.ErrorState.Limited, "Attribute " + uniMan.GetAttributeName(name) + " location not found");
+			Logger.LogError(Logger.ErrorState.Limited, "Attribute " + uniMan.GetAttributeName(attribName) + " location not found");
 			return -1;
 		}
 	}

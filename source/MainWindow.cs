@@ -90,6 +90,8 @@ namespace MuffinSpace
 			Logger.LogPhase("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
 			base.TargetUpdateFrequency = 120;
 			base.Location = new Point(0, 0);
+
+			
         }
 
         protected override void OnResize(EventArgs e)
@@ -171,7 +173,14 @@ namespace MuffinSpace
 			}
 
 			// Rendering .................
+			Size windowSize = new Size((int)demoSettings.Resolution.X, (int)demoSettings.Resolution.Y);
+			base.Size = windowSize;
+			if (demoSettings.Fullscreen)
+			{
+				base.WindowState = WindowState.Fullscreen;
+			}
 			renderer.ResizeScreen((int)demoSettings.Resolution.X, (int)demoSettings.Resolution.Y);
+
 
 			CursorVisible = false;
 			testScene = new TestScene();
@@ -228,7 +237,8 @@ namespace MuffinSpace
 			Title = demoSettings.WindowTitle;
 			if (syncSystem.GetOperationMode() != SyncMode.Player)
 			{
-				Title +=  " Scene : " + syncSystem.Scene + " progress: " + syncSystem.SceneProgress;
+				string cameraStatus = renderer.GetCamera().FreeMode ? "Free" : "Frames";
+				Title +=  " Scene : " + syncSystem.Scene + " " + cameraStatus + " F: " + syncSystem.Frame + " progress: " + syncSystem.SceneProgress;
 			}
 
 			HandleKeyboardAndUpdateDemo();
@@ -298,7 +308,7 @@ namespace MuffinSpace
 
 			if (PrintFrameButton.Pressed(keyState))
 			{
-				Logger.LogInfo("Frame Pos: " + Logger.PrintVec3(renderer.GetCamera().Position) + " Dir: " + Logger.PrintVec3(renderer.GetCamera().Direction));
+				Logger.LogInfo("Frame Pos: " + Logger.PrintVec3(renderer.GetCamera().Position) + " Dir: " + Logger.PrintVec3(renderer.GetCamera().CameraFront));
 			}
 			
 			if (PauseSyncButton.Pressed(keyState))
@@ -351,7 +361,7 @@ namespace MuffinSpace
 
 			renderer.StartFrame();
 
-			testScene.Draw();
+			// testScene.Draw();
 
 			demoWrapper.Demo.Draw(renderer);
 

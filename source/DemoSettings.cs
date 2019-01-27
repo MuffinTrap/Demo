@@ -11,6 +11,7 @@ public sealed class DemoSettings
 		CameraSetting = CameraMode.Frames;
 		AudioEngineSetting = AudioEngine.System;
 		Resolution = new Vector2(1024, 720);
+		Fullscreen = false;
 		UpdatesPerSecond = 120.0;
 	}
 
@@ -37,6 +38,7 @@ public sealed class DemoSettings
 	public CameraMode CameraSetting { get; set; }
 	public AudioEngine AudioEngineSetting { get; set; }
 	public Vector2 Resolution { get; set; }
+	public bool Fullscreen { get; set; }
 	public double UpdatesPerSecond { get; set; }
 	public string WindowTitle { get; set; }
 	public string SyncFilePrefix { get; set; }

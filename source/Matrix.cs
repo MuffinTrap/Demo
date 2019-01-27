@@ -25,7 +25,7 @@ namespace MuffinSpace
 		public void SetToShader(ShaderProgram program, int location)
 		{
 			program.SetMatrix4Uniform(location, ref matrix);
-			Error.checkGLError("Matrix4Uniform.SetToShader " + program.name + " Matrix: "+ name + " to " + location);
+			Error.checkGLError("Matrix4Uniform.SetToShader " + program.programName + " Matrix: "+ name + " to " + location);
 		}
 	}
 }

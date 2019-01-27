@@ -1,8 +1,7 @@
 using System;
 using System.Diagnostics;
-using System.IO;
+using System.Collections.Generic;
 
-using OpenTK.Input;
 
 using RocketNet;
 
@@ -22,6 +21,16 @@ namespace MuffinSpace
 		Finished
 	}
 
+	public struct SyncTrack
+	{
+		public SyncTrack(int id)
+		{
+			ID = id;
+		}
+		public int ID { get; set; }
+	}
+
+
 	public class SyncSystem
 	{
 		public static SyncSystem GetSingleton()
@@ -40,6 +49,8 @@ namespace MuffinSpace
 
 		Track sceneNumber;
 		Track cameraFrame;
+
+		private List<Track> tracks;
 
 		public int Scene { get; private set; }
 		public int Frame { get; private set; }
@@ -68,6 +79,7 @@ namespace MuffinSpace
 			songLength = 5.0f; // seconds
 
 			timer = new Stopwatch();
+			tracks = new List<Track>();
 
 			Scene = 0;
 			SceneProgress = 0.0f;
@@ -320,16 +332,31 @@ namespace MuffinSpace
 			return syncRow;
 		}
 
-		public Track GetTrack(string trackName)
+		public SyncTrack GetTrack(string trackName)
 		{
 			if (operationMode == SyncMode.Manual)
 			{
 				Track dummy = new Track();
-				return dummy;
+				return new SyncTrack(-1);
 			}
 			else
 			{
-				return syncDevice.GetTrack(trackName);
+				Track newTrack = syncDevice.GetTrack(trackName);
+				SyncTrack newSyncTrack = new SyncTrack(tracks.Count);
+				tracks.Add(newTrack);
+				return newSyncTrack;
+			}
+		}
+
+		public float GetTrackValue(SyncTrack track)
+		{
+			if (track.ID >= 0 && track.ID < tracks.Count)
+			{
+				return tracks[track.ID].GetValue(syncRow);
+			}
+			else
+			{
+				return 0.0f;
 			}
 		}
 	}

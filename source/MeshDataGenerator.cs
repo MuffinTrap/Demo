@@ -814,7 +814,7 @@ namespace MuffinSpace
 				mesh.hasNormalData = true;
 				mesh.normals = new List<Vector3>();
 
-				Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
+				Vector3 defaultNormal = new Vector3(0.0f, 1.0f, 0.0f);
 
 				for (int posZ = 0; posZ < height; posZ++)
 				{
@@ -827,7 +827,7 @@ namespace MuffinSpace
 							|| (posZ == 0 || posZ == height - 1))
 						{
 							// Borders and corners
-							mesh.normals.Add(up);
+							mesh.normals.Add(defaultNormal);
 							continue;
 						}
 						// Check previous and next to determine normal

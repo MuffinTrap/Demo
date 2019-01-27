@@ -177,7 +177,7 @@ namespace MuffinSpace
 		{
 			foreach (ShaderProgram s in allPrograms)
 			{
-				if (s.name == shaderName)
+				if (s.programName == shaderName)
 				{
 					return s;
 				}

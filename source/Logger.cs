@@ -35,7 +35,7 @@ namespace MuffinSpace
 
 		static public string PrintVec3(Vector3 vec3)
 		{
-			return ("(" + vec3.X + ", " + vec3.Y + ", " + vec3.Z + ")");
+			return ("(" + vec3.X + " " + vec3.Y + " " + vec3.Z + ")");
 		}
 
 		static public void LogInfo(string message)

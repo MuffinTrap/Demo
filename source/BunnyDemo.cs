@@ -9,6 +9,10 @@ namespace MuffinSpace
 	{
 		public	float progress;
 		public List<Greeting> greets;
+		public GreetPage()
+		{
+			greets = new List<Greeting>();
+		}
 	}
 	public class Greeting
 	{
@@ -16,199 +20,303 @@ namespace MuffinSpace
 		public float alpha;
 	}
 
+	public class Telescope
+	{
+		public DrawableMesh tower;
+		public DrawableMesh antenna;
+	}
+
 	public class BunnyDemo : IDemo
 	{
-		Audio music;
 		DemoSettings settings;
 
-		// From MainWindow
-		IAudioSystem audioSystem = null;
+		// Scenes
 
-		// Fadeout scene
+		int mountainsNumber;
+		int moonNumber;
+		int bunnyNumber;
+		int seaNumber;
+		int crystalsNumber;
+
+		// Audio 
+
+		IAudioSystem audioSystem = null;
+		Audio music;
+
+		// Fadeout
+
 		ShaderProgram guiShader;
 		int fadeAlphaLocation = 0;
 		float fadeAlpha = 0.0f;
 		DrawableMesh fadeoutQuad;
-		Track fadeoutAlpha;
+		SyncTrack fadeoutAlpha;
 
-		DrawableMesh starSphere;
-		float starRotSpeed;
-		float starRot;
+		// Sky box
+
+		DrawableMesh starSkyBox;
+		Material starSkyboxMaterial;
+
+		SyncTrack skyRotation;
 
 		Light moon;
+		Light starAmbient;
 
-		MountainScene mountains;
-		MonolithSpaceScene monolithSpace;
-		SeaScene seaScene;
-		BunnyScene bunnyScene;
+		// SEA
+
+		DrawableMesh seaMesh;
+		ShaderProgram seaShader;
+		Vector2 offset1;
+		Vector2 offset2;
+		Vector2 seaUVSpeed1;
+		Vector2 seaUVSpeed2;
+		Matrix4 seaNormalMatrix;
+		int texOffset1Location;
+		int texOffset2Location;
+		int normalMatrixLocation;
+
+		// Meshes 
+
+		DrawableMesh bunnyMesh;
+		DrawableMesh mountains;
+		DrawableMesh moonMesh;
+
+		SyncTrack bunnyRotation;
+
+		DrawableMesh monolith;
+		SyncTrack monolithRotation;
+		SyncTrack monolithElevation;
+
+		Telescope telescope;
+		SyncTrack telescopeRotation;
+		SyncTrack telescopeElevation;
+
+		// Greetings 
+
+		Vector3 greetOffset;
+		Vector3 greetSpacing;
+		float greetScale;
+		List<GreetPage> group_greetings;
+
+		// Credits
+		List<GreetPage> credits;
 
 
-		// Detect starting music
-		bool syncWasPaused = true;
 
-		public class BunnyScene : IDemo
+		// Name and title
+
+		List<GreetPage> title;
+		Greeting groupNameGreet;
+		Greeting demoNameGreet;
+
+		SyncTrack textAlpha;
+
+		public BunnyDemo()
 		{
-			DrawableMesh bunnyMesh;
-			public void Load(AssetManager assetManager, SyncSystem syncSystem)
-			{
-				TunableManager tm = TunableManager.GetSingleton();
+			settings = DemoSettings.GetDefaults();
+		}
+
+		public void Load(AssetManager assetManager, SyncSystem syncSystem)
+		{
+			TunableManager tm = TunableManager.GetSingleton();
+
+			mountainsNumber = tm.GetInt("scene_number.mountains");
+			moonNumber = tm.GetInt("scene_number.moon");
+			bunnyNumber = tm.GetInt("scene_number.bunny");
+			seaNumber = tm.GetInt("scene_number.sea");
+			crystalsNumber = tm.GetInt("scene_number.crystals");
+
+			// Audio
+				string audioFileName = tm.GetString("audio.filename");
+				music = audioSystem.LoadAudioFile(audioFileName);
+
+				syncSystem.SetAudioProperties(tm.GetInt("audio.bpm"), tm.GetFloat("audio.length_seconds")
+						, tm.GetInt("audio.rows_per_beat"));
+				syncSystem.SetManualSceneAdvanceRate(tm.GetFloat("sync.manual_scene_advance_speed"));
+
+			// Camera
+				CameraComponent camera = Renderer.GetSingleton().GetCamera();
+				camera.FOV = tm.GetFloat("camera.fov");
+				camera.Speed = tm.GetFloat("camera.speed");
+				camera.SpeedStep = tm.GetFloat("camera.speed_step");
+				camera.Near = tm.GetFloat("camera.near_plane");
+				camera.Far = tm.GetFloat("camera.far_plane");
+				camera.CreateMatrices();
+
+			// Camera frames
+				List<PosAndDir> frames = new List<PosAndDir>();
+				int frameAmount = tm.GetInt("camera_frames.amount");
+				for (int frameI = 0; frameI < frameAmount; frameI++)
+				{
+					Vector3 pos = tm.GetVec3("camera_frames.frame_" + frameI + "_pos");
+					Vector3 dir = tm.GetVec3("camera_frames.frame_" + frameI + "_dir");
+					frames.Add(new PosAndDir(pos, dir));
+				}
+				Renderer.GetSingleton().SetCameraFrames(frames);
+
+			// Shaders
 				ShaderProgram bunnyShader = assetManager.GetShaderProgram(tm.GetString("bunny.shader"));
+				ShaderProgram texShader = assetManager.GetShaderProgram("texturedobjmesh");
+				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
+				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
+				ShaderProgram skyboxProgram = assetManager.GetShaderProgram("skybox");
+				ShaderProgram starProgram = assetManager.GetShaderProgram("sky");
+
+				guiShader = assetManager.GetShaderProgram("gui");
+
+
+			// Fade 
+				if (guiShader == null)
+				{
+					Logger.LogError(Logger.ErrorState.Critical, "Did not get gui shader");
+				}
+				fadeAlphaLocation = guiShader.GetCustomUniformLocation("uAlpha");
+				fadeoutAlpha = syncSystem.GetTrack("FadeOut");
+
+				Material fadeoutMaterial = new Material("blackfadeout");
+				fadeoutMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, MaterialManager.GetSingleton().GetColorTextureByName("black"));
+				MaterialManager.GetSingleton().AddNewMaterial(fadeoutMaterial);
+
+				fadeoutQuad = assetManager.CreateMesh("black_overlay"
+					, MeshDataGenerator.CreateQuadMesh(false, true)
+					, fadeoutMaterial.materialName
+					, guiShader
+					, tm.GetVec3("fade.position"));
+
+				fadeoutQuad.Transform.Scale = tm.GetFloat("fade.scale");
+
+
+			// Skybox
+				starSkyBox = assetManager.CreateMesh("stars"
+											 , MeshDataGenerator.CreateSkybox()
+											 , null
+											 , skyboxProgram
+											 , new Vector3(0, 0, 0));
+
+				starSkyboxMaterial = assetManager.GetMaterial("skybox");
+
+				starSkyBox.Transform.SetRotationAxis(tm.GetVec3("mountain_scene.star_rotation_axis"));
+				skyRotation = syncSystem.GetTrack("Sky_R");
+
+			// Lights
+				moon = Light.CreateDirectionalLight(tm.GetVec3("moon_ambient.color")
+				, tm.GetFloat("moon_ambient.ambient"), tm.GetFloat("moon_ambient.intensity")
+				, tm.GetVec3("moon_ambient.direction"));
+
+				starAmbient = Light.CreateDirectionalLight(tm.GetVec3("star_ambient.color")
+				, tm.GetFloat("star_ambient.ambient"), tm.GetFloat("star_ambient.intensity")
+				, tm.GetVec3("star_ambient.direction"));
+
+			// Models
 				bunnyMesh = assetManager.GetMesh("bunny"
 				, tm.GetString("bunny.model")
 				, tm.GetString("bunny.material")
 				, bunnyShader
 				, tm.GetVec3("bunny.position"));
-			}
 
-			public void Sync(SyncSystem syncer)
-			{
-
-			}
-			public void Draw(Renderer renderer)
-			{
-				renderer.RenderObject(bunnyMesh);
-			}
-		}
-
-		public class MonolithSpaceScene : IDemo
-		{
-			DrawableMesh monolith;
-
-			Vector3 greetOffset;
-			Vector3 greetSpacing;
-			float greetScale;
-
-			List<GreetPage> greets;
-
-
-			public void Load(AssetManager assetManager, SyncSystem syncSystem)
-			{
-				Logger.LogInfo("Loading Monolith in space scene");
-				TunableManager tm = TunableManager.GetSingleton();
-
-				ShaderProgram texShader = assetManager.GetShaderProgram("texturedobjmesh");
-				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
-				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
-
-				TextGenerator textgen = TextGenerator.GetSingleton();
-
-
+			bunnyMesh.Transform.Scale = tm.GetFloat("bunny.scale");
+			bunnyMesh.Transform.SetRotationAxis(new Vector3(0, 1, 0));
+			bunnyRotation = syncSystem.GetTrack("bunny_R");
 
 				monolith = assetManager.CreateMesh("monolith"
-				, MeshDataGenerator.CreateCubeMesh(tm.GetVec3("monolith_greet.size")
+				, MeshDataGenerator.CreateCubeMesh(tm.GetVec3("monolith.size")
 				, true, true)
-				, tm.GetString("monolith_greet.material")
+				, tm.GetString("monolith.material")
 				, objShader
-				, tm.GetVec3("monolith_greet.position"));
+				, tm.GetVec3("monolith.position"));
 
-				string greet_font = tm.GetString("monolith_greet.greet_font");
-				PixelFont greetFont = textgen.GetFont(greet_font);
-				string greet_material = tm.GetString("monolith_greet.greet_material");
-				ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("monolith_greet.greet_shader"));
+			monolith.Transform.SetRotationAxis(new Vector3(0, 1, 0));
+			monolith.Transform.Scale = tm.GetFloat("monolith.scale");
+			monolithRotation = syncSystem.GetTrack("mono_R");
+			monolithElevation = syncSystem.GetTrack("mono_Y");
 
-				greets = new List<GreetPage>();
-				int gp = tm.GetInt("monolith_greet.greet_pages");
-				for (int pi = 0; pi < gp; pi++)
-				{
-					GreetPage page = new GreetPage();
-					page.greets = new List<Greeting>();
-					string pageName = "monolith_greet_page_" + (pi + 1);
-					int greet_amount = tm.GetInt(pageName + "." + "greet_amount");
-					for (int gi = 0; gi < greet_amount; gi++)
-					{
-						Greeting greet = new Greeting();
+			telescope = new Telescope();
+			telescope.tower = assetManager.CreateMesh("tele_tower"
+			, MeshDataGenerator.CreateCubeMesh(new Vector3(1,1,1), true, true)
+			, tm.GetString("telescope.material")
+			, objShader
+			, tm.GetVec3("telescope.tower_position"));
+			telescope.tower.Transform.Scale = tm.GetFloat("telescope.scale");
+			telescope.tower.Transform.SetRotationAxis(new Vector3(0, 1, 0));
+			
+			telescope.antenna = assetManager.CreateMesh("tele_antenna"
+			, MeshDataGenerator.CreateCubeMesh(new Vector3(0.1f, 1.5f, 1.5f), true, true)
+			, tm.GetString("telescope.material")
+			, objShader
+			, tm.GetVec3("telescope.antenna_position"));
+			telescope.antenna.Transform.Scale = tm.GetFloat("telescope.scale");
+			telescope.antenna.Transform.Parent = telescope.tower.Transform;
+			telescope.antenna.Transform.SetRotationAxis(new Vector3(0, 0, 1));
+			/*
+			telescope.tower = assetManager.GetMesh("tele_tower"
+			, tm.GetString("telescope.tower_model")
+			, tm.GetString("telescope.material")
+			, objShader
+			, tm.GetVec3("telescope_tower.position"));
 
-						greet.textMesh = assetManager.CreateMesh("greet" + gi
-						, MeshDataGenerator.CreateTextMesh(tm.GetString(pageName + "." + "greet_" + (gi + 1))
-						, greetFont)
-						, greet_material
-						, greetShader
-						, new Vector3(0,0,0));
+			telescope.tower.Transform.Scale = tm.GetFloat("telescope_tower.scale");
+			
+			telescope.antenna = assetManager.GetMesh("tele_antenna"
+			, tm.GetString("telescope.antenna_model")
+			, tm.GetString("telescope.material")
+			, objShader
+			, tm.GetVec3("telescope_antenna.position"));
+			telescope.antenna.Transform.Scale = tm.GetFloat("telescope_antenna.scale");
+			*/
 
-						greet.alpha = 1.0f;
-						page.greets.Add(greet);
-					}
-					greets.Add(page);
-				}
+			telescopeElevation = syncSystem.GetTrack("Tele_Elev");
+			telescopeRotation = syncSystem.GetTrack("Tele_Rot");
 
-				greetOffset = tm.GetVec3("monolith_greet.greet_offset");
-				greetSpacing = tm.GetVec3("monolith_greet.greet_spacing");
-				greetScale = tm.GetFloat("monolith_greet.greet_scale");
+			// Sea
+				seaShader = assetManager.GetShaderProgram("heightMapTerrain");
+				texOffset1Location = seaShader.GetCustomUniformLocation("ucUVoffset1");
+				texOffset2Location = seaShader.GetCustomUniformLocation("ucUVoffset2");
+				normalMatrixLocation = seaShader.GetCustomUniformLocation("ucNormalRotationMatrix");
+				seaNormalMatrix = Matrix4.CreateFromAxisAngle(new Vector3(1, 0, 0), MathHelper.DegreesToRadians(-90));
 
-				for (int pi = 0; pi < greets.Count; pi++)
-				{
-					GreetPage p = greets[pi];
-					for (int gi = 0; gi < p.greets.Count; gi++)
-					{
-						Greeting g = p.greets[gi];
-							// Set monolith as parent transform so it can rotate
-						g.textMesh.Transform.Position = greetOffset + (greetSpacing * gi);
-						g.textMesh.Transform.Scale = greetScale;
-					}
-				}
-			}
+				Vector2 seaSize = tm.GetVec2("sea.size");
+				float seaTrianglesDensity = tm.GetFloat("sea.detail_level");
+				Vector2 seaUVRepeat = tm.GetVec2("sea.UV_repeat");
+				seaUVSpeed1 = tm.GetVec2("sea.UV_speed_1");
+				seaUVSpeed2 = tm.GetVec2("sea.UV_speed_2");
+				seaMesh = assetManager.CreateMesh("sea"
+				, MeshDataGenerator.CreateTerrain(seaSize.X, seaSize.Y, seaTrianglesDensity, true, true
+				, seaUVRepeat.X, seaUVRepeat.Y)
+				, tm.GetString("sea.material")
+				, seaShader
+				, tm.GetVec3("sea.position"));
 
-			public void Sync(SyncSystem syncer)
-			{
-				for (int pi = 0; pi < greets.Count; pi++)
-				{
-					greets[pi].progress = syncer.SceneProgress;
-				}
-			}
+				offset1 = new Vector2(0, 0);
+				offset2 = new Vector2(0, 0);
 
-			public void Draw(Renderer renderer)
-			{
-				// Render monolith
-				renderer.RenderObject(monolith);
-
-				// Render greeting pages
-				foreach(GreetPage p in greets)
-				{
-					for (int gi = 0; gi < p.greets.Count; gi++)
-					{
-						Greeting g = p.greets[gi];
-						g.alpha = p.progress;
-
-						renderer.SetActiveShader(g.textMesh.ShaderProgram);
-						g.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, g.alpha);
-						renderer.RenderObject(g.textMesh);
-					}
-				}
-
-				Error.checkGLError("Monolith Draw");
-			}
-		}
-
-		public class MountainScene : IDemo
-		{
-			DrawableMesh mountains;
-			Greeting groupNameGreet;
-			Greeting demoNameGreet;
-
-			public void Load(AssetManager assetManager, SyncSystem syncSystem)
-			{
-				Logger.LogInfo("Loading Mountain scene");
-				TunableManager tm = TunableManager.GetSingleton();
-				ShaderProgram objShader = assetManager.GetShaderProgram("litobjmesh");
-				ShaderProgram gridShader = assetManager.GetShaderProgram("gridmesh");
+			// Mountains
+			mountains = assetManager.CreateMesh("mountains"
+				, MeshDataGenerator.CreateMountains(
+					tm.GetFloat("mountain_scene.mountain_size")
+					, true, tm.GetInt("mountain_scene.mountain_iterations")
+					, tm.GetFloat("mountain_scene.mountain_height_variation")
+					, tm.GetInt("mountain_scene.mountain_random_seed"))
+				, tm.GetString("mountain_scene.mountain_material")
+				, objShader
+				, tm.GetVec3("mountain_scene.mountain_position"));
 
 
+			moonMesh = assetManager.CreateMesh("moon_mesh"
+				, MeshDataGenerator.CreateQuadMesh(false, true)
+				, tm.GetString("moon.material")
+				, objShader
+				, new Vector3(0,0,0) + tm.GetVec3("moon.distance"));
+			moonMesh.Transform.Scale = tm.GetFloat("moon.scale");
 
-				mountains = assetManager.CreateMesh("mountains"
-					, MeshDataGenerator.CreateMountains(
-						tm.GetFloat("mountain_scene.mountain_size")
-						, true, tm.GetInt("mountain_scene.mountain_iterations")
-						, tm.GetFloat("mountain_scene.mountain_height_variation")
-						, tm.GetInt("mountain_scene.mountain_random_seed"))
-					, tm.GetString("mountain_scene.mountain_material")
-					, objShader
-					, tm.GetVec3("mountain_scene.mountain_position"));
 
+			Logger.LogInfo("Creating greetings");
+			// Title, Greets and credits
 				TextGenerator textgen = TextGenerator.GetSingleton();
-				string greet_font = tm.GetString("monolith_greet.greet_font");
+				string greet_font = tm.GetString("text.font");
 				PixelFont greetFont = textgen.GetFont(greet_font);
-				string greet_material = tm.GetString("monolith_greet.greet_material");
-				ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("monolith_greet.greet_shader"));
+				string greet_material = tm.GetString("text.material");
+				ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("text.shader"));
+
+			// Title
 				DrawableMesh groupName = assetManager.CreateMesh("groupText"
 				, MeshDataGenerator.CreateTextMesh("FCCCF", greetFont)
 				, greet_material
@@ -228,90 +336,152 @@ namespace MuffinSpace
 				demoNameGreet = new Greeting();
 				demoNameGreet.textMesh = demoName;
 				demoNameGreet.alpha = 0.0f;
-			}
 
-			public void Sync(SyncSystem syncer)
-			{
-				groupNameGreet.alpha = syncer.SceneProgress;
-				demoNameGreet.alpha = syncer.SceneProgress;
-			}
+			// Greets
+				greetOffset = tm.GetVec3("text.offset");
+				greetSpacing = tm.GetVec3("text.spacing");
+				greetScale = tm.GetFloat("text.scale");
 
-			public void Draw(Renderer renderer)
-			{
-				renderer.RenderObject(mountains);
+				group_greetings = new List<GreetPage>();
+			CreateGreets(tm, assetManager, "monolith_greets", greetFont, greet_material, greetShader, monolith.Transform, ref group_greetings);
+			// Credits
+				credits = new List<GreetPage>();
+			CreateGreets(tm, assetManager, "monolith_credits", greetFont, greet_material, greetShader, monolith.Transform, ref credits);
 
-				renderer.SetActiveShader(groupNameGreet.textMesh.ShaderProgram);
-				groupNameGreet.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, groupNameGreet.alpha);
-				renderer.RenderObject(groupNameGreet.textMesh);
-				demoNameGreet.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, demoNameGreet.alpha);
-				renderer.RenderObject(demoNameGreet.textMesh);
+			textAlpha = syncSystem.GetTrack("text_A");
 
-				Error.checkGLError("MountainScene Draw");
-			}
+			Logger.LogInfo("Creating title and name");
+			title = new List<GreetPage>();
+			GreetPage titlePage = new GreetPage();
+			titlePage.greets.Add(groupNameGreet);
+			titlePage.greets.Add(demoNameGreet);
+
+			title.Add(titlePage);
+
+			Logger.LogPhase("Bunny demo is loaded");
+			syncSystem.PrintEditorRowAmount();
 		}
 
-		public class SeaScene : IDemo
+		public void CreateGreets(TunableManager tm, AssetManager assetManager
+		, string greetName
+		, PixelFont greetFont
+		, string greet_material
+		, ShaderProgram greetShader
+		, TransformComponent parentTransform
+		, ref List<GreetPage> greetsOut)
 		{
+				int gp = tm.GetInt(greetName + ".greet_pages");
+				for (int pi = 0; pi < gp; pi++)
+				{
+					GreetPage page = new GreetPage();
+					page.greets = new List<Greeting>();
+					string pageName = greetName + "_page_" + (pi + 1);
+					int greet_amount = tm.GetInt(pageName + "." + "greet_amount");
+					for (int gi = 0; gi < greet_amount; gi++)
+					{
+						Greeting greet = new Greeting();
 
-			DrawableMesh seaMesh;
-			ShaderProgram seaShader;
+						greet.textMesh = assetManager.CreateMesh("greet" + gi
+						, MeshDataGenerator.CreateTextMesh(tm.GetString(pageName + "." + "greet_" + (gi + 1))
+						, greetFont)
+						, greet_material
+						, greetShader
+						, new Vector3(0, 0, 0));
 
-			int texOffset1Location;
-			int texOffset2Location;
+						greet.alpha = 1.0f;
+						page.greets.Add(greet);
+					}
+					greetsOut.Add(page);
+				}
 
-			Vector2 offset1;
-			Vector2 offset2;
-			Vector2 seaUVSpeed1;
-			Vector2 seaUVSpeed2;
-
-			public void Load(AssetManager assetManager, SyncSystem syncSystem)
-			{
-				TunableManager tm = TunableManager.GetSingleton();
-
-				seaShader = assetManager.GetShaderProgram("heightMapTerrain");
-				texOffset1Location = seaShader.GetCustomUniformLocation("ucUVoffset1");
-				texOffset2Location = seaShader.GetCustomUniformLocation("ucUVoffset2");
-
-				Vector2 seaSize = tm.GetVec2("sea.size");
-				float seaTrianglesDensity = tm.GetFloat("sea.detail_level");
-				Vector2 seaUVRepeat = tm.GetVec2("sea.UV_repeat");
-				seaUVSpeed1 = tm.GetVec2("sea.UV_speed_1");
-				seaUVSpeed2 = tm.GetVec2("sea.UV_speed_2");
-				seaMesh = assetManager.CreateMesh("sea"
-				, MeshDataGenerator.CreateTerrain(seaSize.X, seaSize.Y, seaTrianglesDensity, true, true
-				, seaUVRepeat.X, seaUVRepeat.Y)
-				, tm.GetString("sea.material")
-				, seaShader
-				, tm.GetVec3("sea.position"));
-
-				offset1 = new Vector2(0, 0);
-				offset2 = new Vector2(0, 0);
-			}
-
-			public void Sync(SyncSystem syncer)
-			{
-				offset1 = seaUVSpeed1 * syncer.SceneProgress;
-				offset2 = seaUVSpeed2 * syncer.SceneProgress;
-			}
-			public void Draw(Renderer renderer)
-			{
-				renderer.SetActiveShader(seaMesh.ShaderProgram);
-				seaShader.SetVec2Uniform(texOffset1Location, offset1);
-				seaShader.SetVec2Uniform(texOffset2Location, offset2);
-				renderer.RenderObject(seaMesh);
-
-				Error.checkGLError("SeaScene Draw");
-			}
+				for (int pi = 0; pi < greetsOut.Count; pi++)
+				{
+					GreetPage p = greetsOut[pi];
+					for (int gi = 0; gi < p.greets.Count; gi++)
+					{
+						Greeting g = p.greets[gi];
+						g.textMesh.Transform.Parent = parentTransform;
+						g.textMesh.Transform.Position = greetOffset + (greetSpacing * gi);
+						g.textMesh.Transform.Scale = greetScale;
+					}
+				}
 
 		}
 
-		/// <summary>
-		/// //////////////////////////////// BUNNY DEMO 
-		/// </summary>
 
-		public BunnyDemo()
+		// SYNC FUNCTIONS
+
+		public void SyncGreets(SyncSystem syncer, List<GreetPage> greetPages)
 		{
-			settings = DemoSettings.GetDefaults();
+			// TODO: Sync alpha divided between greets
+			float alphaPerPage = 1.0f / greetPages.Count;
+			float wholeAlpha = syncer.GetTrackValue(textAlpha);
+			for (int pi = 0; pi < greetPages.Count; pi++)
+			{
+				GreetPage p = greetPages[pi];
+				p.progress = System.Math.Min(1.0f, (wholeAlpha - (alphaPerPage * pi)) / alphaPerPage);
+				float alphaPerGreet = 1.0f / p.greets.Count;
+				for (int gi = 0; gi < p.greets.Count; gi++)
+				{
+					Greeting g = p.greets[gi];
+					g.alpha = System.Math.Min(1.0f, (p.progress - (alphaPerGreet * gi)) / alphaPerGreet);
+				}
+			}
+		}
+
+		void SyncBunny(SyncSystem syncer)
+		{
+			bunnyMesh.Transform.SetRotation(syncer.GetTrackValue(bunnyRotation));
+		}
+
+		void SyncMoon(SyncSystem syncer)
+		{
+			// Moon is a billboard
+			moonMesh.Transform.SetRotationMatrix(Renderer.GetSingleton().GetCamera().GetRotationMatrix());
+		}
+
+		public void DrawGreets(Renderer renderer, List<GreetPage> greetPages)
+		{
+			// Render greeting pages
+			foreach(GreetPage p in greetPages)
+			{
+				for (int gi = 0; gi < p.greets.Count; gi++)
+				{
+					Greeting g = p.greets[gi];
+					DrawSingleGreet(renderer, g);
+				}
+			}
+		}
+
+		public void DrawSingleGreet(Renderer renderer, Greeting g)
+		{
+			renderer.SetActiveShader(g.textMesh.ShaderProgram);
+			g.textMesh.ShaderProgram.SetFloatUniform(ShaderUniformName.Alpha, g.alpha);
+			renderer.RenderObject(g.textMesh);
+		}
+
+		public void SyncSea(SyncSystem syncer)
+		{
+			offset1 = seaUVSpeed1 * syncer.SceneProgress;
+			offset2 = seaUVSpeed2 * syncer.SceneProgress;
+		}
+
+		public void SyncMonolith(SyncSystem syncer)
+		{
+			float rotations = syncer.GetTrackValue(monolithRotation);
+			monolith.Transform.SetRotation(rotations * MathHelper.PiOver2);
+			float x = monolith.Transform.Position.X;
+			float z = monolith.Transform.Position.Z;
+			monolith.Transform.Position = new Vector3(x, syncer.GetTrackValue(monolithElevation), z);
+		}
+
+		public void DrawSea(Renderer renderer)
+		{
+			renderer.SetActiveShader(seaMesh.ShaderProgram);
+			seaShader.SetVec2Uniform(texOffset1Location, offset1);
+			seaShader.SetVec2Uniform(texOffset2Location, offset2);
+			seaShader.SetMatrix4Uniform(normalMatrixLocation, ref seaNormalMatrix);
+			renderer.RenderObject(seaMesh);
 		}
 
 		public void SetAudioSystem(IAudioSystem audioSystemParam)
@@ -319,153 +489,118 @@ namespace MuffinSpace
 			audioSystem = audioSystemParam;
 		}
 
-		public void Load(AssetManager assetManager, SyncSystem syncSystem)
-		{
-			TunableManager tm = TunableManager.GetSingleton();
-			if (settings.AudioEnabled)
-			{
-				string audioFileName = tm.GetString("audio.filename");
-				music = audioSystem.LoadAudioFile(audioFileName);
-			}
-			syncSystem.SetAudioProperties(tm.GetInt("audio.bpm"), tm.GetFloat("audio.length_seconds")
-					, tm.GetInt("audio.rows_per_beat"));
-			syncSystem.SetManualSceneAdvanceRate(tm.GetFloat("sync.manual_scene_advance_speed"));
-
-			Logger.LogInfo("Loading Bunny Demo");
-
-			CameraComponent camera = Renderer.GetSingleton().GetCamera();
-			camera.FOV = MathHelper.DegreesToRadians(tm.GetFloat("camera.fov"));
-			camera.Speed = tm.GetFloat("camera.speed");
-			camera.SpeedStep = tm.GetFloat("camera.speed_step");
-
-			// Camera frames
-			List<PosAndDir> frames = new List<PosAndDir>();
-			int frameAmount = tm.GetInt("camera_frames.amount");
-			for (int frameI = 0; frameI < frameAmount; frameI++)
-			{
-				Vector3 pos = tm.GetVec3("camera_frames.frame_" + frameI + "_pos");
-				Vector3 dir = tm.GetVec3("camera_frames.frame_" + frameI + "_dir");
-				frames.Add(new PosAndDir(pos, dir));
-			}
-			Renderer.GetSingleton().SetCameraFrames(frames);
-
-			mountains = new MountainScene();
-			mountains.Load(assetManager, syncSystem);
-
-			monolithSpace = new MonolithSpaceScene();
-			monolithSpace.Load(assetManager, syncSystem);
-
-			seaScene = new SeaScene();
-			seaScene.Load(assetManager, syncSystem);
-
-			bunnyScene = new BunnyScene();
-			bunnyScene.Load(assetManager, syncSystem);
-
-			// Fade scene
-			guiShader = assetManager.GetShaderProgram("gui");
-			if (guiShader == null)
-			{
-				Logger.LogError(Logger.ErrorState.Critical, "Did not get gui shader");
-			}
-			fadeAlphaLocation = guiShader.GetCustomUniformLocation("uAlpha");
-			fadeoutAlpha = syncSystem.GetTrack("FadeOut");
-
-			Material fadeoutMaterial = new Material("blackfadeout");
-			fadeoutMaterial.textureMaps.Add(ShaderUniformName.DiffuseMap, MaterialManager.GetSingleton().GetColorTextureByName("black"));
-			MaterialManager.GetSingleton().AddNewMaterial(fadeoutMaterial);
-
-			fadeoutQuad = assetManager.CreateMesh("black_overlay"
-				, MeshDataGenerator.CreateQuadMesh(false, true)
-				, fadeoutMaterial.materialName
-				, guiShader
-				, tm.GetVec3("fade.position"));
-
-			fadeoutQuad.Transform.Scale = tm.GetFloat("fade.scale");
-
-			ShaderProgram skyboxProgram = assetManager.GetShaderProgram("sky");
-			starSphere = assetManager.CreateMesh("stars"
-										 , MeshDataGenerator.CreateStarSphere(90.0f, 500, 0.05f, 0.8f)
-										 , "star_palette"
-										 , skyboxProgram
-										 , new Vector3(0, 0, 0));
-
-			starSphere.Transform.SetRotationAxis(tm.GetVec3("mountain_scene.star_rotation_axis"));
-			starRotSpeed = tm.GetFloat("mountain_scene.star_rotation_speed");
-
-			moon = Light.CreateDirectionalLight(tm.GetVec3("moon.color")
-			, tm.GetFloat("moon.ambient"), tm.GetFloat("moon.intensity")
-			, tm.GetVec3("moon.direction"));
-			Logger.LogInfo("Created directional moon light " + moon.GetInfoString());
-
-			Logger.LogPhase("Bunny demo is loaded");
-		}
-
 		public void Start()
 		{
-			if (settings.AudioEnabled)
+			if (GetDemoSettings().AudioEnabled)
 			{
-				audioSystem.SetAudio(music);
 				audioSystem.PlayAudio(music);
 			}
 		}
 
-		public void Sync(SyncSystem syncer)
+
+		private void UpdateFadeout(SyncSystem syncer)
 		{
-
-			// Get scene combination by Scene value
-			UpdateFadeout(fadeoutAlpha.GetValue(syncer.GetSyncRow()));
-			UpdateStarRotation(syncer.SceneProgress);
-
-			switch(syncer.Scene)
-			{
-				case 0:
-				mountains.Sync(syncer);
-					break;
-				case 1:
-				monolithSpace.Sync(syncer);
-					break;
-				case 2:
-				seaScene.Sync(syncer);
-					break;
-				case 3:
-				bunnyScene.Sync(syncer);
-					break;
-			}
+			fadeAlpha = syncer.GetTrackValue(fadeoutAlpha);
 		}
 
-		private void UpdateFadeout(float progress)
-		{
-			fadeAlpha = progress;
-		}
-
-		private void UpdateStarRotation(float progress)
+		private void SyncSkybox(SyncSystem syncer)
 		{
 			// Rotate star sphere world matrix
-			starRot = starRotSpeed * progress;
-			starSphere.Transform.SetRotation(starRot);
+			float rot = syncer.GetTrackValue(skyRotation) * MathHelper.PiOver2;
+			starSkyBox.Transform.SetRotation(rot);
+		}
+
+		private void SyncTelescope(Telescope scope, SyncSystem syncer)
+		{
+			float rotRad = MathHelper.DegreesToRadians(syncer.GetTrackValue(telescopeRotation));
+			scope.tower.Transform.SetRotation(rotRad);
+
+			float elevRad = MathHelper.DegreesToRadians(syncer.GetTrackValue(telescopeElevation));
+			scope.antenna.Transform.SetRotation(elevRad);
+		}
+
+		public void Sync(SyncSystem syncer)
+		{
+			UpdateFadeout(syncer);
+
+			int s = syncer.Scene;
+			if (s == mountainsNumber)
+			{
+				SyncTelescope(telescope, syncer);
+				SyncSkybox(syncer);
+				SyncGreets(syncer, title);
+			}
+			if (s == moonNumber)
+			{
+				SyncMoon(syncer);
+				SyncMonolith(syncer);
+				SyncGreets(syncer, group_greetings);
+			}
+			if (s == bunnyNumber)
+			{
+				// Sync lights
+				SyncBunny(syncer);
+			}
+			if (s == seaNumber)
+			{
+				SyncMoon(syncer);
+				SyncSea(syncer);
+				SyncMonolith(syncer);
+				SyncGreets(syncer, credits);
+				SyncSkybox(syncer);
+			}
+			if (s == crystalsNumber)
+			{
+				// Crystals
+			}
 		}
 
 		public void Draw(Renderer renderer)
 		{
-			renderer.ActivateLight(moon, 0);
-			
-			switch(SyncSystem.GetSingleton().Scene)
+			renderer.SetActiveSkybox(starSkyboxMaterial);
+			renderer.SetSkyboxRotation(starSkyBox.Transform.GetRotationMatrix());
+			renderer.RenderSky(starSkyBox);
+
+			int s = SyncSystem.GetSingleton().Scene;
+			if (s == mountainsNumber)
 			{
-				case 0:
-				mountains.Draw(renderer);
-					break;
-				case 1:
-					monolithSpace.Draw(renderer);
-					break;
-				case 2:
-				seaScene.Draw(renderer);
-					break;
-				case 3:
-				bunnyScene.Draw(renderer);
-					break;
+				renderer.ActivateLight(starAmbient, 0);
+				renderer.RenderMesh(mountains);
+				renderer.RenderMesh(telescope.tower);
+				renderer.RenderMesh(telescope.antenna);
+
+				// Transparent things last!
+				DrawGreets(renderer, title);
+			}
+			if (s == moonNumber)
+			{
+				renderer.ActivateLight(moon, 0);
+				// renderer.RenderMesh(moonMesh);
+				renderer.RenderMesh(monolith);
+
+				DrawGreets(renderer, group_greetings);
+			}
+			if (s == bunnyNumber)
+			{
+				// bunny point lights???
+				renderer.ActivateLight(starAmbient, 0);
+				renderer.RenderMesh(bunnyMesh);
+			}
+			if (s == seaNumber)
+			{
+				// Monolith dancing lights
+				renderer.ActivateLight(moon, 0);
+				// renderer.RenderMesh(moonMesh);
+				DrawSea(renderer);
+				renderer.RenderMesh(monolith);
+				
+				DrawGreets(renderer, credits);
+			}
+			if (s == crystalsNumber)
+			{
+
 			}
 
-			renderer.RenderSky(starSphere);
 
 			if (fadeAlpha > 0.0f)
 			{
@@ -492,8 +627,16 @@ namespace MuffinSpace
 		{
 			TunableManager tm = TunableManager.GetSingleton();
 			settings.AudioEnabled = tm.GetBool("demosettings.audio_enabled");
+			string audio_engine = tm.GetString("demosettings.audio_engine");
+			if (audio_engine == "system")
+			{
+				settings.AudioEngineSetting = DemoSettings.AudioEngine.System;
+			}
+
 			settings.SyncEnabled = tm.GetBool("demosettings.sync_enabled");
+
 			settings.Resolution = tm.GetVec2("demosettings.resolution");
+			settings.Fullscreen = tm.GetBool("demosettings.fullscreen");
 			settings.UpdatesPerSecond = tm.GetInt("demosettings.updates_per_second");
 			settings.WindowTitle = tm.GetString("demosettings.window_title");
 			settings.SyncFilePrefix = tm.GetString("sync.track_file_prefix");
@@ -505,6 +648,14 @@ namespace MuffinSpace
 			if (GetDemoSettings().AudioEnabled)
 			{
 				audioSystem.RestartAudio(music);
+			}
+		}
+
+		public void Stop()
+		{
+			if (GetDemoSettings().AudioEnabled)
+			{
+				audioSystem.StopAudio(music);
 			}
 		}
 	}

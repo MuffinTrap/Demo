@@ -19,7 +19,7 @@ namespace MuffinSpace
       private TextGenerator()
       {
           fonts = new List<PixelFont>();
-          fonts.Add(new PixelFont("commodore", 980f, 567f, 70f, 70f));
+		  fonts.Add(new PixelFont("lucida", 512f, 256, 32, 32));
       }
 
       private List<PixelFont> fonts;
@@ -95,15 +95,14 @@ namespace MuffinSpace
 			Add('(');
 			Add(')');
 			Add('*');
-
-			column = 0;
-			row++;
-
 			Add('+');
 			Add(',');
 			Add('-');
 			Add('.');
 			Add('/');
+			column = 0;
+			row++;
+
 			Add('0');
 			Add('1');
 			Add('2');
@@ -113,10 +112,6 @@ namespace MuffinSpace
 			Add('6');
 			Add('7');
 			Add('8');
-
-			column = 0;
-			row++;
-
 			Add('9');
 			Add(':');
 			Add(';');
@@ -124,11 +119,10 @@ namespace MuffinSpace
 			Add('=');
 			Add('>');
 			Add('?');
-			Add('@');
-
 			column = 0;
 			row++;
 
+			Add('@');
 			Add('A');
 			Add('B');
 			Add('C');
@@ -143,11 +137,10 @@ namespace MuffinSpace
 			Add('L');
 			Add('M');
 			Add('N');
-
+			Add('O');
 			column = 0;
 			row++;
 
-			Add('O');
 			Add('P');
 			Add('Q');
 			Add('R');
@@ -159,17 +152,15 @@ namespace MuffinSpace
 			Add('X');
 			Add('Y');
 			Add('Z');
-
-			column = 0;
-			row++;
-
 			Add('[');
 			Add('\\');
 			Add(']');
 			Add('^');
 			Add('_');
-			Add('`');
+			column = 0;
+			row++;
 
+			Add('`');
 			Add('a');
 			Add('b');
 			Add('c');
@@ -178,10 +169,6 @@ namespace MuffinSpace
 			Add('f');
 			Add('g');
 			Add('h');
-
-			column = 0;
-			row++;
-
 			Add('i');
 			Add('j');
 			Add('k');
@@ -189,6 +176,10 @@ namespace MuffinSpace
 			Add('m');
 			Add('n');
 			Add('o');
+			column = 0;
+			row++;
+
+
 			Add('p');
 			Add('q');
 			Add('r');
@@ -196,15 +187,10 @@ namespace MuffinSpace
 			Add('t');
 			Add('u');
 			Add('v');
-
-			column = 0;
-			row++;
-
 			Add('w');
 			Add('x');
 			Add('y');
 			Add('z');
-
 			Add('{');
 			Add('|');
 			Add('}');

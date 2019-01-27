@@ -35,7 +35,7 @@ namespace MuffinSpace
 			set;
 		}
 
-		private Vector3 CameraFront
+		public Vector3 CameraFront
 		{
 			get;
 			set;
@@ -127,6 +127,9 @@ namespace MuffinSpace
 				case ShaderUniformName.ProjectionMatrix:
 					projectionMatrix.SetToShader(program, location);
 					break;
+				case ShaderUniformName.CameraPosition:
+					program.SetVec3Uniform(location, Position);
+					break;
 				default:
 					return false;
 			}
@@ -186,6 +189,10 @@ namespace MuffinSpace
 
 		public void UpdateInput(KeyboardState keyState, MouseState mouseState)
 		{
+			if (!FreeMode)
+			{
+				return;
+			}
 			Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(CameraFront, Up));
 
 			// Position 
@@ -312,16 +319,14 @@ namespace MuffinSpace
 				Vector3 targetDir = cameraFrames[secondFrame].direction;
 
 				Position = startPos * (1.0f - progress) + targetPos * (progress);
-				Direction = startDir * (1.0f - progress) + targetDir * (progress);
+				CameraFront = startDir * (1.0f - progress) + targetDir * (progress);
+
+				// Logger.LogInfo("Set frame " + Logger.PrintVec3(Position) + " D " + Logger.PrintVec3(Direction)); 
 			}
 			else if (firstInFrames && !secondInFrames)
 			{
 				Position = cameraFrames[firstFrame].position;
 				Direction = cameraFrames[firstFrame].direction;
-			}
-			else
-			{
-				// nop
 			}
 		}
 
