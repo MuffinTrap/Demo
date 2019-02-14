@@ -1,13 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Diagnostics;
 
 using OpenTK;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL;
-using OpenTK.Input;
-using System.Linq;
 
 namespace MuffinSpace
 {
@@ -121,7 +115,7 @@ namespace MuffinSpace
 
 			return triMesh;
 		}
-		static public MeshData CreateTextMesh(string message, PixelFont font)
+		static public MeshData CreateTextMesh(string message, PixelFont font, float step)
 		{
 			MeshData textMesh = new MeshData();
 			textMesh.sourceFileName = "text_mesh: " + message;
@@ -138,15 +132,15 @@ namespace MuffinSpace
 			Vector2 uvStep = font.GetLetterUVSize();
 			int letters = message.Length;
 
-			float xstart = 0.0f;
-			float step = 1.0f;
+			float size = 1.0f;
+			float xstart = 0.0f - (letters * step) * 0.5f;
 			int ind = 0;
 			for (int i = 0; i < letters; i++)
 			{
 				textMesh.positions.Add(new Vector3(xstart + 0.0f, 0.0f, 0.0f)); // 0  L B
-				textMesh.positions.Add(new Vector3(xstart + 0.0f, step, 0.0f));  // 1 L T
-				textMesh.positions.Add(new Vector3(xstart + step, step, 0.0f));   // 2  R T
-				textMesh.positions.Add(new Vector3(xstart + step, 0.0f, 0.0f));  // 3	R B
+				textMesh.positions.Add(new Vector3(xstart + 0.0f, size, 0.0f));  // 1 L T
+				textMesh.positions.Add(new Vector3(xstart + size, size, 0.0f));   // 2  R T
+				textMesh.positions.Add(new Vector3(xstart + size, 0.0f, 0.0f));  // 3	R B
 
 				// We are given the upper left corner in uvs[]
 				// but the quads start from lower left
@@ -547,6 +541,10 @@ namespace MuffinSpace
 			return pyraMesh;
 		}
 
+		static public MeshData CreateNormalDebug(MeshData source)
+		{
+			return CreateNormalDebug(source.positions, source.normals);
+		}
 		static public MeshData CreateNormalDebug(List<Vector3>positions, List<Vector3> normals)
 		{
 			MeshData grid = new MeshData();
@@ -592,6 +590,115 @@ namespace MuffinSpace
 			Error.checkGLError("Grid Mesh Data creation");
 
 			return grid;
+		}
+
+		static public MeshData CreateStar(Vector3 right, Vector3 plane, float baseRadius, float pointRadius, float thickness, float thicknessRatio, bool createNormals)
+		{
+			if (baseRadius > pointRadius)
+			{
+				Logger.LogError(Logger.ErrorState.User, "Star base radius is larger than point radius");
+			}
+
+			MeshData star = new MeshData();
+			List<Vector3> positions = new List<Vector3>();
+			List<Vector3> normals = new List<Vector3>();
+			List<int> indices = new List<int>();
+
+			Vector3 pointVec = right;
+			Vector3 baseVec = right; // + plane * thickness * thicknessRatio;
+			float fifthCircle = MathHelper.TwoPi / 5.0f;
+			float tenthCircle = fifthCircle / 2.0f;
+
+			// Each triangle needs its own normals!
+
+			// Five pointed star
+			for (int side = 0; side < 2; side++)
+			{
+				Vector3 topCenterVec;
+				if (side == 0)
+				{
+					topCenterVec = new Vector3(0, thickness, 0);
+				}
+				else
+				{
+					topCenterVec = new Vector3(0, -thickness, 0);
+				}
+
+				for (int p = 0; p < 5; p++)
+				{
+					Matrix3 baseRot1 = Matrix3.CreateFromAxisAngle(plane, fifthCircle * p);
+					Matrix3 baseRot2 = Matrix3.CreateFromAxisAngle(plane, fifthCircle * (p + 1));
+					Matrix3 pointRot = Matrix3.CreateFromAxisAngle(plane, fifthCircle * p + tenthCircle);
+
+					Vector3 rimPoint = pointRot * pointVec * pointRadius;
+					Vector3 basePoint1 = baseRot1 * baseVec * baseRadius;
+					Vector3 basePoint2 = baseRot2 * baseVec * baseRadius;
+
+
+					Vector3 normal1 = CalculateTriangleNormal(basePoint1, topCenterVec, rimPoint);
+					if (side == 0)
+					{
+						positions.Add(topCenterVec);
+						positions.Add(rimPoint);
+						positions.Add(basePoint1);
+					}
+					else
+					{
+						// below
+						positions.Add(topCenterVec);
+						positions.Add(basePoint1);
+						positions.Add(rimPoint);
+						normal1 = CalculateTriangleNormal(basePoint1, rimPoint, topCenterVec);
+					}
+
+					for (int n = 0; n < 4; n++)
+					{
+						normals.Add(normal1);
+					}
+
+					Vector3 normal2 = CalculateTriangleNormal(basePoint2, rimPoint, topCenterVec);
+					if (side == 0)
+					{
+						positions.Add(topCenterVec);
+						positions.Add(basePoint2);
+						positions.Add(rimPoint);
+					}
+					else
+					{
+						positions.Add(topCenterVec);
+						positions.Add(rimPoint);
+						positions.Add(basePoint2);
+						normal2 = CalculateTriangleNormal(basePoint2, topCenterVec, rimPoint);
+					}
+
+					for (int n = 0; n < 4; n++)
+					{
+						normals.Add(normal2);
+					}
+				}
+			}
+			star.hasPositionData = true;
+			star.positions = positions;
+			if (createNormals)
+			{
+				star.hasNormalData = true;
+				star.normals = normals;
+			}
+			star.hasIndexData = false;
+			star.drawType = MeshData.DataDrawType.Triangles;
+
+			star.GenerateBufferHandles();
+
+			Error.checkGLError("Star Mesh Data creation");
+
+			return star;
+		}
+
+		static private Vector3 CalculateTriangleNormal(Vector3 common, Vector3 corner1, Vector3 corner2)
+		{
+			Vector3 toCorner1 = corner1 - common;
+			Vector3 toCorner2 = corner2 - common;
+			return Vector3.Cross(toCorner1, toCorner2).Normalized();
 		}
 
 		static public MeshData CreateStarSphere(float radius, int starsAmount, float sizeMin, float sizeMax)
@@ -663,7 +770,7 @@ namespace MuffinSpace
 		}
 
 		static public MeshData CreateMountains(float sideLength
-			, bool createNormals, int iterations, float variation, int randomSeed)
+			, bool createNormals, int iterations, float variation,  float flatStart, float flatEnd, int randomSeed)
 		{
 
 			Random randomizer = new Random(randomSeed);
@@ -725,6 +832,18 @@ namespace MuffinSpace
 			MeshData mountains = new MeshData();
 			mountains.sourceFileName = "Mountains_" + sideLength + "_x_" + sideLength;
 
+			// Flatten 
+			float middle = flatStart + (flatEnd - flatStart) * 0.5f;
+			for (int w = 0; w < arrayWidth; w++)
+			{
+				for (int h = 0; h < arrayHeight; h++)
+				{
+					if (data[w,h] >= flatStart && data[w,h] < flatEnd)
+					{
+						data[w, h] = middle; 
+					}
+				}
+			}
 			CreateTerrainFromHeightArray(data, arrayWidth, arrayHeight, sideLength, sideLength, ref mountains, createNormals);
 			CreateHeightScaleTexCoords(arrayWidth, arrayHeight, ref mountains, maxLevel);
 
@@ -972,5 +1091,6 @@ namespace MuffinSpace
 				mesh.texCoords.Add(tex);
 			}
 		}
+
 	}
 }

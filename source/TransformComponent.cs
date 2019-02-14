@@ -7,16 +7,15 @@ namespace MuffinSpace
 	public class TransformComponent
 	{
 		public Matrix4Uniform worldMatrix;
-		public Vector3 Position { get; set; }
-		public Vector3 Direction { get; set; }
+		public Matrix4 rotationTransformMatrix;
+		public Vector4 Translation { get; set; }
+		public Vector4 Direction { get; set; }
 		public float Scale { get; set; }
 
 		public TransformComponent Parent { get; set; }
 
 		private float rotationAngle;
 		private Vector3 rotationAxis;
-
-		private float orbitAngle = 0.0f;
 
 		private Matrix4 rotationMatrix;
 
@@ -33,39 +32,41 @@ namespace MuffinSpace
 			Parent = null;
 		}
 
-		public TransformComponent(Vector3 position) : this()
+		public TransformComponent(Vector3 translationParam) : this()
 		{
-			Position = position;
+			Translation = new Vector4(translationParam, 1);
 		}
 
-		public TransformComponent(Vector3 position, float scale) : this()
+		public TransformComponent(Vector3 translationParam, float scale) : this()
 		{
-			Position = position;
+			Translation = new Vector4(translationParam, 1);
 			Scale = scale;
 		}
 
-		private Matrix4 CreateRotationMatrixFromAxisAngle()
+		public Matrix4 CreateRotationMatrixFromAxisAngle()
 		{
 			return Matrix4.CreateFromAxisAngle(rotationAxis, rotationAngle);
 		}
 
+		public Vector3 GetWorldPosition()
+		{
+			UpdateWorldMatrix();
+			return new Vector3(rotationTransformMatrix * Translation);
+		}
+
 		public void UpdateWorldMatrix()
 		{
-			Matrix4 T = Matrix4.CreateTranslation(Position);
+			Matrix4 T = Matrix4.CreateTranslation(Translation.Xyz);
 			Matrix4 R = CreateRotationMatrixFromAxisAngle();
 			Matrix4 S = Matrix4.CreateScale(Scale);
-			worldMatrix.Matrix = S * R * T;
+			rotationTransformMatrix = R * T;
+			worldMatrix.Matrix = S * rotationTransformMatrix;
 
 			if (Parent != null)
 			{
 				Parent.UpdateWorldMatrix();
-				worldMatrix.Matrix = worldMatrix.Matrix * Parent.worldMatrix.Matrix ;
+				worldMatrix.Matrix = worldMatrix.Matrix * Parent.rotationTransformMatrix;
 			}
-		}
-
-		public Matrix4 GetRotationMatrix()
-		{
-			return CreateRotationMatrixFromAxisAngle();
 		}
 
 		public void SetRotationAxis(Vector3 axis)
@@ -84,32 +85,6 @@ namespace MuffinSpace
 			{
 				rotationAngle += MathHelper.TwoPi;
 			}
-		}
-
-		public void rotateAroundY(float speed)
-		{
-		}
-
-		public void Orbit(float speed, float height, float distance, Vector3 targetPoint)
-		{
-			orbitAngle += speed;
-			const float fullCircle = (float)(Math.PI * 2.0f);
-			if (orbitAngle > fullCircle)
-			{
-				orbitAngle -= fullCircle;
-			}
-			if (orbitAngle < 0)
-			{
-				orbitAngle += fullCircle;
-			}
-			Matrix4 rot = Matrix4.CreateRotationY(orbitAngle);
-			Position = targetPoint + Vector3.TransformVector(new Vector3(0, height, distance), rot);
-		}
-
-		public void setLocationAndScale(Vector3 position, float scale)
-		{
-			Position = position;
-			Scale = scale;
 		}
 
 		public void SetRotationMatrix(Matrix4 rotation)

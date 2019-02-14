@@ -66,6 +66,7 @@ namespace MuffinSpace
 		Button PauseSyncButton;
 
 		bool inputEnabled = true;
+		int frameNumber = 0;
 
 		SyncSystem syncSystem;
 		Renderer renderer;
@@ -308,7 +309,9 @@ namespace MuffinSpace
 
 			if (PrintFrameButton.Pressed(keyState))
 			{
-				Logger.LogInfo("Frame Pos: " + Logger.PrintVec3(renderer.GetCamera().Position) + " Dir: " + Logger.PrintVec3(renderer.GetCamera().CameraFront));
+				Logger.LogInfo("frame_" + frameNumber + "_pos: " + Logger.PrintVec3(renderer.GetCamera().Position));
+				Logger.LogInfo("frame_" + frameNumber + "_dir: " + Logger.PrintVec3(renderer.GetCamera().CameraFront));
+				frameNumber++;
 			}
 			
 			if (PauseSyncButton.Pressed(keyState))

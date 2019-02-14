@@ -85,6 +85,7 @@ namespace MuffinSpace
 		{
 			Logger.LogInfo("Generating UVs for characters");
 			uvCoords = new Dictionary<char, Vector2>();
+			Add(' ');
 			Add('!');
 			Add('\"');
 			Add('#');
@@ -196,7 +197,6 @@ namespace MuffinSpace
 			Add('}');
 			Add('~');
 
-			Add(' ');
 		}
       private void Add(char cha)
       {

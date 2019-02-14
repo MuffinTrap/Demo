@@ -22,6 +22,8 @@ namespace MuffinSpace
 		public ShaderProgram ShaderProgram { get; set; }
 
 		public Material BoundMaterial { get; set; }
+
+		static List<ShaderUniformName> meshUniforms =  new List<ShaderUniformName>{ ShaderUniformName.WorldMatrix };
 		
 		public DrawableMesh(string name, MeshData data, List<ShaderAttribute> attributes, TransformComponent transform, Material material, ShaderProgram shader)
 		{
@@ -51,6 +53,11 @@ namespace MuffinSpace
 					return false;
 			}
 			return true;
+		}
+
+		public List<ShaderUniformName> GetUniforms()
+		{
+			return meshUniforms;
 		}
 
 

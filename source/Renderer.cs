@@ -20,8 +20,9 @@ namespace MuffinSpace
 		CameraComponent camera;
 		List<PosAndDir> cameraFrames;
 
-		// Light amount is set when shaders are loaded
-		int maxPointLightIndex = 2;
+		// Must match amount in light.ss
+		int maxPointLightIndex = 7;
+		public int FirstPointLightIndex = 1;
 		List<Light> activeLights;
 
 		// Skybox material when rendering sky meshes
@@ -162,6 +163,11 @@ namespace MuffinSpace
 			return maxPointLightIndex + 1;
 		}
 
+		public ShaderProgram GetActiveProgram()
+		{
+			return activeProgram;
+		}
+
 		public CameraComponent GetCamera()
 		{
 			return camera;
@@ -267,7 +273,7 @@ namespace MuffinSpace
 			man.SetArrayData(activeProgram, ShaderUniformName.LightsArray, ShaderUniformName.QuadraticAttenuation, light, lightIndex);
 		}
 
-		public void RenderMesh(DrawableMesh mesh)
+		public void RenderShaderDataOwnerMesh(DrawableMesh mesh, IShaderDataOwner owner)
 		{
 			if (mesh == null)
 			{
@@ -281,8 +287,22 @@ namespace MuffinSpace
 				return;
 			}
 
+			List<ShaderUniformName> ownerUniforms = owner.GetUniforms();
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
-			man.TrySetData(activeProgram, ShaderUniformName.WorldMatrix, mesh);
+			foreach(ShaderUniformName name in ownerUniforms)
+			{
+				man.SetData(activeProgram, name, owner);
+			}
+
+			if (mesh != owner)
+			{
+				List<ShaderUniformName> meshUniforms = mesh.GetUniforms();
+				foreach (ShaderUniformName name in meshUniforms)
+				{
+					man.SetData(activeProgram, name, mesh);
+				}
+			}
+
 			if (mesh.BoundMaterial != null)
 			{
 				MaterialManager matMan = MaterialManager.GetSingleton();
@@ -290,6 +310,11 @@ namespace MuffinSpace
 			}
 
 			mesh.draw();
+		}
+
+		public void RenderMesh(DrawableMesh mesh)
+		{
+			RenderShaderDataOwnerMesh(mesh, mesh);
 		}
 
 		public void RenderObject(DrawableMesh mesh)
@@ -303,7 +328,7 @@ namespace MuffinSpace
 		{
 			GL.DepthFunc(DepthFunction.Lequal);
 
-			mesh.Transform.Position = camera.Position;
+			mesh.Transform.Translation = new Vector4(camera.Position, 1.0f);
 			RenderMesh(mesh);
 		}
 

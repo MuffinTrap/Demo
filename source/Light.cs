@@ -1,5 +1,7 @@
 
 using OpenTK;
+using System.Collections.Generic;
+
 namespace MuffinSpace
 {
 	public class Light : IShaderDataOwner
@@ -78,11 +80,11 @@ namespace MuffinSpace
 		{
 			if (type == LightType.Directional)
 			{
-				return transform.Direction;
+				return new Vector3(transform.Direction);
 			}
 			else
 			{
-				return transform.Position;
+				return transform.GetWorldPosition();
 			}
 		}
 
@@ -97,7 +99,7 @@ namespace MuffinSpace
 			color = colorParam;
 
 			transform = new TransformComponent(positionParam);
-			transform.Direction = directionParam.Normalized();
+			transform.Direction = new Vector4(directionParam.Normalized(), 0.0f);
 		}
 
 
@@ -106,9 +108,7 @@ namespace MuffinSpace
 		{
 			Light pointLight = new Light(LightType.Point, colorParam, positionParam, new Vector3(-1,0,0));
 
-			AttenuationArray.AttenuationRecord r = AttenuationArray.getAttenuationForDistance(distanceParam);
-			pointLight.linearAttenuation = r.linear;
-			pointLight.quadraticAttenuation = r.quadratic;
+			pointLight.SetAttenuation(distanceParam);
 
 			return pointLight;
 		}
@@ -138,14 +138,23 @@ namespace MuffinSpace
 			quadraticAttenuation = 0.0f;
 		}
 
+		public void SetAttenuation(float range)
+		{
+			AttenuationArray.AttenuationRecord r = AttenuationArray.getAttenuationForDistance(range);
+			linearAttenuation = r.linear;
+			quadraticAttenuation = r.quadratic;
+		}
+
 		public void SetTo(Light other)
 		{
 			color = other.color;
 			linearAttenuation = other.linearAttenuation;
 			quadraticAttenuation = other.quadraticAttenuation;
-			transform.Position = other.transform.Position;
+			transform.Translation = other.transform.Translation;
 			transform.Direction = other.transform.Direction;
 		}
+
+		static List<ShaderUniformName> lightUniforms = new List<ShaderUniformName> { ShaderUniformName.LightPositionOrDirection, ShaderUniformName.LightColor, ShaderUniformName.LinearAttenuation, ShaderUniformName.QuadraticAttenuation };
 
 		public bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName)
 		{
@@ -166,6 +175,11 @@ namespace MuffinSpace
 					return false;
 			}
 			return true;
+		}
+
+		public List<ShaderUniformName> GetUniforms() 
+		{
+			return lightUniforms;
 		}
 	}
 }

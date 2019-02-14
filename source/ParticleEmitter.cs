@@ -6,6 +6,7 @@ namespace MuffinSpace
 {
 	public class ParticleEmitter
 	{
+		/*
 		public TransformComponent Transform { get; set; }
 
 		public float EmitRate { get; set; } // How many particles per second
@@ -208,5 +209,6 @@ namespace MuffinSpace
 				}
 			}
 		}
+		*/
 	}
 }

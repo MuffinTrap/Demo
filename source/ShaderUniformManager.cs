@@ -90,6 +90,7 @@ namespace MuffinSpace
 	public interface IShaderDataOwner
 	{
 		bool SetUniform(ShaderProgram shaderProgram, int location, ShaderUniformName dataName);
+		List<ShaderUniformName> GetUniforms();
 	}
 
 	public class ShaderUniformManager

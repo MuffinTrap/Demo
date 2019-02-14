@@ -115,6 +115,7 @@ namespace MuffinSpace
 
 		}
 
+		static List<ShaderUniformName> cameraUniforms = new List<ShaderUniformName> { ShaderUniformName.ViewMatrix, ShaderUniformName.ProjectionMatrix, ShaderUniformName.CameraPosition };
 
 		public bool SetUniform(ShaderProgram program, int location, ShaderUniformName name)
 		{
@@ -134,6 +135,11 @@ namespace MuffinSpace
 					return false;
 			}
 			return true;
+		}
+
+		public List<ShaderUniformName> GetUniforms()
+		{
+			return cameraUniforms;
 		}
 
 		public void EnablePerspective()

@@ -46,6 +46,7 @@ namespace MuffinSpace
         private Device syncDevice;
 
         Stopwatch timer;
+		float secondsElapsedWhenPaused = 0.0f;
 
 		Track sceneNumber;
 		Track cameraFrame;
@@ -115,7 +116,16 @@ namespace MuffinSpace
 
         public void SetRowFromEditor(int row)
         {
-            syncRow = row;
+			if (IsPaused())
+			{
+				syncRow = row;
+
+				// Take time so can continue from there
+				float beatsElapsed = syncRow / rowsPerBeat;
+				float minutesElapsed = beatsElapsed / (float)bpm;
+				secondsElapsedWhenPaused = minutesElapsed * 60.0f;
+				timer.Reset();
+			}
         }
 
         public void PauseFromEditor(bool pause)
@@ -181,7 +191,7 @@ namespace MuffinSpace
                 // Calculate sync row.
                 long elapsedMS = timer.ElapsedMilliseconds;
                 secondsElapsed = (float)(elapsedMS / (float)1000);
-                float minutesElapsed = secondsElapsed / 60.0f;
+                float minutesElapsed = (secondsElapsedWhenPaused + secondsElapsed) / 60.0f;
 
                 if (secondsElapsed > songLength)
                 {
@@ -224,6 +234,7 @@ namespace MuffinSpace
 		{
 			timer.Restart();
 			syncRow = 0;
+			secondsElapsedWhenPaused = 0.0f;
 			State = SyncState.Running;
 		}
 
