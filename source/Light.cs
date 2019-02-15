@@ -13,9 +13,10 @@ namespace MuffinSpace
 			Spot
 		}
 
-		public TransformComponent transform;
 		public LightType type;
 		public Vector3 color;
+		public Vector3 Position;
+		public Vector3 Direction;
 
 		public float linearAttenuation; // Ambient for directional
 		public float quadraticAttenuation; // Intensity for directional
@@ -80,11 +81,11 @@ namespace MuffinSpace
 		{
 			if (type == LightType.Directional)
 			{
-				return new Vector3(transform.Direction);
+				return Direction;
 			}
 			else
 			{
-				return transform.GetWorldPosition();
+				return Position;
 			}
 		}
 
@@ -97,12 +98,9 @@ namespace MuffinSpace
 		{
 			type = typeParam;
 			color = colorParam;
-
-			transform = new TransformComponent(positionParam);
-			transform.Direction = new Vector4(directionParam.Normalized(), 0.0f);
+			Position = positionParam;
+			Direction = directionParam;
 		}
-
-
 
 		public static Light CreatePointLight(Vector3 colorParam, float distanceParam, Vector3 positionParam)
 		{
@@ -150,8 +148,8 @@ namespace MuffinSpace
 			color = other.color;
 			linearAttenuation = other.linearAttenuation;
 			quadraticAttenuation = other.quadraticAttenuation;
-			transform.Translation = other.transform.Translation;
-			transform.Direction = other.transform.Direction;
+			Position = other.Position;
+			Direction = other.Direction;
 		}
 
 		static List<ShaderUniformName> lightUniforms = new List<ShaderUniformName> { ShaderUniformName.LightPositionOrDirection, ShaderUniformName.LightColor, ShaderUniformName.LinearAttenuation, ShaderUniformName.QuadraticAttenuation };

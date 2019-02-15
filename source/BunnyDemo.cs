@@ -82,6 +82,12 @@ namespace MuffinSpace
 		}
 	}
 
+	public class Crystal
+	{
+		public DrawableMesh mesh;
+		public float speed;
+	}
+
 	public class BunnyDemo : IDemo
 	{
 		DemoSettings settings;
@@ -91,6 +97,7 @@ namespace MuffinSpace
 		int mountainsNumber;
 		int moonNumber;
 		int bunnyNumber;
+		int warpNumber;
 		int seaNumber;
 		int crystalsNumber;
 
@@ -98,6 +105,9 @@ namespace MuffinSpace
 
 		IAudioSystem audioSystem = null;
 		Audio music;
+
+		SyncTrack cameraFOV;
+		SyncTrack warpFOV;
 
 		// Fadeout
 
@@ -112,16 +122,20 @@ namespace MuffinSpace
 		DrawableMesh starSkyBox;
 		Material starSkyboxMaterial;
 
+		DrawableMesh planetSkyBox;
+		Material planetSkyboxMaterial;
+
 		SyncTrack skyRotation;
 
-		Light moon;
-		Light starAmbient;
-
+		DrawableMesh mountains;
+		Light mountainLight;
 		// SEA
 
 		DrawableMesh seaMesh;
-		DrawableMesh seaMesh_normals;
 		ShaderProgram seaShader;
+
+		DrawableMesh planetMountains;
+		Light planetLight;
 
 		// Meshes 
 
@@ -133,19 +147,13 @@ namespace MuffinSpace
 		SyncTrack bunnyLightProgress;
 
 		// Crystals
-		List<DrawableMesh> crystalMeshes;
-		List<LightMesh> crystalLights;
-		TransformComponent crystalLightsRoot;
+		List<Crystal> crystalMeshes;
 
-		DrawableMesh mountains;
 
 		DrawableMesh monolith;
 		DrawableMesh monolith_normals;
 		SyncTrack monolithRotation;
 		SyncTrack monolithElevation;
-		TransformComponent monolithLightRoot;
-		List<LightMesh> monolithLights;
-		float monolithLightRotationMultiplier;
 
 		Telescope telescope;
 		SyncTrack telescopeRotation;
@@ -180,6 +188,7 @@ namespace MuffinSpace
 			mountainsNumber = tm.GetInt("scene_number.mountains");
 			moonNumber = tm.GetInt("scene_number.moon");
 			bunnyNumber = tm.GetInt("scene_number.bunny");
+			warpNumber = tm.GetInt("scene_number.warp");
 			seaNumber = tm.GetInt("scene_number.sea");
 			crystalsNumber = tm.GetInt("scene_number.crystals");
 
@@ -223,6 +232,9 @@ namespace MuffinSpace
 			ShaderProgram starProgram = assetManager.GetShaderProgram("sky");
 			guiShader = assetManager.GetShaderProgram("gui");
 
+			cameraFOV = syncSystem.GetTrack("FOV");
+			warpFOV = syncSystem.GetTrack("W_FOV");
+
 
 			// Fade 
 			if (guiShader == null)
@@ -258,13 +270,10 @@ namespace MuffinSpace
 			skyRotation = syncSystem.GetTrack("Sky_R");
 
 			// Lights
-			moon = Light.CreateDirectionalLight(tm.GetVec3("moon_ambient.color")
-			, tm.GetFloat("moon_ambient.ambient"), tm.GetFloat("moon_ambient.intensity")
-			, tm.GetVec3("moon_ambient.direction"));
 
-			starAmbient = Light.CreateDirectionalLight(tm.GetVec3("star_ambient.color")
-			, tm.GetFloat("star_ambient.ambient"), tm.GetFloat("star_ambient.intensity")
-			, tm.GetVec3("star_ambient.direction"));
+			mountainLight = Light.CreateDirectionalLight(tm.GetVec3("mountain_light.color")
+			, tm.GetFloat("mountain_light.ambient"), tm.GetFloat("mountain_light.intensity")
+			, tm.GetVec3("mountain_light.direction"));
 
 			// Models
 			Logger.LogInfo("Loading demo models");
@@ -305,15 +314,6 @@ namespace MuffinSpace
 			monolith.Transform.Scale = tm.GetFloat("monolith.scale");
 			monolithRotation = syncSystem.GetTrack("mono_R");
 			monolithElevation = syncSystem.GetTrack("mono_Y");
-
-			monolithLightRoot = new TransformComponent();
-			monolithLightRoot.Translation = new Vector4(0, 0, 0, 1);
-			monolithLightRoot.SetRotationAxis(new Vector3(0, 1, 0));
-			monolithLightRoot.Parent = monolith.Transform;
-			monolithLightRotationMultiplier = tm.GetFloat("monolith_lights.rotation_multiplier");
-			monolithLights = new List<LightMesh>();
-			int monolithLightAmount = tm.GetInt("monolith_lights.amount");
-			LoadLightMeshList(tm, assetManager, monolithLightRoot, "monolith_lights", monolithLightAmount, texShader, ref monolithLights);
 
 			// DEBUG
 			monolith_normals = assetManager.CreateMesh("mono_N"
@@ -389,14 +389,32 @@ namespace MuffinSpace
 			, objShader
 			, tm.GetVec3("sea.position"));
 
+			// Planet mountains
+			Logger.LogInfo(" - Planet Mountains");
+			planetMountains = assetManager.CreateMesh("planet_mountains"
+				, MeshDataGenerator.CreateMountains(
+					tm.GetFloat("planet_mountain.size")
+					, true, tm.GetInt("planet_mountain.iterations")
+					, tm.GetFloat("planet_mountain.height_variation")
+					, tm.GetFloat("planet_mountain.flat_start")
+					, tm.GetFloat("planet_mountain.flat_end")
+					, tm.GetInt("planet_mountain.random_seed"))
+				, tm.GetString("planet_mountain.material")
+				, objShader
+				, tm.GetVec3("planet_mountain.position"));
 
-			seaMesh_normals = assetManager.CreateMesh("sea_N"
-			, MeshDataGenerator.CreateNormalDebug(seaMesh.Data)
-			, null
-			, gridShader
-			, seaMesh.Transform.GetWorldPosition());
+			planetLight = Light.CreateDirectionalLight(tm.GetVec3("planet_light.color")
+			, tm.GetFloat("planet_light.ambient"), tm.GetFloat("planet_light.intensity")
+			, tm.GetVec3("planet_light.direction"));
 
-			seaMesh_normals.Transform.Parent = seaMesh.Transform;
+			planetSkyBox = assetManager.CreateMesh("planet_skybox"
+										 , MeshDataGenerator.CreateSkybox()
+										 , null
+										 , skyboxProgram
+										 , new Vector3(0, 0, 0));
+
+			planetSkyboxMaterial = assetManager.GetMaterial("planet_skybox");
+
 
 			// Mountains
 			Logger.LogInfo(" - Mountains");
@@ -415,26 +433,39 @@ namespace MuffinSpace
 			// Crystals
 			Logger.LogInfo(" - Crystals");
 
-			crystalLightsRoot = new TransformComponent();
-			crystalMeshes = new List<DrawableMesh>();
+			crystalMeshes = new List<Crystal>();
 			int crystalAmount = tm.GetInt("crystals.amount");
 			Random randomizer = new Random(0);
 			float areaSize = tm.GetFloat("crystals.area_size");
-			Vector3 corner = new Vector3(-areaSize/2.0f, -areaSize/2.0f, -areaSize/2.0f);
+			float areaTop = tm.GetFloat("crystals.area_top");
+			Vector3 areaPos = tm.GetVec3("crystals.area_pos");
+			float maxSpeed = tm.GetFloat("crystals.max_speed");
+			float sizeMin = tm.GetFloat("crystals.min_size");
+			float sizeMax = tm.GetFloat("crystals.max_size");
 			for (int s = 0; s < crystalAmount; s++)
 			{
-				Vector3 position = corner + new Vector3((float)randomizer.NextDouble() * areaSize, (float)randomizer.NextDouble() * areaSize, (float)randomizer.NextDouble() * areaSize);
-				crystalMeshes.Add(assetManager.CreateMesh("crystal_" + s
-				, MeshDataGenerator.CreateStar(new Vector3(1.0f, 0, 0), new Vector3(0, 1, 0), 1.0f, 2.0f, 0.5f, 0.8f, true)
+
+				Crystal c = new Crystal();
+
+				Vector3 position = new Vector3((float)randomizer.NextDouble() - 0.5f
+				, (float)randomizer.NextDouble()
+				, (float)randomizer.NextDouble() - 0.5f);
+
+				position = position * new Vector3(areaSize, areaSize, areaSize);
+				position += areaPos;
+
+				c.mesh = assetManager.CreateMesh("crystal_" + s
+				, MeshDataGenerator.CreateStar(new Vector3(1.0f, 0, 0), new Vector3(0, 1, 0)
+				, 1.0f, 2.0f, 0.5f, 0.8f, true)
 				, tm.GetString("crystals.material")
 				, assetManager.GetShaderProgram(tm.GetString("crystals.shader"))
-				, position));
+				, position);
 
-				crystalMeshes[s].Transform.SetRotationAxis(position.Normalized());
+				c.mesh.Transform.Scale = sizeMin + (float)randomizer.NextDouble() * (sizeMax - sizeMin);
+				c.mesh.Transform.SetRotationAxis(position.Normalized());
+				c.speed = (float)randomizer.NextDouble() * maxSpeed;
+				crystalMeshes.Add(c);
 			}
-			crystalLights = new List<LightMesh>();
-			int crystalLightAmount = tm.GetInt("crystal_lights.amount");
-			LoadLightMeshList(tm, assetManager, crystalLightsRoot, "crystal_lights", 7, texShader, ref crystalLights);
 
 			Logger.LogInfo("Creating greetings");
 			// Title, Greets and credits
@@ -451,6 +482,7 @@ namespace MuffinSpace
 				, greet_material
 				, greetShader
 				, tm.GetVec3("mountain_scene.group_name_position"));
+			groupName.Transform.Scale = tm.GetFloat("mountain_scene.group_name_scale");
 
 				groupNameGreet = new Greeting();
 				groupNameGreet.textMesh = groupName;
@@ -505,13 +537,14 @@ namespace MuffinSpace
 
 				lm.sphereRadius = tm.GetFloat(lightId + "_size");
 				Vector3 position = tm.GetVec3(lightId + "_pos") + parentTransform.GetWorldPosition();
+				Logger.LogInfo("Light mesh list " + lightId + "_pos: " + Logger.PrintVec3(position));
 				lm.mesh = assetManager.CreateMesh(lightId
 					, MeshDataGenerator.CreateCubeMesh(new Vector3(lm.sphereRadius), false, false)
 					, "default"
 					, shader
 					, position); 
-
 				// lm.mesh.Transform.Parent = parentTransform;
+
 				lm.fullRange = tm.GetFloat(lightId + "_range");
 				Vector3 color = tm.GetVec3(lightId + "_color");
 				lm.light = Light.CreatePointLight(color, lm.fullRange, position);
@@ -572,6 +605,15 @@ namespace MuffinSpace
 
 		// SYNC FUNCTIONS
 
+		private void SyncCamera(SyncSystem syncer)
+		{
+			Renderer renderer = Renderer.GetSingleton();
+			renderer.SyncCameraFrame();
+			CameraComponent camera = renderer.GetCamera();
+			camera.FOV = 90 + syncer.GetTrackValue(cameraFOV);
+			camera.CreateMatrices();
+		}
+
 		private void SyncFadeout(SyncSystem syncer)
 		{
 			fadeAlpha = syncer.GetTrackValue(fadeoutAlpha);
@@ -596,7 +638,7 @@ namespace MuffinSpace
 
 		void SyncBunny(SyncSystem syncer)
 		{
-			// bunnyMesh.Transform.SetRotation(syncer.GetTrackValue(bunnyRotation));
+			bunnyMesh.Transform.SetRotation(syncer.GetTrackValue(bunnyRotation));
 		}
 
 		public void SyncGreets(SyncSystem syncer, List<GreetPage> greetPages)
@@ -618,10 +660,11 @@ namespace MuffinSpace
 
 		void SyncCrystals(SyncSystem syncer)
 		{
-			// TODO starfield movement 
 			for (int s = 0; s < crystalMeshes.Count; s++)
 			{
-				crystalMeshes[s].Transform.SetRotation(syncer.SceneProgress * MathHelper.TwoPi);
+				Vector4 ot = crystalMeshes[s].mesh.Transform.Translation;
+				crystalMeshes[s].mesh.Transform.Translation = new Vector4(ot.X, syncer.SceneProgress * crystalMeshes[s].speed, ot.Z, 1.0f);
+				crystalMeshes[s].mesh.Transform.SetRotation(syncer.SceneProgress * crystalMeshes[s].speed / 10.0f * MathHelper.TwoPi);
 			}
 		}
 
@@ -631,15 +674,15 @@ namespace MuffinSpace
 			monolith.Transform.SetRotation(rotations * MathHelper.Pi);
 			Vector3 monoPos = monolith.Transform.GetWorldPosition();
 			monolith.Transform.Translation = new Vector4(monoPos.X, syncer.GetTrackValue(monolithElevation), monoPos.Z, 1.0f);
-			monolithLightRoot.SetRotation(rotations * MathHelper.Pi * monolithLightRotationMultiplier);
-			monolithLightRoot.Translation = monolith.Transform.Translation;
 		}
 
 		private void SyncSkybox(SyncSystem syncer)
 		{
 			// Rotate star sphere world matrix
+			// Rotate lighting
 			float rot = syncer.GetTrackValue(skyRotation) * MathHelper.TwoPi;
 			starSkyBox.Transform.SetRotation(rot);
+			mountainLight.Direction = new Vector3(new Vector4(0, 0, 1, 0) * starSkyBox.Transform.rotationTransformMatrix);
 		}
 
 		private void SyncTelescope(Telescope scope, SyncSystem syncer)
@@ -708,14 +751,17 @@ namespace MuffinSpace
 
 		public void DrawSingleGreet(Renderer renderer, Greeting g)
 		{
-			renderer.RenderShaderDataOwnerMesh(g.textMesh, g);
+			if (g.alpha > 0.0f)
+			{
+				renderer.RenderShaderDataOwnerMesh(g.textMesh, g);
+			}
 		}
 
 		public void DrawCrystals(Renderer renderer)
 		{
 			for (int s = 0; s < crystalMeshes.Count; s++)
 			{
-				renderer.RenderMesh(crystalMeshes[s]);
+				renderer.RenderMesh(crystalMeshes[s].mesh);
 			}
 		}
 
@@ -733,7 +779,7 @@ namespace MuffinSpace
 			}
 			for (int i = 0; i < lightMeshList.Count; i++)
 			{
-				lightMeshList[i].light.transform.Translation = new Vector4(lightMeshList[i].mesh.Transform.GetWorldPosition(), 1.0f);
+				lightMeshList[i].light.Position = lightMeshList[i].mesh.Transform.GetWorldPosition();
 				renderer.ActivateLight(lightMeshList[i].light, renderer.FirstPointLightIndex + i);
 			}
 		}
@@ -746,16 +792,6 @@ namespace MuffinSpace
 			{
 				bunnyMesh.ShaderProgram.SetFloatUniform(bunnyLightsSizesLocations[i], bunnyLights[i].activeRadius);
 			}
-			/*
-			for (int i = 0; i < bunnyLights.Count; i++)
-			{
-				float value = 0.0f;
-				value = bunnyMesh.ShaderProgram.GetFloatUniform(bunnyLightsSizesLocations[i]);
-				Logger.LogInfo("Value of bunny light size " + i + " is " + value);
-			}
-			Logger.LogError(Logger.ErrorState.User, "DEBUG");
-			*/
-
 
 			renderer.RenderMesh(bunnyMesh);
 		}
@@ -774,11 +810,39 @@ namespace MuffinSpace
 			}
 		}
 
+		private void DrawStarSky(Renderer renderer, bool warp = false)
+		{
+			renderer.SetActiveSkybox(starSkyboxMaterial);
+			renderer.SetSkyboxRotation(starSkyBox.Transform.CreateRotationMatrixFromAxisAngle());
+			if (warp)
+			{
+				CameraComponent cam = renderer.GetCamera();
+				float prevFOV = cam.FOV;
+				cam.FOV = 90 + SyncSystem.GetSingleton().GetTrackValue(warpFOV);
+				cam.CreateMatrices();
+				renderer.RenderSky(starSkyBox);
+				cam.FOV = prevFOV;
+				cam.CreateMatrices();
+			}
+			else
+			{
+				renderer.RenderSky(starSkyBox);
+			}
+		}
+
+		private void DrawPlanetSkybox(Renderer renderer)
+		{
+			renderer.SetActiveSkybox(planetSkyboxMaterial);
+			renderer.SetSkyboxRotation(planetSkyBox.Transform.CreateRotationMatrixFromAxisAngle());
+			renderer.RenderSky(planetSkyBox);
+		}
+
 
 		// SYNC AND DRAW
 
 		public void Sync(SyncSystem syncer)
 		{
+			SyncCamera(syncer);
 			SyncFadeout(syncer);
 			SyncSkybox(syncer);
 
@@ -788,18 +852,23 @@ namespace MuffinSpace
 				SyncTelescope(telescope, syncer);
 				SyncGreets(syncer, title);
 			}
-			if (s == moonNumber)
+			else if (s == moonNumber)
 			{
 				SyncMonolith(syncer);
 				SyncGreets(syncer, group_greetings);
 			}
-			if (s == bunnyNumber)
+			else if (s == bunnyNumber)
 			{
 				// Sync lights
 				SyncBunny(syncer);
 				SyncLightMeshList(bunnyLights, syncer.GetTrackValue(bunnyLightProgress));
 			}
-			if (s == seaNumber)
+			else if (s == warpNumber)
+			{
+				SyncBunny(syncer);
+				SyncLightMeshList(bunnyLights, syncer.GetTrackValue(bunnyLightProgress));
+			}
+			else if (s == seaNumber || s == crystalsNumber)
 			{
 				SyncMonolith(syncer);
 				SyncGreets(syncer, credits);
@@ -813,14 +882,13 @@ namespace MuffinSpace
 
 		public void Draw(Renderer renderer)
 		{
-			renderer.SetActiveSkybox(starSkyboxMaterial);
-			renderer.SetSkyboxRotation(starSkyBox.Transform.CreateRotationMatrixFromAxisAngle());
-			renderer.RenderSky(starSkyBox);
 
 			int s = SyncSystem.GetSingleton().Scene;
 			if (s == mountainsNumber)
 			{
-				renderer.ActivateLight(starAmbient, 0);
+				DrawStarSky(renderer);
+				renderer.ActivateLight(mountainLight, 0);
+
 				renderer.RenderMesh(mountains);
 
 				DrawTelescope(renderer, mainTelescopePosition);
@@ -829,24 +897,31 @@ namespace MuffinSpace
 				// Transparent things last!
 				DrawGreets(renderer, title);
 			}
-			if (s == moonNumber)
+			else if (s == moonNumber)
 			{
-				//DrawLightMeshList(renderer, monolithLights);
-				renderer.ActivateLight(moon, 0);
+				DrawStarSky(renderer);
+				renderer.ActivateLight(mountainLight, 0);
 				DrawMonolith(renderer);
 
 				DrawGreets(renderer, group_greetings);
 			}
-			if (s == bunnyNumber)
+			else if (s == bunnyNumber)
 			{
+				DrawStarSky(renderer);
 				DrawLightMeshList(renderer, bunnyLights);
-				renderer.ActivateLight(starAmbient, 0);
 				DrawBunny(renderer);
 			}
-			if (s == seaNumber)
+			else if (s == warpNumber)
 			{
-				//DrawLightMeshList(renderer, monolithLights);
-				renderer.ActivateLight(moon, 0);
+				DrawStarSky(renderer, true);
+				DrawLightMeshList(renderer, bunnyLights);
+				DrawBunny(renderer);
+			}
+			else if (s == seaNumber || s == crystalsNumber)
+			{
+				DrawPlanetSkybox(renderer);
+				renderer.ActivateLight(planetLight, 0);
+				renderer.RenderObject(planetMountains);
 				DrawSea(renderer);
 				DrawMonolith(renderer);
 				
@@ -854,8 +929,6 @@ namespace MuffinSpace
 			}
 			if (s == crystalsNumber)
 			{
-				DrawLightMeshList(renderer, crystalLights);
-				renderer.ActivateLight(moon, 0);
 				DrawCrystals(renderer);
 			}
 

@@ -178,6 +178,16 @@ namespace MuffinSpace
 			cameraFrames = frames;
 		}
 
+		public void SyncCameraFrame()
+		{
+			if (cameraFrames != null && !camera.FreeMode)
+			{
+				int frame = SyncSystem.GetSingleton().Frame;
+				float frameProg = SyncSystem.GetSingleton().FrameProgress;
+				camera.SetFrame(frame, frameProg, cameraFrames);
+			}
+		}
+
 		public void RenderCamera()
 		{
 			if (activeProgram == null)
@@ -186,12 +196,6 @@ namespace MuffinSpace
 				return;
 			}
 
-			if (cameraFrames != null && !camera.FreeMode)
-			{
-				int frame = SyncSystem.GetSingleton().Frame;
-				float frameProg = SyncSystem.GetSingleton().FrameProgress;
-				camera.SetFrame(frame, frameProg, cameraFrames);
-			}
 
 			ShaderUniformManager man = ShaderUniformManager.GetSingleton();
 			man.TrySetData(activeProgram, ShaderUniformName.ViewMatrix, camera);
