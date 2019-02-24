@@ -21,7 +21,7 @@ namespace MuffinSpace
 		List<PosAndDir> cameraFrames;
 
 		// Must match amount in light.ss
-		int maxPointLightIndex = 7;
+		int maxPointLightIndex = 8;
 		public int FirstPointLightIndex = 1;
 		List<Light> activeLights;
 

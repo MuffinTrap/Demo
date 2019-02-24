@@ -23,5 +23,10 @@ namespace MuffinSpace
 		{
 			Demo.Restart();
 		}
+
+		public void CleanUpAndExit()
+		{
+			Demo.CleanUpAndExit();
+		}
 	}
 }

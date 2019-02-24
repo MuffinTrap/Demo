@@ -12,6 +12,12 @@ for /f %%f in ('dir /b source') do (
 	set "files=!files! %%f"
 	)
 pushd source
-call csc.exe %files% -d:DEBUG -lib:%opentkpath% -r:OpenTK.dll,System.Drawing.dll -out:..\build\bunnydemo.exe
+
+rem DEBUG BUILD 
+rem call csc.exe %files% -debug -warn:4 -d:DEBUG -lib:%opentkpath% -r:OpenTK.dll,System.Drawing.dll -out:..\build\bunnydemo.exe
+
+rem RELEASE BUILD 
+call csc.exe %files% -optimize -platform:x64 -target:exe -lib:%opentkpath% -r:OpenTK.dll,System.Drawing.dll -out:..\build\FCCCF_-_Lepus_Minor.exe
+
 popd
 IF NOT EXIST build\OpenTK.dll copy %opentkpath%\OpenTK.dll build\

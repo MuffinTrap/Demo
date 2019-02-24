@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 
-using RocketNet;
 using OpenTK;
 using System;
+
+using System.Threading;
 
 namespace MuffinSpace
 {
@@ -80,6 +81,11 @@ namespace MuffinSpace
 		{
 			return lightUniforms;
 		}
+
+		public Vector3 getEffectiveColor()
+		{
+			return light.color * (activeRadius / sphereRadius);
+		}
 	}
 
 	public class Crystal
@@ -91,6 +97,7 @@ namespace MuffinSpace
 	public class BunnyDemo : IDemo
 	{
 		DemoSettings settings;
+		InstanssiLightController lightController;
 
 		// Scenes
 
@@ -148,6 +155,7 @@ namespace MuffinSpace
 
 		// Crystals
 		List<Crystal> crystalMeshes;
+		float crystalsGravity = -0.01f;
 
 
 		DrawableMesh monolith;
@@ -184,6 +192,12 @@ namespace MuffinSpace
 		public void Load(AssetManager assetManager, SyncSystem syncSystem)
 		{
 			TunableManager tm = TunableManager.GetSingleton();
+
+			lightController = new InstanssiLightController(tm.GetString("demosettings.light_server_ip")
+			, tm.GetInt("demosettings.light_server_port")
+			, tm.GetInt("bunny_lights.amount")
+			, tm.GetInt("demosettings.physical_lights_amount")
+			, tm.GetInt("demosettings.light_server_interval"));
 
 			mountainsNumber = tm.GetInt("scene_number.mountains");
 			moonNumber = tm.GetInt("scene_number.moon");
@@ -264,7 +278,7 @@ namespace MuffinSpace
 										 , skyboxProgram
 										 , new Vector3(0, 0, 0));
 
-			starSkyboxMaterial = assetManager.GetMaterial("skybox");
+			starSkyboxMaterial = assetManager.GetMaterial(tm.GetString("mountain_scene.skybox_material"));
 
 			starSkyBox.Transform.SetRotationAxis(tm.GetVec3("mountain_scene.star_rotation_axis"));
 			skyRotation = syncSystem.GetTrack("Sky_R");
@@ -326,37 +340,25 @@ namespace MuffinSpace
 
 			Logger.LogInfo(" - Telescope");
 			telescope = new Telescope();
-			telescope.tower = assetManager.CreateMesh("tele_tower"
-			, MeshDataGenerator.CreateCubeMesh(new Vector3(1,1,1), true, true)
-			, tm.GetString("telescope.material")
-			, objShader
-			, tm.GetVec3("telescope.tower_position"));
-			telescope.tower.Transform.SetRotationAxis(new Vector3(0, 1, 0));
-			
-			telescope.antenna = assetManager.CreateMesh("tele_antenna"
-			, MeshDataGenerator.CreateCubeMesh(new Vector3(0.1f, 1.5f, 1.5f), true, true)
-			, tm.GetString("telescope.material")
-			, objShader
-			, tm.GetVec3("telescope.antenna_position"));
-			telescope.antenna.Transform.Parent = telescope.tower.Transform;
-			telescope.antenna.Transform.SetRotationAxis(new Vector3(0, 0, 1));
-			/*
+
 			telescope.tower = assetManager.GetMesh("tele_tower"
 			, tm.GetString("telescope.tower_model")
 			, tm.GetString("telescope.material")
 			, objShader
-			, tm.GetVec3("telescope_tower.position"));
+			, tm.GetVec3("telescope.tower_position"));
 
-			telescope.tower.Transform.Scale = tm.GetFloat("telescope_tower.scale");
-			
+			telescope.tower.Transform.Scale = tm.GetFloat("telescope.tower_scale");
+			telescope.tower.Transform.SetRotationAxis(new Vector3(0, 1, 0));
+
 			telescope.antenna = assetManager.GetMesh("tele_antenna"
 			, tm.GetString("telescope.antenna_model")
 			, tm.GetString("telescope.material")
 			, objShader
-			, tm.GetVec3("telescope_antenna.position"));
-			telescope.antenna.Transform.Scale = tm.GetFloat("telescope_antenna.scale");
-			*/
+			, tm.GetVec3("telescope.antenna_position"));
+			telescope.antenna.Transform.Scale = tm.GetFloat("telescope.antenna_scale");
+			telescope.antenna.Transform.SetRotationAxis(new Vector3(0, 0, 1));
 
+      telescope.antenna.Transform.Parent = telescope.tower.Transform;
 			telescopeElevation = syncSystem.GetTrack("Tele_Elev");
 			telescopeRotation = syncSystem.GetTrack("Tele_Rot");
 
@@ -467,6 +469,8 @@ namespace MuffinSpace
 				crystalMeshes.Add(c);
 			}
 
+			crystalsGravity = tm.GetFloat("crystals.gravity");
+
 			Logger.LogInfo("Creating greetings");
 			// Title, Greets and credits
 				TextGenerator textgen = TextGenerator.GetSingleton();
@@ -477,9 +481,12 @@ namespace MuffinSpace
 			float textStep = tm.GetFloat("text.step");
 
 			// Title
+			string titleMaterial = tm.GetString("mountain_text.title_material");
+			string groupMaterial = tm.GetString("mountain_text.group_material");
+
 				DrawableMesh groupName = assetManager.CreateMesh("groupText"
-				, MeshDataGenerator.CreateTextMesh("FCCCF", greetFont, textStep)
-				, greet_material
+				, MeshDataGenerator.CreateQuadMesh(false, true)
+				, groupMaterial
 				, greetShader
 				, tm.GetVec3("mountain_scene.group_name_position"));
 			groupName.Transform.Scale = tm.GetFloat("mountain_scene.group_name_scale");
@@ -491,10 +498,11 @@ namespace MuffinSpace
 				
 
 				DrawableMesh demoName = assetManager.CreateMesh("groupText"
-				, MeshDataGenerator.CreateTextMesh("Lepus Minor", greetFont, textStep)
-				, greet_material
+				, MeshDataGenerator.CreateQuadMesh(false, true)
+				, titleMaterial
 				, greetShader
 				, tm.GetVec3("mountain_scene.demo_name_position"));
+			demoName.Transform.Scale = tm.GetFloat("mountain_scene.demo_name_scale");
 
 				demoNameGreet = new Greeting();
 				demoNameGreet.textMesh = demoName;
@@ -524,6 +532,7 @@ namespace MuffinSpace
 
 			title.Add(titlePage);
 
+			lightController.StartSync();
 			Logger.LogPhase("Bunny demo is loaded");
 			syncSystem.PrintEditorRowAmount();
 		}
@@ -638,7 +647,7 @@ namespace MuffinSpace
 
 		void SyncBunny(SyncSystem syncer)
 		{
-			bunnyMesh.Transform.SetRotation(syncer.GetTrackValue(bunnyRotation));
+			bunnyMesh.Transform.SetRotation(syncer.GetTrackValue(bunnyRotation) * MathHelper.Pi);
 		}
 
 		public void SyncGreets(SyncSystem syncer, List<GreetPage> greetPages)
@@ -663,7 +672,11 @@ namespace MuffinSpace
 			for (int s = 0; s < crystalMeshes.Count; s++)
 			{
 				Vector4 ot = crystalMeshes[s].mesh.Transform.Translation;
-				crystalMeshes[s].mesh.Transform.Translation = new Vector4(ot.X, syncer.SceneProgress * crystalMeshes[s].speed, ot.Z, 1.0f);
+				float t = syncer.SceneProgress * 18.0f; // about 18 seconds
+				float a = crystalsGravity; 
+				float v0 = crystalMeshes[s].speed;
+				float height = 0.0f + v0 * t + 0.5f * a * t * t;
+				crystalMeshes[s].mesh.Transform.Translation = new Vector4(ot.X, height, ot.Z, 1.0f);
 				crystalMeshes[s].mesh.Transform.SetRotation(syncer.SceneProgress * crystalMeshes[s].speed / 10.0f * MathHelper.TwoPi);
 			}
 		}
@@ -671,7 +684,16 @@ namespace MuffinSpace
 		public void SyncMonolith(SyncSystem syncer)
 		{
 			float rotations = syncer.GetTrackValue(monolithRotation);
-			monolith.Transform.SetRotation(rotations * MathHelper.Pi);
+			// Skip half of turn so that it seems that text is on both sides
+			// 0.0 is facing camera
+			// Pi. is 180d
+			// start is -90
+			while (rotations > 1.0f)
+			{
+				rotations -= 1.0f;
+			}
+
+			monolith.Transform.SetRotation(rotations * MathHelper.Pi - MathHelper.PiOver2);
 			Vector3 monoPos = monolith.Transform.GetWorldPosition();
 			monolith.Transform.Translation = new Vector4(monoPos.X, syncer.GetTrackValue(monolithElevation), monoPos.Z, 1.0f);
 		}
@@ -851,30 +873,42 @@ namespace MuffinSpace
 			{
 				SyncTelescope(telescope, syncer);
 				SyncGreets(syncer, title);
+				lightController.syncing= false;
 			}
 			else if (s == moonNumber)
 			{
 				SyncMonolith(syncer);
 				SyncGreets(syncer, group_greetings);
+				lightController.syncing= false;
 			}
 			else if (s == bunnyNumber)
 			{
 				// Sync lights
 				SyncBunny(syncer);
 				SyncLightMeshList(bunnyLights, syncer.GetTrackValue(bunnyLightProgress));
+				lightController.syncing= true;
+				lightController.SyncLightList(bunnyLights);
 			}
 			else if (s == warpNumber)
 			{
 				SyncBunny(syncer);
 				SyncLightMeshList(bunnyLights, syncer.GetTrackValue(bunnyLightProgress));
+				lightController.syncing= true;
+				lightController.SyncLightList(bunnyLights);
 			}
 			else if (s == seaNumber || s == crystalsNumber)
 			{
 				SyncMonolith(syncer);
 				SyncGreets(syncer, credits);
+
+				// Turn down lights
+				SyncLightMeshList(bunnyLights, syncer.GetTrackValue(bunnyLightProgress));
+				lightController.syncing= true;
+				lightController.SyncLightList(bunnyLights);
 			}
 			if (s == crystalsNumber)
 			{
+				lightController.syncing= false;
 				// Crystals
 				SyncCrystals(syncer);
 			}
@@ -986,6 +1020,19 @@ namespace MuffinSpace
 			if (GetDemoSettings().AudioEnabled)
 			{
 				audioSystem.StopAudio(music);
+			}
+		}
+
+		public void CleanUpAndExit()
+		{
+			Stop();
+			if (lightController != null)
+			{
+				lightController.EndSync();
+			}
+			else
+			{
+				Logger.LogInfo("No light controller!");
 			}
 		}
 	}
