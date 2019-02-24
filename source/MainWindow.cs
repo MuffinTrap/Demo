@@ -273,7 +273,7 @@ namespace MuffinSpace
 
 		private void HandleButtons(KeyboardState keyState)
 		{
-            if (keyState.IsKeyDown(Key.Escape) && keyState.IsKeyDown(Key.ShiftLeft))
+            if (keyState.IsKeyDown(Key.Escape))
             {
 				ExitProgram();
             }

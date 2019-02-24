@@ -193,7 +193,9 @@ namespace MuffinSpace
 		{
 			TunableManager tm = TunableManager.GetSingleton();
 
-			lightController = new InstanssiLightController(tm.GetString("demosettings.light_server_ip")
+			lightController = new InstanssiLightController(
+			tm.GetString("demosettings.light_server_ip")
+			, tm.GetString("demosettings.light_server_host_name")
 			, tm.GetInt("demosettings.light_server_port")
 			, tm.GetInt("bunny_lights.amount")
 			, tm.GetInt("demosettings.physical_lights_amount")
@@ -310,7 +312,6 @@ namespace MuffinSpace
 			for (int i = 0; i < bunnyLights.Count; i++)
 			{
 				int location = bunnyMesh.ShaderProgram.GetCustomUniformLocation("ucLightSizes[" + i + "]");
-				Logger.LogInfo("Location of bunny light size " + i + " is " + location);
 				bunnyLightsSizesLocations.Add(location);
 			}
 
@@ -546,7 +547,6 @@ namespace MuffinSpace
 
 				lm.sphereRadius = tm.GetFloat(lightId + "_size");
 				Vector3 position = tm.GetVec3(lightId + "_pos") + parentTransform.GetWorldPosition();
-				Logger.LogInfo("Light mesh list " + lightId + "_pos: " + Logger.PrintVec3(position));
 				lm.mesh = assetManager.CreateMesh(lightId
 					, MeshDataGenerator.CreateCubeMesh(new Vector3(lm.sphereRadius), false, false)
 					, "default"
@@ -1029,10 +1029,6 @@ namespace MuffinSpace
 			if (lightController != null)
 			{
 				lightController.EndSync();
-			}
-			else
-			{
-				Logger.LogInfo("No light controller!");
 			}
 		}
 	}

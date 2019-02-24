@@ -18,7 +18,6 @@ namespace MuffinSpace
 
 		private IPEndPoint endPoint;
 
-		private float epsilon = 0.001f;
 		private class LightStatus
 		{
 			public int lightNumber;
@@ -48,18 +47,35 @@ namespace MuffinSpace
 
 		private Mutex lightMutex;
 
-		public InstanssiLightController(string address, int port, int lightsToSync, int physicalLights, int syncIntervalMs)
+		public InstanssiLightController(string address, string hostName, int port, int lightsToSync, int physicalLights, int syncIntervalMs)
 		{
 			sendSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram,
+			
 			ProtocolType.Udp);
-			IPAddress serverAddr = IPAddress.Parse(address);
-			endPoint = new IPEndPoint(serverAddr, port);
+
+			IPAddress serverAddress = IPAddress.Parse(address);
+			if (hostName != "" && hostName.Length > 1)
+			{
+				IPHostEntry hostEntry;
+				hostEntry = Dns.GetHostEntry(hostName);
+				//you might get more than one ip for a hostname since 
+				//DNS supports more than one record
+				if (hostEntry.AddressList.Length > 0)
+				{
+					serverAddress = hostEntry.AddressList[0];
+				}
+			}
+
+			endPoint = new IPEndPoint(serverAddress, port);
 
 			status = new List<LightStatus>();
-			int step = physicalLights / lightsToSync;
+			// Map light 0 to 0, last light to last id
+			float step = (float)(physicalLights - 1) / (lightsToSync - 1);
 			for (int lm = 0; lm < lightsToSync; lm++)
 			{
-				status.Add(new LightStatus(step * lm));
+				int physicalId = (int)(step * lm);
+				Logger.LogInfo("Light to Physical light :" + lm + " to " + physicalId);
+				status.Add(new LightStatus(physicalId));
 			}
 
 			lightMutex = new Mutex();
@@ -129,6 +145,8 @@ namespace MuffinSpace
 			bool needSync = false;
 			packet.Clear();
 			packet.Add(1);	// Spec version
+
+			// Not really needed
 			packet.Add(0);  // Nickname
 			packet.AddRange(Encoding.ASCII.GetBytes("muffintrap"));
 			packet.Add(0); // END Nickname
@@ -139,7 +157,7 @@ namespace MuffinSpace
 				{
 					packet.Add(1);	// Light effect
 					packet.Add((byte)status[i].lightNumber);	// Light index
-					packet.Add(0);  // Padding
+					packet.Add(0);  // This is an RGB light
 					byte r = (byte)Math.Floor(status[i].color.X * 255);
 					byte g = (byte)Math.Floor(status[i].color.Y * 255);
 					byte b = (byte)Math.Floor(status[i].color.Z * 255);
