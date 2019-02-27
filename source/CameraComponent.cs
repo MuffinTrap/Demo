@@ -104,8 +104,6 @@ namespace MuffinSpace
 			EnablePerspective();
 
 			viewMatrix.Matrix = GetViewMatrix();
-
-			Logger.LogInfo("Camera start. Dir: (" + Direction.X + ", " + Direction.Y + ", " + Direction.Z + ")");
 		}
 
 		public void CreateMatrices()

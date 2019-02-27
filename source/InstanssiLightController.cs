@@ -88,6 +88,7 @@ namespace MuffinSpace
 			ThreadStart LightSyncLoop = new ThreadStart(this.LightSyncLoop);
 			udpThread = new Thread(LightSyncLoop);
 			udpThread.Start();
+			Thread.Sleep(10); // For thread logging
 		}
 
 		public void EndSync()
@@ -117,8 +118,6 @@ namespace MuffinSpace
 
 				Thread.Sleep(intervalMs);
 			}
-
-			Logger.LogPhase("Light syncing thread ended");
 		}
 
 		public void SyncLightList(List<LightMesh> lights)

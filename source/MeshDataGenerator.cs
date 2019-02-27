@@ -91,7 +91,7 @@ namespace MuffinSpace
 			return newData;
 		}
 
-		static public MeshData CreateTriangleMesh()
+		static public MeshData CreateTriangleMesh(bool createTexCoords)
 		{
 			MeshData triMesh = new MeshData();
 			triMesh.sourceFileName = "triangle";
@@ -101,6 +101,15 @@ namespace MuffinSpace
 			triMesh.positions.Add(new Vector3(-1f, 1f, 0.0f));
 			triMesh.positions.Add(new Vector3(1f, 1f, 0.0f));
 			triMesh.positions.Add(new Vector3(0.0f, 0.0f, 0.0f));
+
+			if (createTexCoords)
+			{
+				triMesh.hasTexCoordData = true;
+				triMesh.texCoords = new List<Vector2>();
+				triMesh.texCoords.Add(new Vector2(0, 1));
+				triMesh.texCoords.Add(new Vector2(1, 1));
+				triMesh.texCoords.Add(new Vector2(0.5f, 0.5f));
+			}
 
 			triMesh.hasPositionData = true;
 

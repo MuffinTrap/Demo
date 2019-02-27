@@ -3,10 +3,12 @@ namespace MuffinSpace
 	public class DemoWrapper
 	{
 		public BunnyDemo Demo { get; set; }
+		public bool Running { get; set; }
 
 		public void Create()
 		{
 			Demo = new BunnyDemo();
+			Running = false;
 		}
 
 		public DemoSettings GetDemoSettings()

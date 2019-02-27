@@ -16,19 +16,19 @@ namespace MuffinSpace
 
 		public enum ErrorState
 		{
-			Critical,	// Program cannot continue. Code error
-			Limited,	// Something is missing. Data error
-			Unoptimal,	// Stupid or conflicting settings. User error
-			User,		// Programming error
+			Critical,   // Program cannot continue. Code error
+			Limited,    // Something is missing. Data error
+			Unoptimal,  // Stupid or conflicting settings. User error
+			User,       // Programming error
 			NoErrors
 		}
 
 		public enum LogType
-		{ 
-			Error,		// Display an error, must cause one of above
-			Warning,	// Display a warning
-			Info,		// Information
-			Phase		// Phase of execution
+		{
+			Error,      // Display an error, must cause one of above
+			Warning,    // Display a warning
+			Info,       // Information
+			Phase       // Phase of execution
 		}
 
 		static public ErrorState ProgramErrorState { get; private set; }
@@ -38,6 +38,7 @@ namespace MuffinSpace
 			return ("(" + vec3.X + " " + vec3.Y + " " + vec3.Z + ")");
 		}
 
+	#if DEBUG
 		static public void LogInfo(string message)
 		{
 			PrintLogType(LogType.Info);
@@ -56,18 +57,23 @@ namespace MuffinSpace
 			Console.WriteLine("");
 		}
 
-		static public void LogPhase(string message)
-		{
-			PrintLogType(LogType.Phase);
-			Console.Write(message);
-			PrintElapsedTime();
-		}
-
 		static public void LogWarning(string message)
 		{
 			PrintLogType(LogType.Warning);
 			Console.WriteLine(message);
 			ProgramErrorState = ErrorState.Unoptimal;
+		}
+	#else 
+		static public void LogInfo(string message) { }
+		static public void LogInfoLinePart(string message, ConsoleColor color) { }
+		static public void LogInfoLineEnd() { }
+	#endif
+
+		static public void LogPhase(string message)
+		{
+			PrintLogType(LogType.Phase);
+			Console.Write(message);
+			PrintElapsedTime();
 		}
 
 		static public void LogError(ErrorState severity, string message)

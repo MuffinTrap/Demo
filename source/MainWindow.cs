@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Drawing;
+using System.Diagnostics;
 
 using OpenTK;
 using OpenTK.Graphics;
@@ -76,6 +77,10 @@ namespace MuffinSpace
 		TunableManager tunableManager;
 		TestScene testScene;
 
+		LoadingScene loadingScene;
+		Stopwatch applicationTime;
+		int loadingTimeMs = 2000;
+
         public MainWindow()
             : base(1066, 600, 
                   GraphicsMode.Default,
@@ -89,10 +94,8 @@ namespace MuffinSpace
             Title += "OpenGL version: " + GL.GetString(StringName.Version);
 
 			Logger.LogPhase("OpenTK initialized. OpenGL version: " + GL.GetString(StringName.Version));
-			base.TargetUpdateFrequency = 120;
+			base.TargetUpdateFrequency = 60;
 			base.Location = new Point(0, 0);
-
-			
         }
 
         protected override void OnResize(EventArgs e)
@@ -187,15 +190,16 @@ namespace MuffinSpace
 			testScene = new TestScene();
 			testScene.Load(assetManager);
 
+			loadingScene = new LoadingScene();
+			loadingScene.Load(assetManager);
+
+			applicationTime = new Stopwatch();
+
 			LoadDemo();
 			Logger.LogPhase("OnLoad complete");
 			loadCompleted = true;
             running = true;
-
-			if (syncSystem.GetOperationMode() == SyncMode.Player)
-			{
-				demoWrapper.Demo.Start();
-			}
+			applicationTime.Start();
         }
 
 		private void LoadDemo()
@@ -228,6 +232,20 @@ namespace MuffinSpace
 			}
 
 			syncSystem.Sync();
+
+			// Run loading scene for a while
+			if (applicationTime.ElapsedMilliseconds > loadingTimeMs && demoWrapper.Running == false)
+			{
+				demoWrapper.Running = true;
+				if (syncSystem.GetOperationMode() == SyncMode.Player)
+				{
+					demoWrapper.Demo.Start();
+				}
+			}
+			else
+			{
+				loadingScene.Update(Math.Max(0.0f, 1.0f - (applicationTime.ElapsedMilliseconds / (float)loadingTimeMs)));
+			}
 
 			if (syncSystem.GetOperationMode() == SyncMode.Player && syncSystem.State == SyncState.Finished)
 			{
@@ -262,11 +280,16 @@ namespace MuffinSpace
 				return;
 			}
 
+			// testScene.Update();
+			if (demoWrapper.Running == false)
+			{
+				return;
+			}
+
 			if (inputEnabled)
 			{
 				renderer.UpdateInput(keyState, mouseState);
 			}
-			testScene.Update();
 
 			demoWrapper.Demo.Sync(syncSystem);
         }
@@ -277,6 +300,9 @@ namespace MuffinSpace
             {
 				ExitProgram();
             }
+
+			// DEBUG BUTTONS
+			#if DEBUG
 
 			if (PrevSceneButton.Pressed(keyState))
 			{
@@ -348,6 +374,7 @@ namespace MuffinSpace
 			{
 				syncSystem.AdvanceSceneProgress();
 			}
+			#endif
 		}
 
 
@@ -365,8 +392,14 @@ namespace MuffinSpace
 			renderer.StartFrame();
 
 			// testScene.Draw();
-
-			demoWrapper.Demo.Draw(renderer);
+			if (demoWrapper.Running == true)
+			{
+				demoWrapper.Demo.Draw(renderer);
+			}
+			else
+			{
+				loadingScene.Draw();
+			}
 
 			renderer.EndFrame();
             SwapBuffers();

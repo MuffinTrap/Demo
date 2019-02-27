@@ -119,7 +119,6 @@ namespace MuffinSpace
 		// Fadeout
 
 		ShaderProgram guiShader;
-		int fadeAlphaLocation = 0;
 		float fadeAlpha = 0.0f;
 		DrawableMesh fadeoutQuad;
 		SyncTrack fadeoutAlpha;
@@ -170,9 +169,6 @@ namespace MuffinSpace
 		List<Vector3> telescopeArrayPositions;
 
 		// Greetings 
-		Vector3 greetOffset;
-		Vector3 greetSpacing;
-		float greetScale;
 		List<GreetPage> group_greetings;
 
 		// Credits
@@ -257,7 +253,6 @@ namespace MuffinSpace
 			{
 				Logger.LogError(Logger.ErrorState.Critical, "Did not get gui shader");
 			}
-			fadeAlphaLocation = guiShader.GetCustomUniformLocation("uAlpha");
 			fadeoutAlpha = syncSystem.GetTrack("FadeOut");
 
 			Material fadeoutMaterial = new Material("blackfadeout");
@@ -474,54 +469,63 @@ namespace MuffinSpace
 
 			Logger.LogInfo("Creating greetings");
 			// Title, Greets and credits
-				TextGenerator textgen = TextGenerator.GetSingleton();
-				string greet_font = tm.GetString("text.font");
-				PixelFont greetFont = textgen.GetFont(greet_font);
-				string greet_material = tm.GetString("text.material");
-				ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("text.shader"));
+			TextGenerator textgen = TextGenerator.GetSingleton();
+			string greet_font = tm.GetString("text.font");
+			PixelFont greetFont = textgen.GetFont(greet_font);
+			string greet_material = tm.GetString("text.material");
+			ShaderProgram greetShader = assetManager.GetShaderProgram(tm.GetString("text.shader"));
 			float textStep = tm.GetFloat("text.step");
 
 			// Title
 			string titleMaterial = tm.GetString("mountain_text.title_material");
 			string groupMaterial = tm.GetString("mountain_text.group_material");
 
-				DrawableMesh groupName = assetManager.CreateMesh("groupText"
-				, MeshDataGenerator.CreateQuadMesh(false, true)
-				, groupMaterial
-				, greetShader
-				, tm.GetVec3("mountain_scene.group_name_position"));
+			DrawableMesh groupName = assetManager.CreateMesh("groupText"
+			, MeshDataGenerator.CreateQuadMesh(false, true)
+			, groupMaterial
+			, greetShader
+			, tm.GetVec3("mountain_scene.group_name_position"));
 			groupName.Transform.Scale = tm.GetFloat("mountain_scene.group_name_scale");
 
-				groupNameGreet = new Greeting();
-				groupNameGreet.textMesh = groupName;
-				groupNameGreet.alpha = 0.0f;
-				groupNameGreet.color = tm.GetVec3("mountain_text.color");
+			groupNameGreet = new Greeting();
+			groupNameGreet.textMesh = groupName;
+			groupNameGreet.alpha = 0.0f;
+			groupNameGreet.color = tm.GetVec3("mountain_text.color");
 				
 
-				DrawableMesh demoName = assetManager.CreateMesh("groupText"
-				, MeshDataGenerator.CreateQuadMesh(false, true)
-				, titleMaterial
-				, greetShader
-				, tm.GetVec3("mountain_scene.demo_name_position"));
+			DrawableMesh demoName = assetManager.CreateMesh("groupText"
+			, MeshDataGenerator.CreateQuadMesh(false, true)
+			, titleMaterial
+			, greetShader
+			, tm.GetVec3("mountain_scene.demo_name_position"));
 			demoName.Transform.Scale = tm.GetFloat("mountain_scene.demo_name_scale");
 
-				demoNameGreet = new Greeting();
-				demoNameGreet.textMesh = demoName;
-				demoNameGreet.alpha = 0.0f;
-				demoNameGreet.color = tm.GetVec3("mountain_text.color");
+			demoNameGreet = new Greeting();
+			demoNameGreet.textMesh = demoName;
+			demoNameGreet.alpha = 0.0f;
+			demoNameGreet.color = tm.GetVec3("mountain_text.color");
 
 			// Greets
-				greetOffset = tm.GetVec3("text.offset");
-				greetSpacing = tm.GetVec3("text.spacing");
-				greetScale = tm.GetFloat("text.scale");
+			Vector3 greetOffset = tm.GetVec3("text.offset");
+			Vector3 greetSpacing = tm.GetVec3("text.spacing");
+			float greetScale = tm.GetFloat("text.scale");
 
-				group_greetings = new List<GreetPage>();
+			group_greetings = new List<GreetPage>();
 			Vector3 monoGreetColor = tm.GetVec3("monolith_greets.color");
-			CreateGreets(tm, assetManager, "monolith_greets", greetFont, greet_material, monoGreetColor, greetShader, textStep, monolith.Transform, ref group_greetings);
+
+			CreateGreets(tm, assetManager, "monolith_greets", greetFont, greet_material, monoGreetColor, greetShader
+			, greetOffset, greetSpacing, greetScale
+			, textStep, monolith.Transform, ref group_greetings);
+
 			// Credits
-				credits = new List<GreetPage>();
-			Vector3 creditGreetColor = tm.GetVec3("monolith_credits.color");
-			CreateGreets(tm, assetManager, "monolith_credits", greetFont, greet_material, creditGreetColor, greetShader, textStep, monolith.Transform, ref credits);
+			credits = new List<GreetPage>();
+			Vector3 creditsOffset = tm.GetVec3("credits.offset");
+			Vector3 creditsSpacing = tm.GetVec3("credits.spacing");
+			float creditsScale = tm.GetFloat("credits.scale");
+			Vector3 creditGreetColor = tm.GetVec3("credits.color");
+			CreateGreets(tm, assetManager, "credits", greetFont, greet_material, creditGreetColor, greetShader
+			, creditsOffset, creditsSpacing, creditsScale
+			, textStep, monolith.Transform, ref credits);
 
 			textAlpha = syncSystem.GetTrack("text_A");
 
@@ -533,7 +537,10 @@ namespace MuffinSpace
 
 			title.Add(titlePage);
 
-			lightController.StartSync();
+			if (settings.LightServer)
+			{
+				lightController.StartSync();
+			}
 			Logger.LogPhase("Bunny demo is loaded");
 			syncSystem.PrintEditorRowAmount();
 		}
@@ -568,6 +575,9 @@ namespace MuffinSpace
 		, string greet_material
 		, Vector3 greetColor
 		, ShaderProgram greetShader
+		, Vector3 greetOffset
+		, Vector3 greetSpacing
+		, float greetScale
 		, float letterStep
 		, TransformComponent parentTransform
 		, ref List<GreetPage> greetsOut)
@@ -826,7 +836,7 @@ namespace MuffinSpace
 
 		public void Start()
 		{
-			if (GetDemoSettings().AudioEnabled)
+			if (settings.AudioEnabled)
 			{
 				audioSystem.PlayAudio(music);
 			}
@@ -998,9 +1008,11 @@ namespace MuffinSpace
 			}
 
 			settings.SyncEnabled = tm.GetBool("demosettings.sync_enabled");
+			settings.LightServer = tm.GetBool("demosettings.light_server_enabled");
 
 			settings.Resolution = tm.GetVec2("demosettings.resolution");
 			settings.Fullscreen = tm.GetBool("demosettings.fullscreen");
+
 			settings.UpdatesPerSecond = tm.GetInt("demosettings.updates_per_second");
 			settings.WindowTitle = tm.GetString("demosettings.window_title");
 			settings.SyncFilePrefix = tm.GetString("sync.track_file_prefix");
@@ -1017,7 +1029,7 @@ namespace MuffinSpace
 
 		public void Stop()
 		{
-			if (GetDemoSettings().AudioEnabled)
+			if (settings.AudioEnabled)
 			{
 				audioSystem.StopAudio(music);
 			}
